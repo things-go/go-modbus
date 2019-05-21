@@ -1,0 +1,18 @@
+package modbus
+
+import "testing"
+
+func Benchmark_dataBlock(b *testing.B) {
+	data := []uint16{0x01, 0x10, 0x8A, 0x00, 0x00, 0x03, 0xAA, 0x10}
+	for i := 0; i < b.N; i++ {
+		pduDataBlock(data...)
+	}
+}
+
+func Benchmark_dataBlockSuffix(b *testing.B) {
+	suffix := []byte{0x01, 0x10, 0x8A, 0x00, 0x00, 0x03, 0xAA, 0x10}
+	data := []uint16{0x01, 0x10, 0x8A, 0x00, 0x00, 0x03, 0xAA, 0x10}
+	for i := 0; i < b.N; i++ {
+		pduDataBlockSuffix(suffix, data...)
+	}
+}
