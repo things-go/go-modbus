@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
-	"log"
 	"net"
 	"sync"
 	"time"
@@ -91,7 +90,7 @@ func (this *TCPServer) ServerModbus() {
 		}
 		go func() {
 			//this.logf("client(%v) disconnected", conn.RemoteAddr())
-			log.Printf("client(%v) -> server(%v) connected", conn.RemoteAddr(), conn.LocalAddr())
+			this.logf("client(%v) -> server(%v) connected", conn.RemoteAddr(), conn.LocalAddr())
 			// get pool frame
 			frame := this.pool.Get().(*protocolTCPFrame)
 			this.mu.Lock()
@@ -99,7 +98,7 @@ func (this *TCPServer) ServerModbus() {
 			this.mu.Unlock()
 			defer func() {
 				//this.logf("client(%v) disconnected", conn.RemoteAddr())
-				log.Printf("client(%v) -> server(%v) disconnected", conn.RemoteAddr(), conn.LocalAddr())
+				this.logf("client(%v) -> server(%v) disconnected", conn.RemoteAddr(), conn.LocalAddr())
 				// rest pool frame and put it
 				frame.pdu.Data = nil
 				this.pool.Put(frame)
