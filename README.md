@@ -3,6 +3,8 @@ go modbus Supported formats
 - modbus Serial(RTU,ASCII) Client
 - modbus TCP Server
 
+[![GoDoc](https://godoc.org/github.com/thinkgos/gomodbus?status.svg)](https://godoc.org/github.com/thinkgos/gomodbus)
+
 大量参考了![goburrow](https://github.com/goburrow/modbus)
 
 Supported functions
