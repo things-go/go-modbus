@@ -38,6 +38,7 @@ func NewTCPServer(laddr string) *TCPServer {
 		tcpWriteTimeout: TCPDefaultWriteTimeout,
 		pool:            &sync.Pool{New: func() interface{} { return &protocolTCPFrame{} }},
 		serverHandler:   newServerHandler(),
+		client:          make(map[net.Conn]struct{}),
 	}
 }
 
@@ -178,6 +179,7 @@ func (this *TCPServer) Close() error {
 		this.listen = nil
 	}
 	for k, _ := range this.client {
+		k.Close()
 		delete(this.client, k)
 	}
 	this.mu.Unlock()
