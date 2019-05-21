@@ -3,6 +3,7 @@ package modbus
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 	"sync"
 )
 
@@ -21,11 +22,23 @@ type NodeRegister struct {
 }
 
 // NewNodeRegister 创建一个modbus子节点
+// if (coilsQuantity + 7)/8 > len(coils)
+// or (discreteQuantity + 7)/8 > len(discrete)
+// it will panic
 func NewNodeRegister(slaveID byte,
 	coilsAddrStart, coilsQuantity uint16, coils []uint8,
 	discreteAddrStart, discreteQuantity uint16, discrete []uint8,
 	inputAddrStart uint16, input []uint16,
 	holdingAddrStart uint16, holding []uint16) *NodeRegister {
+	coilsBytes := (coilsQuantity + 7) / 8
+	discreteBytes := (discreteQuantity + 7) / 8
+	if int(coilsBytes) > len(coils) {
+		panic(fmt.Sprintf("modbus: coils Quantity '%v' to bytes '%v' gread than buffer length '%v'", coilsQuantity, (coilsQuantity+7)/8, len(coils)))
+	}
+	if int(discreteBytes) > len(discrete) {
+		panic(fmt.Sprintf("modbus: discrete Quantity '%v' to bytes '%v' gread than buffer length '%v'", discreteBytes, discreteBytes, len(discrete)))
+	}
+
 	return &NodeRegister{
 		slaveID:           slaveID,
 		coilsAddrStart:    coilsAddrStart,
@@ -38,6 +51,30 @@ func NewNodeRegister(slaveID byte,
 		input:             input,
 		holdingAddrStart:  holdingAddrStart,
 		holding:           holding,
+	}
+}
+
+// NewNodeRegister2 创建一个modbus子节点
+func NewNodeRegister2(slaveID byte,
+	coilsAddrStart, coilsQuantity, discreteAddrStart, discreteQuantity,
+	inputAddrStart, inputQuantity, holdingAddrStart, holdingQuantity uint16) *NodeRegister {
+	coilsBytes := (coilsQuantity + 7) / 8
+	discreteBytes := (discreteQuantity + 7) / 8
+
+	b := make([]byte, coilsBytes+discreteBytes)
+	w := make([]uint16, inputQuantity+holdingQuantity)
+	return &NodeRegister{
+		slaveID:           slaveID,
+		coilsAddrStart:    coilsAddrStart,
+		coilsQuantity:     coilsQuantity,
+		coils:             b[:coilsBytes],
+		discreteAddrStart: discreteAddrStart,
+		discreteQuantity:  discreteQuantity,
+		discrete:          b[coilsBytes:],
+		inputAddrStart:    inputAddrStart,
+		input:             w[:inputQuantity],
+		holdingAddrStart:  holdingAddrStart,
+		holding:           w[inputQuantity:],
 	}
 }
 

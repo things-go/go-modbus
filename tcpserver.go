@@ -89,7 +89,6 @@ func (this *TCPServer) ServerModbus() {
 			return
 		}
 		go func() {
-			//this.logf("client(%v) disconnected", conn.RemoteAddr())
 			this.logf("client(%v) -> server(%v) connected", conn.RemoteAddr(), conn.LocalAddr())
 			// get pool frame
 			frame := this.pool.Get().(*protocolTCPFrame)
@@ -97,7 +96,6 @@ func (this *TCPServer) ServerModbus() {
 			this.client[conn] = struct{}{}
 			this.mu.Unlock()
 			defer func() {
-				//this.logf("client(%v) disconnected", conn.RemoteAddr())
 				this.logf("client(%v) -> server(%v) disconnected", conn.RemoteAddr(), conn.LocalAddr())
 				// rest pool frame and put it
 				frame.pdu.Data = nil
