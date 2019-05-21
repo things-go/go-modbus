@@ -116,21 +116,25 @@ func (this *TCPServer) ServerModbus() {
 					this.logf("set read deadline %v\n", err)
 					return
 				}
+
 				bytesRead, err := conn.Read(readbuf)
 				if err != nil {
-					if err != io.EOF {
-						this.logf("read failed %v\n", err)
+					if netError, ok := err.(net.Error); ok && netError.Timeout() {
+						this.logf("close because client not active %v\n", netError)
+						return
+					}
+					if bytesRead == 0 && err == io.EOF {
+						this.logf("remote client closed %v\n", err)
 						return
 					}
 					// cnt >0 do nothing
-					// cnt == continue next do it
+					// cnt == 0 && err != io.EOFcontinue do it next
 				}
 				if bytesRead == 0 {
 					continue
 				}
 
 				tmpbuf = append(tmpbuf, readbuf[:bytesRead]...)
-
 				for {
 					if len(tmpbuf) < tcpHeaderMbapSize {
 						break
