@@ -181,7 +181,7 @@ func (this *TCPServer) Close() error {
 		this.listen.Close()
 		this.listen = nil
 	}
-	for k, _ := range this.client {
+	for k := range this.client {
 		k.Close()
 		delete(this.client, k)
 	}
