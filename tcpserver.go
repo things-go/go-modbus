@@ -23,6 +23,9 @@ type TCPServer struct {
 	tcpWriteTimeout time.Duration
 	node            sync.Map
 	pool            *sync.Pool
+	mu              sync.Mutex
+	listen          net.Listener
+	client          map[net.Conn]struct{}
 	*serverHandler
 	logs
 }
@@ -74,7 +77,10 @@ func (this *TCPServer) ServerModbus() {
 		this.logf("mobus listen: %v\n", err)
 		return
 	}
-	defer listen.Close()
+	this.mu.Lock()
+	this.listen = listen
+	this.mu.Unlock()
+	defer this.Close()
 	this.logf("mobus TCP server running")
 	for {
 		conn, err := listen.Accept()
@@ -82,18 +88,23 @@ func (this *TCPServer) ServerModbus() {
 			this.logf("modbus accept: %#v\n", err)
 			return
 		}
-
 		go func() {
 			//this.logf("client(%v) disconnected", conn.RemoteAddr())
 			log.Printf("client(%v) -> server(%v) connected", conn.RemoteAddr(), conn.LocalAddr())
 			// get pool frame
 			frame := this.pool.Get().(*protocolTCPFrame)
+			this.mu.Lock()
+			this.client[conn] = struct{}{}
+			this.mu.Unlock()
 			defer func() {
 				//this.logf("client(%v) disconnected", conn.RemoteAddr())
 				log.Printf("client(%v) -> server(%v) disconnected", conn.RemoteAddr(), conn.LocalAddr())
 				// rest pool frame and put it
 				frame.pdu.Data = nil
 				this.pool.Put(frame)
+				this.mu.Lock()
+				delete(this.client, conn)
+				this.mu.Unlock()
 				conn.Close()
 			}()
 			readbuf := make([]byte, 1024)
@@ -157,6 +168,20 @@ func (this *TCPServer) ServerModbus() {
 			}
 		}()
 	}
+}
+
+// Close close the server
+func (this *TCPServer) Close() error {
+	this.mu.Lock()
+	if this.listen != nil {
+		this.listen.Close()
+		this.listen = nil
+	}
+	for k, _ := range this.client {
+		delete(this.client, k)
+	}
+	this.mu.Unlock()
+	return nil
 }
 
 // modbus 包处理

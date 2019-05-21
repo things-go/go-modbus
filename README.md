@@ -35,7 +35,7 @@ Bit access:
 ### Example
 ----------
 ```
-    // modbus TCP
+    // modbus TCP Client
     p := modbus.NewTCPClientProvider(":502")
 	p.Logger = log.New(os.Stdout, "", log.LstdFlags)
 	client := modbus.NewClient(p)
@@ -58,7 +58,7 @@ Bit access:
 ```
 
 ```
-    // modbus RTU/ASCII
+    // modbus RTU/ASCII Client
     p := modbus.NewTCPClientProvider("COM1")
     p.BaudRate = 115200
 	p.DataBits = 8
@@ -82,6 +82,20 @@ Bit access:
 		}
 		time.Sleep(time.Second * 5)
 	}
+```
+```
+    // modbus TCP Server
+	srv := modbus.NewTCPServer(":502")
+	srv.Logger = log.New(os.Stdout, "modbus", log.Ltime)
+	srv.LogMode(true)
+	srv.AddNode(modbus.NewNodeRegister(
+		1,
+		0, 10, []byte{0xfa, 0xa0},
+		0, 10, []byte{0xa5, 0x0a},
+		0, []uint16{0x1234, 0x4567, 0x1234, 0x4567, 0x1234, 0x4567, 0x4567, 0x1234, 0x4567, 0x1234},
+		0, []uint16{0x4567, 0x1234, 0x4567, 0x1234, 0x4567, 0x1234, 0x4567, 0x1234, 0x4567, 0x1234},
+	))
+	srv.ServerModbus()
 ```
 ### References
 ----------
