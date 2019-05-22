@@ -84,7 +84,7 @@ func TestNodeRegister_SlaveID(t *testing.T) {
 	}{
 		{
 			"slave ID same",
-			&NodeRegister{SlaveID: 0x01},
+			&NodeRegister{slaveID: 0x01},
 			0x01,
 		},
 	}
