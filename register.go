@@ -7,6 +7,14 @@ import (
 	"sync"
 )
 
+// Register type 寄存器类型
+const (
+	CoilsType = iota
+	DiscretesType
+	InputsType
+	HoldingsType
+)
+
 // NodeRegister 节点寄存器
 type NodeRegister struct {
 	rw                                  sync.RWMutex // 读写锁
@@ -30,12 +38,12 @@ func NewNodeRegister(slaveID byte,
 	discreteAddrStart, discreteQuantity uint16, discrete []uint8,
 	inputAddrStart uint16, input []uint16,
 	holdingAddrStart uint16, holding []uint16) *NodeRegister {
-	coilsBytes := (coilsQuantity + 7) / 8
-	discreteBytes := (discreteQuantity + 7) / 8
-	if int(coilsBytes) > len(coils) {
+	coilsBytes := (int(coilsQuantity) + 7) / 8
+	discreteBytes := (int(discreteQuantity) + 7) / 8
+	if coilsBytes > len(coils) {
 		panic(fmt.Sprintf("modbus: coils Quantity '%v' to bytes '%v' gread than buffer length '%v'", coilsQuantity, (coilsQuantity+7)/8, len(coils)))
 	}
-	if int(discreteBytes) > len(discrete) {
+	if discreteBytes > len(discrete) {
 		panic(fmt.Sprintf("modbus: discrete Quantity '%v' to bytes '%v' gread than buffer length '%v'", discreteBytes, discreteBytes, len(discrete)))
 	}
 
@@ -58,8 +66,8 @@ func NewNodeRegister(slaveID byte,
 func NewNodeRegister2(slaveID byte,
 	coilsAddrStart, coilsQuantity, discreteAddrStart, discreteQuantity,
 	inputAddrStart, inputQuantity, holdingAddrStart, holdingQuantity uint16) *NodeRegister {
-	coilsBytes := (coilsQuantity + 7) / 8
-	discreteBytes := (discreteQuantity + 7) / 8
+	coilsBytes := (int(coilsQuantity) + 7) / 8
+	discreteBytes := (int(discreteQuantity) + 7) / 8
 
 	b := make([]byte, coilsBytes+discreteBytes)
 	w := make([]uint16, inputQuantity+holdingQuantity)
@@ -76,6 +84,24 @@ func NewNodeRegister2(slaveID byte,
 		holdingAddrStart:  holdingAddrStart,
 		holding:           w[inputQuantity:],
 	}
+}
+
+// GetRegisterMax 获取寄存器的最大数量值
+func (this *NodeRegister) GetRegisterMax(types int) uint16 {
+	v := uint16(0)
+	this.rw.RLock()
+	switch types {
+	case CoilsType:
+		v = this.coilsQuantity
+	case DiscretesType:
+		v = this.discreteQuantity
+	case InputsType:
+		v = uint16(len(this.input))
+	case HoldingsType:
+		v = uint16(len(this.holding))
+	}
+	this.rw.RUnlock()
+	return v
 }
 
 // getBits 读取切片的位的值, nBits <= 8, nBits + start <= len(buf)*8
