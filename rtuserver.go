@@ -33,7 +33,7 @@ func (this *RTUServer) SetNodeRegister(nodeReg *NodeRegister) {
 
 // GetSlaveID 获得从机地址
 func (this *RTUServer) GetSlaveID() byte {
-	return this.nodeReg.slaveID
+	return this.nodeReg.SlaveID
 }
 
 // ServerModbus 服务
@@ -82,7 +82,7 @@ func (this *RTUServer) frameHandler(frame *protocolRTUFrame, packet []byte) ([]b
 		return nil, fmt.Errorf("bad packet error %v", err)
 	}
 	this.logf("request raw frame: % x", packet)
-	if fra.slaveID != this.nodeReg.slaveID || fra.slaveID != addressBroadCast {
+	if fra.slaveID != this.nodeReg.SlaveID || fra.slaveID != addressBroadCast {
 		return nil, fmt.Errorf("packet not for me %d", fra.slaveID)
 	}
 	if handle, ok := this.function[fra.funcCode]; ok {

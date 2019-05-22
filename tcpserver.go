@@ -44,7 +44,7 @@ func NewTCPServer(laddr string) *TCPServer {
 // AddNode 增加节点
 func (this *TCPServer) AddNode(node *NodeRegister) {
 	if node != nil {
-		this.node.Store(node.slaveID, node)
+		this.node.Store(node.SlaveID, node)
 	}
 
 }
@@ -52,7 +52,7 @@ func (this *TCPServer) AddNode(node *NodeRegister) {
 // AddNodes 批量增加节点
 func (this *TCPServer) AddNodes(nodes ...*NodeRegister) {
 	for _, v := range nodes {
-		this.node.Store(v.slaveID, v)
+		this.node.Store(v.SlaveID, v)
 	}
 }
 
