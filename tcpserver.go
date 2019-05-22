@@ -61,6 +61,14 @@ func (this *TCPServer) DeleteNode(slaveID byte) {
 	this.node.Delete(slaveID)
 }
 
+// DeleteAllNode 删除所有节点
+func (this *TCPServer) DeleteAllNode() {
+	this.node.Range(func(k, v interface{}) bool {
+		this.node.Delete(k)
+		return true
+	})
+}
+
 // GetNode 获取一个节点
 func (this *TCPServer) GetNode(slaveID byte) (*NodeRegister, error) {
 	v, ok := this.node.Load(slaveID)
@@ -68,6 +76,23 @@ func (this *TCPServer) GetNode(slaveID byte) (*NodeRegister, error) {
 		return nil, errors.New("slaveID not exist")
 	}
 	return v.(*NodeRegister), nil
+}
+
+// GetNodeList 获取节点列表
+func (this *TCPServer) GetNodeList() []*NodeRegister {
+	list := make([]*NodeRegister, 0)
+	this.node.Range(func(k, v interface{}) bool {
+		list = append(list, v.(*NodeRegister))
+		return true
+	})
+	return list
+}
+
+// NodeRange 扫描节点 same as sync map range
+func (this *TCPServer) NodeRange(f func(slaveID byte, node *NodeRegister) bool) {
+	this.node.Range(func(k, v interface{}) bool {
+		return f(k.(byte), v.(*NodeRegister))
+	})
 }
 
 // ServerModbus 服务
