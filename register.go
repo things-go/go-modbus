@@ -142,13 +142,14 @@ func (this *NodeRegister) WriteCoils(address, quality uint16, valBuf []byte) err
 		((address + quality) <= (this.coilsAddrStart + this.coilsQuantity)) {
 		start := address - this.coilsAddrStart
 		nCoils := int16(quality)
-		for idx := 0; nCoils > 0; nCoils -= 8 {
+		for idx := 0; nCoils > 0; idx++ {
 			num := nCoils
 			if nCoils > 8 {
 				num = 8
 			}
 			setBits(this.coils, start, uint16(num), valBuf[idx])
 			start += 8
+			nCoils -= 8
 		}
 		this.rw.Unlock()
 		return nil
@@ -205,13 +206,14 @@ func (this *NodeRegister) WriteDiscretes(address, quality uint16, valBuf []byte)
 		((address + quality) <= (this.discreteAddrStart + this.discreteQuantity)) {
 		start := address - this.discreteAddrStart
 		nCoils := int16(quality)
-		for idx := 0; nCoils > 0; nCoils -= 8 {
+		for idx := 0; nCoils > 0; idx++ {
 			num := nCoils
 			if nCoils > 8 {
 				num = 8
 			}
 			setBits(this.discrete, start, uint16(num), valBuf[idx])
 			start += 8
+			nCoils -= 8
 		}
 		this.rw.Unlock()
 		return nil
