@@ -70,7 +70,7 @@ func NewNodeRegister2(slaveID byte,
 	discreteBytes := (int(discreteQuantity) + 7) / 8
 
 	b := make([]byte, coilsBytes+discreteBytes)
-	w := make([]uint16, inputQuantity+holdingQuantity)
+	w := make([]uint16, int(inputQuantity)+int(holdingQuantity))
 	return &NodeRegister{
 		slaveID:           slaveID,
 		coilsAddrStart:    coilsAddrStart,
