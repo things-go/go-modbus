@@ -4,12 +4,13 @@ import (
 	"encoding/binary"
 )
 
+// pdu数据域 各功能码要求的最小长度
 const (
-	funcReadMinSize       = 4 // 读操作 最小数据域个数
-	funcWriteMinSize      = 4 // 写操作 最小数据域个数
-	funcWriteMultiMinSize = 5 // 写多个操作 最小数据域个数
-	funcReadWriteMinSize  = 9 // 读写操作 最小数据域个数
-	funcMaskWriteMinSize  = 6 // 屏蔽写操作 最小数据域个数
+	FuncReadMinSize       = 4 // 读操作 最小数据域个数
+	FuncWriteMinSize      = 4 // 写操作 最小数据域个数
+	FuncWriteMultiMinSize = 5 // 写多个操作 最小数据域个数
+	FuncReadWriteMinSize  = 9 // 读写操作 最小数据域个数
+	FuncMaskWriteMinSize  = 6 // 屏蔽写操作 最小数据域个数
 )
 
 // FunctionHandler 功能码对应的函数回调
@@ -48,7 +49,7 @@ func readBits(reg *NodeRegister, data []byte, isCoil bool) ([]byte, error) {
 	var value []byte
 	var err error
 
-	if len(data) != funcReadMinSize {
+	if len(data) != FuncReadMinSize {
 		return nil, &ExceptionError{ExceptionCodeIllegalDataValue}
 	}
 
@@ -82,7 +83,7 @@ func funcReadCoils(reg *NodeRegister, data []byte) ([]byte, error) {
 
 // funcWriteSingleCoil 写单个线圈
 func funcWriteSingleCoil(reg *NodeRegister, data []byte) ([]byte, error) {
-	if len(data) != funcWriteMinSize {
+	if len(data) != FuncWriteMinSize {
 		return nil, &ExceptionError{ExceptionCodeIllegalDataValue}
 	}
 
@@ -102,7 +103,7 @@ func funcWriteSingleCoil(reg *NodeRegister, data []byte) ([]byte, error) {
 
 // funcWriteMultiCoils 写多个线圈
 func funcWriteMultiCoils(reg *NodeRegister, data []byte) ([]byte, error) {
-	if len(data) < funcWriteMultiMinSize {
+	if len(data) < FuncWriteMultiMinSize {
 		return nil, &ExceptionError{ExceptionCodeIllegalDataValue}
 	}
 
@@ -122,7 +123,7 @@ func readRegisters(reg *NodeRegister, data []byte, isHolding bool) ([]byte, erro
 	var err error
 	var value []byte
 
-	if len(data) != funcReadMinSize {
+	if len(data) != FuncReadMinSize {
 		return nil, &ExceptionError{ExceptionCodeIllegalDataValue}
 	}
 
@@ -158,7 +159,7 @@ func funcReadHoldingRegisters(reg *NodeRegister, data []byte) ([]byte, error) {
 
 // funcWriteSingleRegister 写单个保持寄存器
 func funcWriteSingleRegister(reg *NodeRegister, data []byte) ([]byte, error) {
-	if len(data) != funcWriteMinSize {
+	if len(data) != FuncWriteMinSize {
 		return nil, &ExceptionError{ExceptionCodeIllegalDataValue}
 	}
 
@@ -169,7 +170,7 @@ func funcWriteSingleRegister(reg *NodeRegister, data []byte) ([]byte, error) {
 
 // funcWriteMultiHoldingRegisters 写多个保持寄存器
 func funcWriteMultiHoldingRegisters(reg *NodeRegister, data []byte) ([]byte, error) {
-	if len(data) < funcWriteMultiMinSize {
+	if len(data) < FuncWriteMultiMinSize {
 		return nil, &ExceptionError{ExceptionCodeIllegalDataValue}
 	}
 
@@ -191,7 +192,7 @@ func funcWriteMultiHoldingRegisters(reg *NodeRegister, data []byte) ([]byte, err
 
 // funcReadWriteMultiHoldingRegisters 读写多个保持寄存器
 func funcReadWriteMultiHoldingRegisters(reg *NodeRegister, data []byte) ([]byte, error) {
-	if len(data) < funcReadWriteMinSize {
+	if len(data) < FuncReadWriteMinSize {
 		return nil, &ExceptionError{ExceptionCodeIllegalDataValue}
 	}
 
@@ -221,7 +222,7 @@ func funcReadWriteMultiHoldingRegisters(reg *NodeRegister, data []byte) ([]byte,
 
 // funcMaskWriteRegisters 屏蔽写寄存器
 func funcMaskWriteRegisters(reg *NodeRegister, data []byte) ([]byte, error) {
-	if len(data) != funcMaskWriteMinSize {
+	if len(data) != FuncMaskWriteMinSize {
 		return nil, &ExceptionError{ExceptionCodeIllegalDataValue}
 	}
 
