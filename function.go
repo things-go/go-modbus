@@ -13,6 +13,7 @@ const (
 )
 
 // FunctionHandler 功能码对应的函数回调
+// data pdu数据域, return pdu数据
 type FunctionHandler func(reg *NodeRegister, data []byte) ([]byte, error)
 
 type serverHandler struct {
@@ -74,12 +75,12 @@ func funcReadDiscreteInputs(reg *NodeRegister, data []byte) ([]byte, error) {
 	return readBits(reg, data, false)
 }
 
-// funcReadCoils 读线圈,返回仅含PDU数据域
+// funcReadCoils 读线圈
 func funcReadCoils(reg *NodeRegister, data []byte) ([]byte, error) {
 	return readBits(reg, data, true)
 }
 
-// funcWriteSingleCoil 写单个线圈,返回仅含PDU数据域
+// funcWriteSingleCoil 写单个线圈
 func funcWriteSingleCoil(reg *NodeRegister, data []byte) ([]byte, error) {
 	if len(data) != funcWriteMinSize {
 		return nil, &ExceptionError{ExceptionCodeIllegalDataValue}
@@ -99,7 +100,7 @@ func funcWriteSingleCoil(reg *NodeRegister, data []byte) ([]byte, error) {
 	return data, err
 }
 
-// funcWriteMultiCoils 写多个线圈,返回仅含PDU数据域
+// funcWriteMultiCoils 写多个线圈
 func funcWriteMultiCoils(reg *NodeRegister, data []byte) ([]byte, error) {
 	if len(data) < funcWriteMultiMinSize {
 		return nil, &ExceptionError{ExceptionCodeIllegalDataValue}
@@ -116,7 +117,7 @@ func funcWriteMultiCoils(reg *NodeRegister, data []byte) ([]byte, error) {
 	return data[:4], err
 }
 
-// readRegisters 读继寄器,返回仅含PDU数据域
+// readRegisters 读继寄器
 func readRegisters(reg *NodeRegister, data []byte, isHolding bool) ([]byte, error) {
 	var err error
 	var value []byte
@@ -145,17 +146,17 @@ func readRegisters(reg *NodeRegister, data []byte, isHolding bool) ([]byte, erro
 	return result, nil
 }
 
-// funcReadInputRegisters 读输入寄存器,返回仅含PDU数据域
+// funcReadInputRegisters 读输入寄存器
 func funcReadInputRegisters(reg *NodeRegister, data []byte) ([]byte, error) {
 	return readRegisters(reg, data, false)
 }
 
-// funcReadHoldingRegisters 读保持寄存器,返回仅含PDU数据域
+// funcReadHoldingRegisters 读保持寄存器
 func funcReadHoldingRegisters(reg *NodeRegister, data []byte) ([]byte, error) {
 	return readRegisters(reg, data, true)
 }
 
-// funcWriteSingleRegister 写单个保持寄存器,返回仅含PDU数据域
+// funcWriteSingleRegister 写单个保持寄存器
 func funcWriteSingleRegister(reg *NodeRegister, data []byte) ([]byte, error) {
 	if len(data) != funcWriteMinSize {
 		return nil, &ExceptionError{ExceptionCodeIllegalDataValue}
@@ -166,7 +167,7 @@ func funcWriteSingleRegister(reg *NodeRegister, data []byte) ([]byte, error) {
 	return data, err
 }
 
-// funcWriteMultiHoldingRegisters 写多个保持寄存器,返回仅含PDU数据域
+// funcWriteMultiHoldingRegisters 写多个保持寄存器
 func funcWriteMultiHoldingRegisters(reg *NodeRegister, data []byte) ([]byte, error) {
 	if len(data) < funcWriteMultiMinSize {
 		return nil, &ExceptionError{ExceptionCodeIllegalDataValue}
@@ -188,7 +189,7 @@ func funcWriteMultiHoldingRegisters(reg *NodeRegister, data []byte) ([]byte, err
 	return data[:4], nil
 }
 
-// funcReadWriteMultiHoldingRegisters 读写多个保持寄存器,返回仅含PDU数据域
+// funcReadWriteMultiHoldingRegisters 读写多个保持寄存器
 func funcReadWriteMultiHoldingRegisters(reg *NodeRegister, data []byte) ([]byte, error) {
 	if len(data) < funcReadWriteMinSize {
 		return nil, &ExceptionError{ExceptionCodeIllegalDataValue}
@@ -218,7 +219,7 @@ func funcReadWriteMultiHoldingRegisters(reg *NodeRegister, data []byte) ([]byte,
 	return result, nil
 }
 
-// funcMaskWriteRegisters 屏蔽写寄存器,返回仅含PDU数据域
+// funcMaskWriteRegisters 屏蔽写寄存器
 func funcMaskWriteRegisters(reg *NodeRegister, data []byte) ([]byte, error) {
 	if len(data) != funcMaskWriteMinSize {
 		return nil, &ExceptionError{ExceptionCodeIllegalDataValue}
@@ -231,7 +232,7 @@ func funcMaskWriteRegisters(reg *NodeRegister, data []byte) ([]byte, error) {
 	return data, err
 }
 
-// TODO funcReadFIFOQueue,返回仅含PDU数据域
+// TODO funcReadFIFOQueue
 // func (this *ExtraOption)funcReadFIFOQueue(*NodeRegister, []byte) ([]byte, error) {
 // 	return nil, nil
 // }
