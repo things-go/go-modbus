@@ -14,7 +14,7 @@ const (
 )
 
 // FunctionHandler 功能码对应的函数回调
-// data pdu数据域, return pdu数据
+// data 仅pdu数据域 不含功能码, return pdu 数据域,不含功能码
 type FunctionHandler func(reg *NodeRegister, data []byte) ([]byte, error)
 
 type serverHandler struct {
