@@ -99,29 +99,29 @@ func (this *TCPServer) NodeRange(f func(slaveID byte, node *NodeRegister) bool) 
 func (this *TCPServer) ServerModbus() {
 	listen, err := net.Listen("tcp", this.lAddr)
 	if err != nil {
-		this.logf("mobus listen: %v\n", err)
+		this.Error("mobus listen: %v\n", err)
 		return
 	}
 	this.mu.Lock()
 	this.listen = listen
 	this.mu.Unlock()
 	defer this.Close()
-	this.logf("mobus TCP server running")
+	this.Debug("mobus TCP server running")
 	for {
 		conn, err := listen.Accept()
 		if err != nil {
-			this.logf("modbus accept: %#v\n", err)
+			this.Error("modbus accept: %#v\n", err)
 			return
 		}
 		go func() {
-			this.logf("client(%v) -> server(%v) connected", conn.RemoteAddr(), conn.LocalAddr())
+			this.Debug("client(%v) -> server(%v) connected", conn.RemoteAddr(), conn.LocalAddr())
 			// get pool frame
 			frame := this.pool.Get().(*protocolTCPFrame)
 			this.mu.Lock()
 			this.client[conn] = struct{}{}
 			this.mu.Unlock()
 			defer func() {
-				this.logf("client(%v) -> server(%v) disconnected", conn.RemoteAddr(), conn.LocalAddr())
+				this.Debug("client(%v) -> server(%v) disconnected", conn.RemoteAddr(), conn.LocalAddr())
 				// rest pool frame and put it
 				frame.pdu.Data = nil
 				this.pool.Put(frame)
@@ -135,18 +135,18 @@ func (this *TCPServer) ServerModbus() {
 			for {
 				err := conn.SetReadDeadline(time.Now().Add(this.tcpReadTimeout))
 				if err != nil {
-					this.logf("set read deadline %v\n", err)
+					this.Error("set read deadline %v\n", err)
 					return
 				}
 
 				bytesRead, err := conn.Read(readbuf)
 				if err != nil {
 					if netError, ok := err.(net.Error); ok && netError.Timeout() {
-						this.logf("close because client not active %v\n", netError)
+						this.Error("close because client not active %v\n", netError)
 						return
 					}
 					if bytesRead == 0 && err == io.EOF {
-						this.logf("remote client closed %v\n", err)
+						this.Error("remote client closed %v\n", err)
 						return
 					}
 					// cnt >0 do nothing
@@ -174,21 +174,21 @@ func (this *TCPServer) ServerModbus() {
 					request := tmpbuf[:aduLenth] // get request
 					tmpbuf = tmpbuf[aduLenth:]   // past request
 					// Set the length of the packet to the number of read bytes.
-					this.logf("modbus request: % x", request)
+					this.Debug("modbus request: % x", request)
 					response, err := this.frameHandler(frame, request)
 					if err != nil {
-						this.logf("modbus handler: %v", err)
+						this.Error("modbus handler: %v", err)
 						continue
 					}
-					this.logf("modbus response: % x", response)
+					this.Debug("modbus response: % x", response)
 					err = conn.SetWriteDeadline(time.Now().Add(this.tcpWriteTimeout))
 					if err != nil {
-						this.logf("set read deadline %v\n", err)
+						this.Error("set read deadline %v\n", err)
 						return
 					}
 					_, err = conn.Write(response)
 					if err != nil {
-						this.logf("modbus write: %v", err)
+						this.Error("modbus write: %v", err)
 						return
 					}
 				}

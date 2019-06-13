@@ -176,7 +176,7 @@ func (this *ASCIIClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []
 	}
 
 	// Send the request
-	this.logf("modbus: sending %#v\n", aduRequest)
+	this.Debug("modbus: sending %#v\n", aduRequest)
 	var tryCnt byte
 	for {
 		_, err = this.port.Write(aduRequest)
@@ -217,6 +217,6 @@ func (this *ASCIIClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []
 		}
 	}
 	aduResponse = data[:length]
-	this.logf("modbus: received %#v\n", aduResponse)
+	this.Debug("modbus: received %#v\n", aduResponse)
 	return
 }

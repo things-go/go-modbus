@@ -204,7 +204,7 @@ func (this *TCPClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []by
 		return nil, fmt.Errorf("modbus: Client is not connected")
 	}
 	// Send data
-	this.logf("modbus: sending % x", aduRequest)
+	this.Debug("modbus: sending % x", aduRequest)
 	// Set write and read timeout
 	var timeout time.Time
 	var tryCnt byte
@@ -257,7 +257,7 @@ func (this *TCPClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []by
 		return
 	}
 	aduResponse = data[:length]
-	this.logf("modbus: received % x\n", aduResponse)
+	this.Debug("modbus: received % x\n", aduResponse)
 	return
 }
 

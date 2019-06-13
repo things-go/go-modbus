@@ -40,18 +40,18 @@ func (this *RTUServer) GetSlaveID() byte {
 func (this *RTUServer) ServerModbus() {
 	port, err := serial.Open(this.config)
 	if err != nil {
-		this.logf("failed to open %s: %v\n", this.config.Address, err)
+		this.Error("failed to open %s: %v\n", this.config.Address, err)
 		return
 	}
 	defer port.Close()
-	this.logf("modbus TCP server running")
+	this.Debug("modbus TCP server running")
 	frame := &protocolRTUFrame{}
 	readbuf := make([]byte, 512)
 	for {
 		bytesRead, err := port.Read(readbuf)
 		if err != nil {
 			if err != io.EOF {
-				this.logf("read error %v\n", err)
+				this.Error("read error %v\n", err)
 				return
 			}
 			// cnt >0 do nothing
@@ -63,12 +63,12 @@ func (this *RTUServer) ServerModbus() {
 
 		response, err := this.frameHandler(frame, readbuf[:bytesRead])
 		if err != nil {
-			this.logf("frameHandler: %v", err)
+			this.Error("frameHandler: %v", err)
 			continue
 		}
 		_, err = port.Write(response)
 		if err != nil {
-			this.logf("write: %v", err)
+			this.Error("write: %v", err)
 		}
 	}
 }
@@ -81,7 +81,7 @@ func (this *RTUServer) frameHandler(frame *protocolRTUFrame, packet []byte) ([]b
 	if err != nil {
 		return nil, fmt.Errorf("bad packet error %v", err)
 	}
-	this.logf("request raw frame: % x", packet)
+	this.Debug("request raw frame: % x", packet)
 	if fra.slaveID != this.nodeReg.slaveID || fra.slaveID != addressBroadCast {
 		return nil, fmt.Errorf("packet not for me %d", fra.slaveID)
 	}
@@ -101,7 +101,7 @@ func (this *RTUServer) frameHandler(frame *protocolRTUFrame, packet []byte) ([]b
 	}
 	response.data = data
 	rsp := response.bytes()
-	this.logf("response raw frame: % x", rsp)
+	this.Debug("response raw frame: % x", rsp)
 	return rsp, nil
 }
 
