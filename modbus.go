@@ -50,6 +50,8 @@ package modbus
 
 import (
 	"fmt"
+
+	"github.com/thinkgos/library/elog"
 )
 
 // proto address limit
@@ -202,19 +204,6 @@ type protocolTCPFrame struct {
 	adu  [tcpAduMaxSize]byte
 }
 
-// LogProvider is the interface implements log message levels method
-// RFC5424 log message levels.
-type LogProvider interface {
-	Emergency(format string, v ...interface{})
-	Alert(format string, v ...interface{})
-	Critical(format string, v ...interface{})
-	Error(format string, v ...interface{})
-	Warning(format string, v ...interface{})
-	Notice(format string, v ...interface{})
-	Informational(format string, v ...interface{})
-	Debug(format string, v ...interface{})
-}
-
 // ClientProvider is the interface implements underlying methods.
 type ClientProvider interface {
 	// Connect try to connect the remote server
@@ -229,7 +218,9 @@ type ClientProvider interface {
 	// LogMode set enable or diable log output when you has set logger
 	LogMode(enable bool)
 	// SetLogProvider set logger provider
-	SetLogProvider(p LogProvider)
+	SetLogProvider(p elog.Provider)
+	// SetLogger set logger
+	SetLogger(l *elog.Elog)
 	// Close disconnect the remote server
 	Close() error
 	// Send request to the remote server,it implements on SendRawFrame

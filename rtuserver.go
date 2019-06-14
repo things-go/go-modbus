@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/goburrow/serial"
+	"github.com/thinkgos/library/elog"
 )
 
 // TODO: BUG can't work
@@ -23,6 +24,9 @@ func NewRTUServer(c *serial.Config) *RTUServer {
 	return &RTUServer{
 		serverHandler: newServerHandler(),
 		config:        c,
+		logs: logs{
+			Elog: elog.NewElog(nil),
+		},
 	}
 }
 

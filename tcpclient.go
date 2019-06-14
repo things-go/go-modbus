@@ -8,6 +8,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/thinkgos/library/elog"
 )
 
 const (
@@ -49,6 +51,9 @@ func NewTCPClientProvider(address string) *TCPClientProvider {
 		Timeout:       TCPDefaultTimeout,
 		autoReconnect: TCPDefaultAutoReconnect,
 		pool:          tcpPool,
+		logs: logs{
+			Elog: elog.NewElog(nil),
+		},
 	}
 }
 

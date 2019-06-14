@@ -6,6 +6,8 @@ import (
 	"io"
 	"sync"
 	"time"
+
+	"github.com/thinkgos/library/elog"
 )
 
 const (
@@ -27,8 +29,12 @@ var rtuPool = &sync.Pool{New: func() interface{} { return &protocolRTUFrame{} }}
 
 // NewRTUClientProvider allocates and initializes a RTUClientProvider.
 func NewRTUClientProvider(address string) *RTUClientProvider {
-	p := &RTUClientProvider{}
-	p.pool = rtuPool
+	p := &RTUClientProvider{
+		logs: logs{
+			Elog: elog.NewElog(nil),
+		},
+		pool: rtuPool,
+	}
 	p.Address = address
 	p.Timeout = SerialDefaultTimeout
 	p.autoReconnect = SerialDefaultAutoReconnect
