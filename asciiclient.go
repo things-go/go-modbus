@@ -40,7 +40,6 @@ func NewASCIIClientProvider(address string) *ASCIIClientProvider {
 	p.Address = address
 	p.Timeout = SerialDefaultTimeout
 	p.autoReconnect = SerialDefaultAutoReconnect
-	p.logs.Elog = elog.NewElog(nil)
 	return p
 }
 
