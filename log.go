@@ -19,6 +19,7 @@ func (this *logs) SetLogProvider(p elog.Provider) {
 	this.SetProvider(p)
 }
 
+// SetLogger set logger
 func (this *logs) SetLogger(l *elog.Elog) {
 	if l != nil {
 		this.Elog = l

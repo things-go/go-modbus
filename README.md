@@ -1,3 +1,4 @@
+[![GoDoc](https://godoc.org/github.com/thinkgos/gomodbus?status.svg)](https://godoc.org/github.com/thinkgos/gomodbus)[![Build Status](https://www.travis-ci.org/thinkgos/gomodbus.svg?branch=master)](https://www.travis-ci.org/thinkgos/gomodbus)
 ### go modbus Supported formats
 - modbus TCP Client
 - modbus Serial(RTU,ASCII) Client
@@ -9,10 +10,7 @@
 - interface设计,提供扩展性
 - 简单的丰富的API
 
-### GoDoc
-[![GoDoc](https://godoc.org/github.com/thinkgos/gomodbus?status.svg)](https://godoc.org/github.com/thinkgos/gomodbus)
-
-大量参考了![goburrow](https://github.com/goburrow/modbus)
+大量参考了!为了用于生产环境[goburrow](https://github.com/goburrow/modbus)
 
 ### Supported functions
 
