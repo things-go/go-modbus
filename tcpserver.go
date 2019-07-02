@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"net"
+	"strings"
 	"sync"
 	"time"
 
@@ -19,7 +20,7 @@ const (
 
 // TCPServer modbus tcp server
 type TCPServer struct {
-	lAddr           string
+	addr            string
 	tcpReadTimeout  time.Duration
 	tcpWriteTimeout time.Duration
 	node            sync.Map
@@ -32,9 +33,9 @@ type TCPServer struct {
 }
 
 // NewTCPServer the Modbus server listening on "address:port".
-func NewTCPServer(laddr string) *TCPServer {
+func NewTCPServer(addr string) *TCPServer {
 	return &TCPServer{
-		lAddr:           laddr,
+		addr:            addr,
 		tcpReadTimeout:  TCPDefaultReadTimeout,
 		tcpWriteTimeout: TCPDefaultWriteTimeout,
 		pool:            &sync.Pool{New: func() interface{} { return &protocolTCPFrame{} }},
@@ -102,7 +103,7 @@ func (this *TCPServer) NodeRange(f func(slaveID byte, node *NodeRegister) bool) 
 
 // ServerModbus 服务
 func (this *TCPServer) ServerModbus() {
-	listen, err := net.Listen("tcp", this.lAddr)
+	listen, err := net.Listen("tcp", this.addr)
 	if err != nil {
 		this.Error("mobus listen: %v\n", err)
 		return
@@ -135,66 +136,80 @@ func (this *TCPServer) ServerModbus() {
 				this.mu.Unlock()
 				conn.Close()
 			}()
-			readbuf := make([]byte, 1024)
-			tmpbuf := make([]byte, 0, 512)
+
 			for {
-				err := conn.SetReadDeadline(time.Now().Add(this.tcpReadTimeout))
-				if err != nil {
-					this.Error("set read deadline %v\n", err)
-					return
-				}
-
-				bytesRead, err := conn.Read(readbuf)
-				if err != nil {
-					if netError, ok := err.(net.Error); ok && netError.Timeout() {
-						this.Error("close because client not active %v\n", netError)
-						return
-					}
-					if bytesRead == 0 && err == io.EOF {
-						this.Error("remote client closed %v\n", err)
-						return
-					}
-					// cnt >0 do nothing
-					// cnt == 0 && err != io.EOFcontinue do it next
-				}
-				if bytesRead == 0 {
-					continue
-				}
-
-				tmpbuf = append(tmpbuf, readbuf[:bytesRead]...)
-				for {
-					if len(tmpbuf) < tcpHeaderMbapSize {
-						break
-					}
-					// check head ProtocolIdentifier
-					if binary.BigEndian.Uint16(tmpbuf[2:]) != tcpProtocolIdentifier {
-						tmpbuf = tmpbuf[tcpHeaderMbapSize:]
-						continue
-					}
-					// check buffer has enough bytes to read
-					aduLenth := binary.BigEndian.Uint16(tmpbuf[4:]) + tcpHeaderMbapSize - 1
-					if len(tmpbuf) < int(aduLenth) {
-						break
-					}
-					request := tmpbuf[:aduLenth] // get request
-					tmpbuf = tmpbuf[aduLenth:]   // past request
-					// Set the length of the packet to the number of read bytes.
-					this.Debug("modbus request: % x", request)
-					response, err := this.frameHandler(frame, request)
-					if err != nil {
-						this.Error("modbus handler: %v", err)
-						continue
-					}
-					this.Debug("modbus response: % x", response)
-					err = conn.SetWriteDeadline(time.Now().Add(this.tcpWriteTimeout))
+				adu := frame.adu[:]
+				length := tcpHeaderMbapSize
+				for rdCnt := 0; rdCnt < length; {
+					err := conn.SetReadDeadline(time.Now().Add(this.tcpReadTimeout))
 					if err != nil {
 						this.Error("set read deadline %v\n", err)
 						return
 					}
-					_, err = conn.Write(response)
+					bytesRead, err := io.ReadFull(conn, frame.adu[rdCnt:length])
 					if err != nil {
-						this.Error("modbus write: %v", err)
-						return
+						if err != io.EOF && err != io.ErrClosedPipe || strings.Contains(err.Error(), "use of closed network connection") {
+							this.Error("modbus server: %v", err)
+							return
+						}
+
+						if e, ok := err.(net.Error); ok && !e.Temporary() {
+							this.Error("modbus server: %v", err)
+							return
+						}
+
+						if bytesRead == 0 && err == io.EOF {
+							this.Error("remote client closed %v\n", err)
+							return
+						}
+						// cnt >0 do nothing
+						// cnt == 0 && err != io.EOFcontinue do it next
+					}
+					rdCnt += bytesRead
+					if rdCnt >= length {
+						// check hed ProtocolIdentifier
+						if binary.BigEndian.Uint16(adu[2:]) != tcpProtocolIdentifier {
+							break
+						}
+						length = int(binary.BigEndian.Uint16(adu[4:])) + tcpHeaderMbapSize - 1
+						if rdCnt == length {
+							this.Debug("modbus request: % x", adu[:length])
+							response, err := this.frameHandler(frame, adu[:length])
+							if err != nil {
+								this.Error("modbus handler: %v", err)
+								break
+							}
+							this.Debug("modbus response: % x", response)
+
+							err = func(b []byte) error {
+								for wrCnt := 0; len(b) > wrCnt; {
+									err = conn.SetWriteDeadline(time.Now().Add(this.tcpWriteTimeout))
+									if err != nil {
+										this.Error("set read deadline %v\n", err)
+										return err
+									}
+									byteCount, err := conn.Write(b[wrCnt:])
+									if err != nil {
+										// See: https://github.com/golang/go/issues/4373
+										if err != io.EOF && err != io.ErrClosedPipe || strings.Contains(err.Error(), "use of closed network connection") {
+											this.Error("cs104 server: %v", err)
+											return err
+										}
+										if e, ok := err.(net.Error); !ok || !e.Temporary() {
+											this.Error("cs104 server: %v", err)
+											return err
+										}
+										// temporary error may be recoverable
+									}
+									wrCnt += byteCount
+								}
+								return nil
+							}(response)
+							if err != nil {
+								this.Error("modbus write: %v", err)
+								return
+							}
+						}
 					}
 				}
 			}
