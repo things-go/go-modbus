@@ -1,8 +1,6 @@
 language: go
 
 go:
-  - 1.9.x
-  - 1.10.x
   - 1.11.x
   - 1.12.x
   - tip
@@ -11,7 +9,7 @@ before_install:
   - go get -v ./...
 
 install:
-  - go test -v -race ./... -benchmem -test.bench=".*" -coverprofile=coverage.txt -covermode=atomic
+  - go test -v ./... -benchmem -test.bench=".*" -coverprofile=coverage.txt -covermode=atomic
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
