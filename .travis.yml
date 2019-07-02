@@ -9,7 +9,7 @@ before_install:
   - go get -v ./...
 
 install:
-  - go test -v ./... -benchmem -test.bench=".*" -coverprofile=coverage.txt -covermode=atomic
+  - go test -v -benchmem -test.bench=".*" -coverprofile=coverage.txt -covermode=atomic ./...
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
