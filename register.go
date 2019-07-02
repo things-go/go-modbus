@@ -85,6 +85,7 @@ func setBits(buf []byte, start, nBits uint16, value byte) {
 	newValue := uint16(value) << preBits // 移到要设置的位的位置
 	mask := uint16((1 << nBits) - 1)     // 准备一个掩码来设置新的位
 	mask <<= preBits
+	newValue &= mask
 	word := uint16(buf[byteOffset]) // 复制到临时存储
 	if (preBits + nBits) > 8 {
 		word |= uint16(buf[byteOffset+1]) << 8
@@ -358,7 +359,7 @@ func (this *NodeRegister) ReadInputs(address, quality uint16) ([]uint16, error) 
 		((address + quality) <= (this.inputAddrStart + uint16(len(this.input)))) {
 		start := address - this.inputAddrStart
 		end := start + quality
-		result := make([]uint16, 0, quality)
+		result := make([]uint16, quality)
 		copy(result, this.input[start:end])
 		this.rw.RUnlock()
 		return result, nil
@@ -370,12 +371,13 @@ func (this *NodeRegister) ReadInputs(address, quality uint16) ([]uint16, error) 
 // MaskWriteHolding 屏蔽写保持寄存器 (val & andMask) | (orMask & ^andMask)
 func (this *NodeRegister) MaskWriteHolding(address, andMask, orMask uint16) error {
 	this.rw.Lock()
-	defer this.rw.Unlock()
 	if (address >= this.holdingAddrStart) &&
 		((address + 1) <= (this.holdingAddrStart + uint16(len(this.holding)))) {
 		this.holding[address] &= andMask
 		this.holding[address] |= orMask & ^andMask
+		this.rw.Unlock()
 		return nil
 	}
+	this.rw.Unlock()
 	return &ExceptionError{ExceptionCodeIllegalDataAddress}
 }
