@@ -28,11 +28,12 @@ type TCPServer struct {
 	mu              sync.Mutex
 	listen          net.Listener
 	client          map[net.Conn]struct{}
+	wg              sync.WaitGroup
 	*serverHandler
 	logs
 }
 
-// NewTCPServer the Modbus server listening on "address:port".
+// NewTCPServer the modbus server listening on "address:port".
 func NewTCPServer(addr string) *TCPServer {
 	return &TCPServer{
 		addr:            addr,
@@ -94,8 +95,8 @@ func (this *TCPServer) GetNodeList() []*NodeRegister {
 	return list
 }
 
-// NodeRange 扫描节点 same as sync map range
-func (this *TCPServer) NodeRange(f func(slaveID byte, node *NodeRegister) bool) {
+// Range 扫描节点 same as sync map range
+func (this *TCPServer) Range(f func(slaveID byte, node *NodeRegister) bool) {
 	this.node.Range(func(k, v interface{}) bool {
 		return f(k.(byte), v.(*NodeRegister))
 	})
@@ -119,6 +120,7 @@ func (this *TCPServer) ServerModbus() {
 			this.Error("modbus accept: %#v\n", err)
 			return
 		}
+		this.wg.Add(1)
 		go func() {
 			this.Debug("client(%v) -> server(%v) connected", conn.RemoteAddr(), conn.LocalAddr())
 			// get pool frame
@@ -131,10 +133,12 @@ func (this *TCPServer) ServerModbus() {
 				// rest pool frame and put it
 				frame.pdu.Data = nil
 				this.pool.Put(frame)
+
 				this.mu.Lock()
 				delete(this.client, conn)
 				this.mu.Unlock()
 				conn.Close()
+				this.wg.Done()
 			}()
 
 			for {
@@ -226,9 +230,9 @@ func (this *TCPServer) Close() error {
 	}
 	for k := range this.client {
 		k.Close()
-		delete(this.client, k)
 	}
 	this.mu.Unlock()
+	this.wg.Wait()
 	return nil
 }
 

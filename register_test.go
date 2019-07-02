@@ -6,6 +6,67 @@ import (
 	"testing"
 )
 
+const (
+	bitQuantity  = 16
+	wordQuantity = 3
+)
+
+func newNodeReg() *NodeRegister {
+	return &NodeRegister{
+		slaveID:           0x01,
+		coilsAddrStart:    0,
+		coilsQuantity:     bitQuantity,
+		coils:             []byte{0x55, 0xaa},
+		discreteAddrStart: 0,
+		discreteQuantity:  bitQuantity,
+		discrete:          []byte{0xaa, 0x55},
+		inputAddrStart:    0,
+		input:             []uint16{0x9012, 0x1234, 0x5678},
+		holdingAddrStart:  0,
+		holding:           []uint16{0x1234, 0x5678, 0x9012},
+	}
+}
+
+var readReg = newNodeReg()
+
+func TestNodeRegister_SlaveID(t *testing.T) {
+	tests := []struct {
+		name string
+		this *NodeRegister
+		want uint8
+	}{
+		{
+			"slave ID same",
+			&NodeRegister{slaveID: 0x01},
+			0x01,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.this.SlaveID(); got != tt.want {
+				t.Errorf("NodeRegister.SlaveID() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestNodeRegister_SetSlaveID(t *testing.T) {
+	tests := []struct {
+		name string
+		this *NodeRegister
+		want byte
+	}{
+		{"", &NodeRegister{}, 0x02},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.this.SetSlaveID(tt.want)
+			if tt.this.slaveID != tt.want {
+				t.Errorf("NodeRegister.SetSlaveID() = got %v, want %v", tt.this.slaveID, tt.want)
+			}
+		})
+	}
+}
 func Test_getBits(t *testing.T) {
 	type args struct {
 		buf   []byte
@@ -62,41 +123,6 @@ func Test_setBits(t *testing.T) {
 	}
 }
 
-func Benchmark_getBits(b *testing.B) {
-	val := []byte{0x00, 0x02, 0x03, 0x04, 0x05}
-	for i := 0; i < b.N; i++ {
-		getBits(val, 1, 30)
-	}
-}
-
-func Benchmark_setBits(b *testing.B) {
-	val := []byte{0x00, 0x02, 0x03, 0x04, 0x05}
-	for i := 0; i < b.N; i++ {
-		setBits(val, 12, 8, 0xaa)
-	}
-}
-
-func TestNodeRegister_SlaveID(t *testing.T) {
-	tests := []struct {
-		name string
-		this *NodeRegister
-		want uint8
-	}{
-		{
-			"slave ID same",
-			&NodeRegister{slaveID: 0x01},
-			0x01,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.this.SlaveID(); got != tt.want {
-				t.Errorf("NodeRegister.SlaveID() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestNodeRegister_WriteCoils(t *testing.T) {
 	type args struct {
 		address uint16
@@ -107,14 +133,22 @@ func TestNodeRegister_WriteCoils(t *testing.T) {
 		name    string
 		this    *NodeRegister
 		args    args
+		want    []byte
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{"WriteCoils 超始地址超范围", newNodeReg(), args{address: bitQuantity + 1}, nil, true},
+		{"WriteCoils 数量超范围", newNodeReg(), args{quality: bitQuantity + 1}, nil, true},
+		{"WriteCoils 可读地址超范围", newNodeReg(), args{address: 1, quality: bitQuantity}, nil, true},
+		{"WriteCoils 写8位", newNodeReg(),
+			args{address: 4, quality: 8, valBuf: []byte{0xff}}, []byte{0xf5, 0xaf}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := tt.this.WriteCoils(tt.args.address, tt.args.quality, tt.args.valBuf); (err != nil) != tt.wantErr {
 				t.Errorf("NodeRegister.WriteCoils() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErr == false && !reflect.DeepEqual(tt.this.coils, tt.want) {
+				t.Errorf("NodeRegister.WriteCoils() got = %v, want %v", tt.this.coils, tt.want)
 			}
 		})
 	}
@@ -132,7 +166,10 @@ func TestNodeRegister_ReadCoils(t *testing.T) {
 		want    []byte
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{"ReadCoils 超始地址超范围", readReg, args{address: bitQuantity + 1}, nil, true},
+		{"ReadCoils 数量超范围", readReg, args{quality: bitQuantity + 1}, nil, true},
+		{"ReadCoils 可读地址超范围", readReg, args{address: 1, quality: bitQuantity}, nil, true},
+		{"ReadCoils 读8位", readReg, args{address: 4, quality: 8}, []byte{0xa5}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -158,14 +195,22 @@ func TestNodeRegister_WriteDiscretes(t *testing.T) {
 		name    string
 		this    *NodeRegister
 		args    args
+		want    []byte
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{"WriteDiscretes 超始地址超范围", newNodeReg(), args{address: bitQuantity + 1}, nil, true},
+		{"WriteDiscretes 数量超范围", newNodeReg(), args{quality: bitQuantity + 1}, nil, true},
+		{"WriteDiscretes 可读地址超范围", newNodeReg(), args{address: 1, quality: bitQuantity}, nil, true},
+		{"WriteDiscretes 写8位", newNodeReg(),
+			args{address: 4, quality: 8, valBuf: []byte{0xff}}, []byte{0xfa, 0x5f}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := tt.this.WriteDiscretes(tt.args.address, tt.args.quality, tt.args.valBuf); (err != nil) != tt.wantErr {
 				t.Errorf("NodeRegister.WriteDiscretes() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErr == false && !reflect.DeepEqual(tt.this.discrete, tt.want) {
+				t.Errorf("NodeRegister.WriteDiscretes() got = %v, want %v", tt.this.discrete, tt.want)
 			}
 		})
 	}
@@ -183,7 +228,10 @@ func TestNodeRegister_ReadDiscretes(t *testing.T) {
 		want    []byte
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{"ReadDiscretes 超始地址超范围", readReg, args{address: bitQuantity + 1}, nil, true},
+		{"ReadDiscretes 数量超范围", readReg, args{quality: bitQuantity + 1}, nil, true},
+		{"ReadDiscretes 可读地址超范围", readReg, args{address: 1, quality: bitQuantity}, nil, true},
+		{"ReadDiscretes 读8位", readReg, args{address: 4, quality: 8}, []byte{0x5a}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -209,14 +257,21 @@ func TestNodeRegister_WriteHoldingsBytes(t *testing.T) {
 		name    string
 		this    *NodeRegister
 		args    args
+		want    []uint16
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{"WriteHoldingsBytes 超始地址超范围", newNodeReg(), args{address: wordQuantity + 1}, nil, true},
+		{"WriteHoldingsBytes 数量超范围", newNodeReg(), args{quality: wordQuantity + 1}, nil, true},
+		{"WriteHoldingsBytes 可读地址超范围", newNodeReg(), args{address: 1, quality: wordQuantity}, nil, true},
+		{"WriteHoldingsBytes 读2个寄存器", newNodeReg(), args{address: 1, quality: 2, valBuf: []byte{0x11, 0x11, 0x22, 0x22}}, []uint16{0x1234, 0x1111, 0x2222}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := tt.this.WriteHoldingsBytes(tt.args.address, tt.args.quality, tt.args.valBuf); (err != nil) != tt.wantErr {
 				t.Errorf("NodeRegister.WriteHoldingsBytes() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErr == false && !reflect.DeepEqual(tt.this.holding, tt.want) {
+				t.Errorf("NodeRegister.WriteHoldingsBytes() got = %v, want %v", tt.this.holding, tt.want)
 			}
 		})
 	}
@@ -231,14 +286,52 @@ func TestNodeRegister_WriteHoldings(t *testing.T) {
 		name    string
 		this    *NodeRegister
 		args    args
+		want    []uint16
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{"WriteHoldings 超始地址超范围", newNodeReg(), args{address: wordQuantity + 1}, nil, true},
+		{"WriteHoldings 数量超范围", newNodeReg(), args{valBuf: make([]uint16, wordQuantity+1)}, nil, true},
+		{"WriteHoldings 可读地址超范围", newNodeReg(), args{address: 1, valBuf: make([]uint16, wordQuantity+1)}, nil, true},
+		{"WriteHoldings 写2个寄存器", newNodeReg(), args{address: 1, valBuf: []uint16{0x1111, 0x2222}}, []uint16{0x1234, 0x1111, 0x2222}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := tt.this.WriteHoldings(tt.args.address, tt.args.valBuf); (err != nil) != tt.wantErr {
 				t.Errorf("NodeRegister.WriteHoldings() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErr == false && !reflect.DeepEqual(tt.this.holding, tt.want) {
+				t.Errorf("NodeRegister.WriteHoldings() got = %v, want %v", tt.this.holding, tt.want)
+			}
+		})
+	}
+}
+
+func TestNodeRegister_ReadHoldingsBytes(t *testing.T) {
+	type args struct {
+		address uint16
+		quality uint16
+	}
+	tests := []struct {
+		name    string
+		this    *NodeRegister
+		args    args
+		want    []byte
+		wantErr bool
+	}{
+		{"超始地址超范围", readReg, args{address: wordQuantity + 1}, nil, true},
+		{"数量超范围", readReg, args{quality: wordQuantity + 1}, nil, true},
+		{"可读地址超范围", readReg, args{address: 1, quality: wordQuantity + 1}, nil, true},
+		{"读2个寄存器", readReg, args{address: 1, quality: 2}, []byte{0x56, 0x78, 0x90, 0x12}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.this.ReadHoldingsBytes(tt.args.address, tt.args.quality)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NodeRegister.ReadHoldingsBytes() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NodeRegister.ReadHoldingsBytes() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -256,7 +349,10 @@ func TestNodeRegister_ReadHoldings(t *testing.T) {
 		want    []uint16
 		wantErr bool
 	}{
-		// TODO: Add test cases.
+		{"超始地址超范围", readReg, args{address: wordQuantity + 1}, nil, true},
+		{"数量超范围", readReg, args{quality: wordQuantity + 1}, nil, true},
+		{"可读地址超范围", readReg, args{address: 1, quality: wordQuantity + 1}, nil, true},
+		{"读2个寄存器", readReg, args{address: 1, quality: 2}, []uint16{0x5678, 0x9012}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -393,5 +489,19 @@ func TestNodeRegister_MaskWriteHolding(t *testing.T) {
 				t.Errorf("NodeRegister.MaskWriteHolding() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
+	}
+}
+
+func Benchmark_getBits(b *testing.B) {
+	val := []byte{0x00, 0x02, 0x03, 0x04, 0x05}
+	for i := 0; i < b.N; i++ {
+		getBits(val, 1, 30)
+	}
+}
+
+func Benchmark_setBits(b *testing.B) {
+	val := []byte{0x00, 0x02, 0x03, 0x04, 0x05}
+	for i := 0; i < b.N; i++ {
+		setBits(val, 12, 8, 0xaa)
 	}
 }

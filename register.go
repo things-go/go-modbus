@@ -24,8 +24,10 @@ type NodeRegister struct {
 
 // NewNodeRegister 创建一个modbus子节点
 func NewNodeRegister(slaveID byte,
-	coilsAddrStart, coilsQuantity, discreteAddrStart, discreteQuantity,
-	inputAddrStart, inputQuantity, holdingAddrStart, holdingQuantity uint16) *NodeRegister {
+	coilsAddrStart, coilsQuantity,
+	discreteAddrStart, discreteQuantity,
+	inputAddrStart, inputQuantity,
+	holdingAddrStart, holdingQuantity uint16) *NodeRegister {
 	coilsBytes := (int(coilsQuantity) + 7) / 8
 	discreteBytes := (int(discreteQuantity) + 7) / 8
 
@@ -285,7 +287,7 @@ func (this *NodeRegister) ReadHoldings(address, quality uint16) ([]uint16, error
 		((address + quality) <= (this.holdingAddrStart + uint16(len(this.holding)))) {
 		start := address - this.holdingAddrStart
 		end := start + quality
-		result := make([]uint16, 0, quality)
+		result := make([]uint16, quality)
 		copy(result, this.holding[start:end])
 		this.rw.RUnlock()
 		return result, nil

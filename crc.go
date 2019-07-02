@@ -14,6 +14,7 @@ var crcs crc
 
 func crc16(bs []byte) uint16 {
 	crcs.once.Do(crcs.initTable)
+
 	val := uint16(0xFFFF)
 	for _, v := range bs {
 		val = (val >> 8) ^ crcs.table[(val^uint16(v))&0x00FF]

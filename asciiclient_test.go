@@ -18,18 +18,25 @@ func TestASCIIClientProvider_encode(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			"ASCII encode 1",
+			"ASCII encode right 1",
 			&protocolASCIIFrame{},
 			args{8, &ProtocolDataUnit{1, []byte{2, 66, 1, 5}}},
 			[]byte(":080102420105AD\r\n"),
 			false,
 		},
 		{
-			"ASCII encode 2",
+			"ASCII encode right 2",
 			&protocolASCIIFrame{},
 			args{1, &ProtocolDataUnit{3, []byte{8, 100, 10, 13}}},
 			[]byte(":010308640A0D79\r\n"),
 			false,
+		},
+		{
+			"ASCII encode error",
+			&protocolASCIIFrame{},
+			args{1, &ProtocolDataUnit{3, make([]byte, 254)}},
+			nil,
+			true,
 		},
 	}
 	for _, tt := range tests {

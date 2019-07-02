@@ -169,7 +169,7 @@ func (e *ExceptionError) Error() string {
 	return fmt.Sprintf("modbus: exception '%v' (%s)", e.ExceptionCode, name)
 }
 
-// protocolHeaderis independent of underlying communication layers.
+// protocolTCPHeader independent of underlying communication layers.
 type protocolTCPHeader struct {
 	transactionID uint16
 	protocolID    uint16
@@ -183,21 +183,21 @@ type ProtocolDataUnit struct {
 	Data     []byte
 }
 
-// frame 帧结构用于底层对象缓冲池,仅用于tcp,rtu
+// protocolRTUFrame 帧结构用于底层对象缓冲池rtu
 type protocolRTUFrame struct {
 	slaveID byte
 	pdu     ProtocolDataUnit
 	adu     [rtuAduMaxSize]byte
 }
 
-// frame 帧结构用于底层对像缓冲池
+// protocolASCIIFrame 帧结构用于底层对像缓冲池ascii
 type protocolASCIIFrame struct {
 	slaveID byte
 	pdu     ProtocolDataUnit
 	adu     [asciiCharacterMaxSize]byte
 }
 
-// frame 帧结构用于底层对象缓冲池,仅用于tcp,rtu
+// protocolTCPFrame 帧结构用于底层对象缓冲池tcp
 type protocolTCPFrame struct {
 	head protocolTCPHeader
 	pdu  ProtocolDataUnit
