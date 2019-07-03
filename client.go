@@ -443,7 +443,6 @@ func (this *client) ReadWriteMultipleRegistersBytes(slaveID byte, readAddress, r
 	if err != nil {
 		return nil, err
 	}
-
 	if int(response.Data[0]) != (len(response.Data) - 1) {
 		return nil, fmt.Errorf("modbus: response data size '%v' does not match count '%v'",
 			len(response.Data)-1, response.Data[0])
@@ -454,7 +453,7 @@ func (this *client) ReadWriteMultipleRegistersBytes(slaveID byte, readAddress, r
 // Request:
 //  Slave Id              : 1 byte
 //  Function code         : 1 byte (0x17)
-//  Read starting address : 2 bytes
+//  Read starting address quantity: 2 bytes
 //  Quantity to read      : 2 bytes
 //  Write starting address: 2 bytes
 //  Quantity to write     : 2 bytes
@@ -480,8 +479,7 @@ func (this *client) ReadWriteMultipleRegisters(slaveID byte, readAddress, readQu
 //  FIFO pointer address  : 2 bytes
 // Response:
 //  Function code         : 1 byte (0x18)
-//  Byte count            : 2 bytes
-//  FIFO count            : 2 bytes
+//  Byte count            : 2 bytes  only include follow
 //  FIFO count            : 2 bytes (<=31)
 //  FIFO value register   : Nx2 bytes
 func (this *client) ReadFIFOQueue(slaveID byte, address uint16) ([]byte, error) {
@@ -499,11 +497,10 @@ func (this *client) ReadFIFOQueue(slaveID byte, address uint16) ([]byte, error) 
 	case len(response.Data) < 4:
 		return nil, fmt.Errorf("modbus: response data size '%v' is less than expected '%v'",
 			len(response.Data), 4)
-	case len(response.Data)-1 != int(binary.BigEndian.Uint16(response.Data)):
+	case len(response.Data)-2 != int(binary.BigEndian.Uint16(response.Data)):
 		return nil, fmt.Errorf("modbus: response data size '%v' does not match count '%v'",
-			len(response.Data)-1, binary.BigEndian.Uint16(response.Data))
-	}
-	if int(binary.BigEndian.Uint16(response.Data[2:])) > 31 {
+			len(response.Data)-2, binary.BigEndian.Uint16(response.Data))
+	case int(binary.BigEndian.Uint16(response.Data[2:])) > 31:
 		return nil, fmt.Errorf("modbus: fifo count '%v' is greater than expected '%v'",
 			binary.BigEndian.Uint16(response.Data[2:]), 31)
 	}
