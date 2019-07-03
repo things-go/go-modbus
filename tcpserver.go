@@ -238,6 +238,12 @@ func (this *TCPServer) Close() error {
 
 // modbus 包处理
 func (this *TCPServer) frameHandler(frame *protocolTCPFrame, requestAdu []byte) ([]byte, error) {
+	defer func() {
+		if err := recover(); err != nil {
+			this.Error("painc happen,%v", err)
+		}
+	}()
+
 	// copy head from request adu
 	frame.head.transactionID = binary.BigEndian.Uint16(requestAdu[0:])
 	frame.head.protocolID = binary.BigEndian.Uint16(requestAdu[2:])
