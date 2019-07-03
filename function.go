@@ -41,7 +41,9 @@ func newServerHandler() *serverHandler {
 
 // RegisterFunctionHandler 注册回调函数
 func (this *serverHandler) RegisterFunctionHandler(funcCode uint8, function FunctionHandler) {
-	this.function[funcCode] = function
+	if function != nil {
+		this.function[funcCode] = function
+	}
 }
 
 // readBits 读位寄存器
@@ -72,16 +74,34 @@ func readBits(reg *NodeRegister, data []byte, isCoil bool) ([]byte, error) {
 }
 
 // funcReadDiscreteInputs 读离散量输入,返回仅含PDU数据域
+// data:
+//  Starting address      : 2 byte
+//  Quantity              : 2 byte
+//  return:
+//  Byte count            : 1 bytes
+//  Coils status          : n bytes  n = Quantity/8 or n = Quantity/8 + 1
 func funcReadDiscreteInputs(reg *NodeRegister, data []byte) ([]byte, error) {
 	return readBits(reg, data, false)
 }
 
 // funcReadCoils 读线圈
+// data:
+//  Starting address      : 2 byte
+//  Quantity              : 2 byte
+//  return:
+//  Byte count            : 1 bytes
+//  Coils status          : n bytes  n = Quantity/8 or n = Quantity/8 + 1
 func funcReadCoils(reg *NodeRegister, data []byte) ([]byte, error) {
 	return readBits(reg, data, true)
 }
 
 // funcWriteSingleCoil 写单个线圈
+// data:
+//  Address      		  : 2 byte
+//  Value                 : 2 byte  0xff00 or 0x0000s
+//  return:
+//  Address      		  : 2 byte
+//  Value                 : 2 byte  0xff00 or 0x0000
 func funcWriteSingleCoil(reg *NodeRegister, data []byte) ([]byte, error) {
 	if len(data) != FuncWriteMinSize {
 		return nil, &ExceptionError{ExceptionCodeIllegalDataValue}
@@ -102,6 +122,14 @@ func funcWriteSingleCoil(reg *NodeRegister, data []byte) ([]byte, error) {
 }
 
 // funcWriteMultiCoils 写多个线圈
+// data:
+//  Starting address      : 2 byte
+//  Quantity              : 2 byte
+//  Byte count            : 1 byte
+//  Value                 : n byte
+//  return:
+//  Starting address      : 2 byte
+//  Quantity              : 2 byte
 func funcWriteMultiCoils(reg *NodeRegister, data []byte) ([]byte, error) {
 	if len(data) < FuncWriteMultiMinSize {
 		return nil, &ExceptionError{ExceptionCodeIllegalDataValue}
@@ -148,16 +176,34 @@ func readRegisters(reg *NodeRegister, data []byte, isHolding bool) ([]byte, erro
 }
 
 // funcReadInputRegisters 读输入寄存器
+// data:
+//  Starting address      : 2 byte
+//  Quantity              : 2 byte
+//  return:
+//  Byte count            : 2 byte  Quantity*2
+//  Value                 : (Quantity)*2 byte
 func funcReadInputRegisters(reg *NodeRegister, data []byte) ([]byte, error) {
 	return readRegisters(reg, data, false)
 }
 
 // funcReadHoldingRegisters 读保持寄存器
+// data:
+//  Starting address      : 2 byte
+//  Quantity              : 2 byte
+//  return:
+//  Byte count            : 2 byte  Quantity*2
+//  Value                 : (Quantity)*2 byte
 func funcReadHoldingRegisters(reg *NodeRegister, data []byte) ([]byte, error) {
 	return readRegisters(reg, data, true)
 }
 
 // funcWriteSingleRegister 写单个保持寄存器
+// data:
+//  Address      		: 2 byte
+//  Value              	: 2 byte
+//  return:
+//  Address            	: 2 byte
+//  Value               : 2 byte
 func funcWriteSingleRegister(reg *NodeRegister, data []byte) ([]byte, error) {
 	if len(data) != FuncWriteMinSize {
 		return nil, &ExceptionError{ExceptionCodeIllegalDataValue}
@@ -169,6 +215,14 @@ func funcWriteSingleRegister(reg *NodeRegister, data []byte) ([]byte, error) {
 }
 
 // funcWriteMultiHoldingRegisters 写多个保持寄存器
+// data:
+//  Starting address      : 2 byte
+//  Quantity              : 2 byte
+//  Byte count            : 1 byte Quantity*2
+//  Value                 : Quantity*2 byte
+//  return:
+//  Starting address      : 2 byte
+//  Quantity              : 2 byte
 func funcWriteMultiHoldingRegisters(reg *NodeRegister, data []byte) ([]byte, error) {
 	if len(data) < FuncWriteMultiMinSize {
 		return nil, &ExceptionError{ExceptionCodeIllegalDataValue}
@@ -191,6 +245,16 @@ func funcWriteMultiHoldingRegisters(reg *NodeRegister, data []byte) ([]byte, err
 }
 
 // funcReadWriteMultiHoldingRegisters 读写多个保持寄存器
+// data:
+//  Read Starting address       : 2 byte
+//  Quantity read               : 2 byte
+//  Write Starting address      : 2 byte
+//  Quantity Write              : 2 byte
+//  Byte count Write            : 1 byte (Quantity Write)*2
+//  Value Write                 : (Quantity Write)*2 byte
+//  return:
+//  Byte count            : 2 byte  (Quantity read)*2
+//  Value                 : (Quantity read)*2 byte
 func funcReadWriteMultiHoldingRegisters(reg *NodeRegister, data []byte) ([]byte, error) {
 	if len(data) < FuncReadWriteMinSize {
 		return nil, &ExceptionError{ExceptionCodeIllegalDataValue}
@@ -221,6 +285,14 @@ func funcReadWriteMultiHoldingRegisters(reg *NodeRegister, data []byte) ([]byte,
 }
 
 // funcMaskWriteRegisters 屏蔽写寄存器
+// data:
+//  address				  : 2 byte
+//  And_mask              : 2 byte
+//  Or_mask               : 2 byte
+//  return:
+//  address				  : 2 byte
+//  And_mask              : 2 byte
+//  Or_mask               : 2 byte
 func funcMaskWriteRegisters(reg *NodeRegister, data []byte) ([]byte, error) {
 	if len(data) != FuncMaskWriteMinSize {
 		return nil, &ExceptionError{ExceptionCodeIllegalDataValue}

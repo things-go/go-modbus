@@ -22,7 +22,7 @@ type NodeRegister struct {
 	holding                             []uint16
 }
 
-// NewNodeRegister 创建一个modbus子节点
+// NewNodeRegister 创建一个modbus子节点寄存器列表
 func NewNodeRegister(slaveID byte,
 	coilsAddrStart, coilsQuantity,
 	discreteAddrStart, discreteQuantity,
