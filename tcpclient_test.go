@@ -116,6 +116,18 @@ func Test_protocolTCPFrame_verify(t *testing.T) {
 			true,
 		},
 		{
+			"TCP verify protocolID different",
+			&protocolTCPFrame{
+				head: protocolTCPHeader{1, 2, 6, 4},
+				pdu:  ProtocolDataUnit{10, []byte{1, 2, 3, 4}},
+			},
+			args{
+				&protocolTCPHeader{1, 5, 6, 4},
+				&ProtocolDataUnit{10, []byte{1, 2, 3, 4}},
+			},
+			true,
+		},
+		{
 			"serial verify slaveID different",
 			&protocolTCPFrame{
 				head: protocolTCPHeader{1, 2, 6, 11},
