@@ -12,7 +12,7 @@ const (
 
 func Test_TCPClientWithServer(t *testing.T) {
 	t.Run("", func(t *testing.T) {
-		mbsrv := NewTCPServer(":505")
+		mbsrv := NewTCPServer("localhost:48091")
 		mbsrv.AddNodes(NewNodeRegister(testslaveID1, 0, 10, 0, 10,
 			0, 10, 0, 10))
 		mbsrv.AddNodes(NewNodeRegister(testslaveID2, 0, 10, 0, 10,
@@ -39,7 +39,7 @@ func Test_TCPClientWithServer(t *testing.T) {
 
 		go mbsrv.ServerModbus()
 
-		mbPro := NewTCPClientProvider("localhost:505")
+		mbPro := NewTCPClientProvider("localhost:48091")
 		mbCli := NewClient(mbPro)
 		err = mbCli.Connect()
 		if err != nil {
