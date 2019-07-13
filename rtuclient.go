@@ -73,8 +73,7 @@ func (this *protocolRTUFrame) decode(adu []byte) (uint8, *ProtocolDataUnit, []by
 	crc := crc16(adu[0 : len(adu)-2])
 	expect := binary.LittleEndian.Uint16(adu[len(adu)-2:])
 	if crc != expect {
-		return 0, nil, nil, fmt.Errorf("modbus: response crc '%v' does not match expected '%v'",
-			expect, crc)
+		return 0, nil, nil, fmt.Errorf("modbus: response crc '%x' does not match expected '%x'", expect, crc)
 	}
 	// slaveID & PDU(Function code & data) but pass crc
 	return adu[0], &ProtocolDataUnit{adu[1], adu[2 : len(adu)-2]}, adu[1 : len(adu)-2], nil
@@ -111,7 +110,7 @@ func (this *RTUClientProvider) Send(slaveID byte, request *ProtocolDataUnit) (*P
 // SendPdu send pdu request to the remote server
 func (this *RTUClientProvider) SendPdu(slaveID byte, pduRequest []byte) (pduResponse []byte, err error) {
 	if len(pduRequest) < pduMinSize || len(pduRequest) > pduMaxSize {
-		return nil, fmt.Errorf("modbus: pdus size '%v' must not be between '%v' and '%v'",
+		return nil, fmt.Errorf("modbus: pdu size '%v' must not be between '%v' and '%v'",
 			len(pduRequest), pduMinSize, pduMaxSize)
 	}
 
@@ -149,7 +148,7 @@ func (this *RTUClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []by
 	}
 
 	// Send the request
-	this.Debug("modbus: sending % x\n", aduRequest)
+	this.Debug("modbus: sending % x", aduRequest)
 	var tryCnt byte
 	for {
 		_, err = this.port.Write(aduRequest)
@@ -203,7 +202,7 @@ func (this *RTUClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []by
 		}
 		n += n1
 	default:
-		err = fmt.Errorf("modbus: unknownan function code % x", data[1])
+		err = fmt.Errorf("modbus: unknown function code % x", data[1])
 	}
 	if err != nil {
 		return

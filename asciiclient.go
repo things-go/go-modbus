@@ -93,11 +93,11 @@ func (this *protocolASCIIFrame) decode(adu []byte) (uint8, *ProtocolDataUnit, []
 		return 0, nil, nil, fmt.Errorf("modbus: response length '%v' is not an even number", len(adu)-1)
 	case string(adu[0:len(asciiStart)]) != asciiStart:
 		// First char must be a colons
-		return 0, nil, nil, fmt.Errorf("modbus: response frame '%v'... is not started with '%v'",
+		return 0, nil, nil, fmt.Errorf("modbus: response frame '%x'... is not started with '%x'",
 			string(adu[0:len(asciiStart)]), asciiStart)
 	case string(adu[len(adu)-len(asciiEnd):]) != asciiEnd:
 		// 2 last chars must be \r\n
-		return 0, nil, nil, fmt.Errorf("modbus: response frame ...'%v' is not ended with '%v'",
+		return 0, nil, nil, fmt.Errorf("modbus: response frame ...'%x' is not ended with '%x'",
 			string(adu[len(adu)-len(asciiEnd):]), asciiEnd)
 	}
 
@@ -112,7 +112,7 @@ func (this *protocolASCIIFrame) decode(adu []byte) (uint8, *ProtocolDataUnit, []
 	var lrc lrc
 	sum := lrc.reset().push(buf[:length-1]...).value()
 	if buf[length-1] != sum { // LRC
-		return 0, nil, nil, fmt.Errorf("modbus: response lrc '%v' does not match expected '%v'", buf[length-1], sum)
+		return 0, nil, nil, fmt.Errorf("modbus: response lrc '%x' does not match expected '%x'", buf[length-1], sum)
 	}
 	return buf[0], &ProtocolDataUnit{buf[1], buf[2 : length-1]}, buf[1 : length-1], nil
 }
@@ -147,7 +147,7 @@ func (this *ASCIIClientProvider) Send(slaveID byte, request *ProtocolDataUnit) (
 // SendPdu send pdu request to the remote server
 func (this *ASCIIClientProvider) SendPdu(slaveID byte, pduRequest []byte) (pduResponse []byte, err error) {
 	if len(pduRequest) < pduMinSize || len(pduRequest) > pduMaxSize {
-		return nil, fmt.Errorf("modbus: pdus size '%v' must not be between '%v' and '%v'",
+		return nil, fmt.Errorf("modbus: pdu size '%v' must not be between '%v' and '%v'",
 			len(pduRequest), pduMinSize, pduMaxSize)
 	}
 
@@ -183,7 +183,7 @@ func (this *ASCIIClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []
 	}
 
 	// Send the request
-	this.Debug("modbus: sending %#v\n", aduRequest)
+	this.Debug("modbus: sending % x", aduRequest)
 	var tryCnt byte
 	for {
 		_, err = this.port.Write(aduRequest)
@@ -224,6 +224,6 @@ func (this *ASCIIClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []
 		}
 	}
 	aduResponse = data[:length]
-	this.Debug("modbus: received %#v\n", aduResponse)
+	this.Debug("modbus: received % x\n", aduResponse)
 	return
 }
