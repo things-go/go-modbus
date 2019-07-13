@@ -50,8 +50,6 @@ package modbus
 
 import (
 	"fmt"
-
-	"github.com/thinkgos/library/elog"
 )
 
 // proto address limit
@@ -218,9 +216,7 @@ type ClientProvider interface {
 	// LogMode set enable or diable log output when you has set logger
 	LogMode(enable bool)
 	// SetLogProvider set logger provider
-	SetLogProvider(p elog.Provider)
-	// SetLogger set logger
-	SetLogger(l *elog.Elog)
+	SetLogProvider(p LogProvider)
 	// Close disconnect the remote server
 	Close() error
 	// Send request to the remote server,it implements on SendRawFrame
@@ -229,4 +225,10 @@ type ClientProvider interface {
 	SendPdu(slaveID byte, pduRequest []byte) (pduResponse []byte, err error)
 	// SendRawFrame send raw frame to the remote server
 	SendRawFrame(aduRequest []byte) (aduResponse []byte, err error)
+}
+
+// RFC5424 log message levels only Debug and Error
+type LogProvider interface {
+	Error(format string, v ...interface{})
+	Debug(format string, v ...interface{})
 }

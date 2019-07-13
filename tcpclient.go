@@ -8,8 +8,6 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
-
-	"github.com/thinkgos/library/elog"
 )
 
 const (
@@ -51,9 +49,7 @@ func NewTCPClientProvider(address string) *TCPClientProvider {
 		Timeout:       TCPDefaultTimeout,
 		autoReconnect: TCPDefaultAutoReconnect,
 		pool:          tcpPool,
-		logs: logs{
-			Elog: elog.NewElog(nil),
-		},
+		logs:          logs{newLogger(), 0},
 	}
 }
 
@@ -118,7 +114,7 @@ func (this *protocolTCPFrame) decode(adu []byte) (*protocolTCPHeader, *ProtocolD
 	return head, &ProtocolDataUnit{adu[tcpHeaderMbapSize], adu[tcpHeaderMbapSize+1:]}, adu[tcpHeaderMbapSize:], nil
 }
 
-// verify confirms vaild data
+// verify confirms valid data
 func (this *protocolTCPFrame) verify(rspHead *protocolTCPHeader, rspPDU *ProtocolDataUnit) error {
 	switch {
 	case rspHead.transactionID != this.head.transactionID:
@@ -126,11 +122,11 @@ func (this *protocolTCPFrame) verify(rspHead *protocolTCPHeader, rspPDU *Protoco
 		return fmt.Errorf("modbus: response transaction id '%v' does not match request '%v'",
 			rspHead.transactionID, this.head.transactionID)
 	case rspHead.protocolID != this.head.protocolID:
-		// Check portocol ID
+		// Check protocol ID
 		return fmt.Errorf("modbus: response protocol id '%v' does not match request '%v'",
 			rspHead.protocolID, this.head.protocolID)
 	case rspHead.slaveID != this.head.slaveID:
-		// Check slaveid same
+		// Check slaveID same
 		return fmt.Errorf("modbus: response unit id '%v' does not match request '%v'",
 			rspHead.slaveID, this.head.slaveID)
 	case rspPDU.FuncCode != this.pdu.FuncCode:
@@ -196,7 +192,7 @@ func (this *TCPClientProvider) SendPdu(slaveID byte, pduRequest []byte) (pduResp
 	if err = frame.verify(rspHead, response); err != nil {
 		return nil, err
 	}
-	// pdu pass tcpMbap head
+	// pdu pass tcpMBAP head
 	return pdu, nil
 }
 
@@ -248,11 +244,11 @@ func (this *TCPClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []by
 	length := int(binary.BigEndian.Uint16(data[4:]))
 	switch {
 	case length <= 0:
-		this.flush(data[:])
+		_ = this.flush(data[:])
 		err = fmt.Errorf("modbus: length in response header '%v' must not be zero", length)
 		return
 	case length > (tcpAduMaxSize - (tcpHeaderMbapSize - 1)):
-		this.flush(data[:])
+		_ = this.flush(data[:])
 		err = fmt.Errorf("modbus: length in response header '%v' must not greater than '%v'", length, tcpAduMaxSize-tcpHeaderMbapSize+1)
 		return
 	}

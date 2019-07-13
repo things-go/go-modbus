@@ -8,8 +8,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/thinkgos/library/elog"
 )
 
 // TCP Default read & write timeout
@@ -42,9 +40,7 @@ func NewTCPServer(addr string) *TCPServer {
 		pool:            &sync.Pool{New: func() interface{} { return &protocolTCPFrame{} }},
 		serverHandler:   newServerHandler(),
 		client:          make(map[net.Conn]struct{}),
-		logs: logs{
-			Elog: elog.NewElog(nil),
-		},
+		logs:            logs{newLogger(), 0},
 	}
 }
 

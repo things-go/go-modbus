@@ -4,8 +4,6 @@ import (
 	"errors"
 	"reflect"
 	"testing"
-
-	"github.com/thinkgos/library/elog"
 )
 
 // check implements ClientProvider interface
@@ -16,13 +14,12 @@ type provider struct {
 	err  error
 }
 
-func (*provider) Connect() error                 { return nil }
-func (*provider) IsConnected() bool              { return true }
-func (*provider) SetAutoReconnect(cnt byte)      {}
-func (*provider) LogMode(enable bool)            {}
-func (*provider) SetLogProvider(p elog.Provider) {}
-func (*provider) SetLogger(l *elog.Elog)         {}
-func (*provider) Close() error                   { return nil }
+func (*provider) Connect() error               { return nil }
+func (*provider) IsConnected() bool            { return true }
+func (*provider) SetAutoReconnect(cnt byte)    {}
+func (*provider) LogMode(enable bool)          {}
+func (*provider) SetLogProvider(p LogProvider) {}
+func (*provider) Close() error                 { return nil }
 func (r *provider) Send(slaveID byte, request *ProtocolDataUnit) (*ProtocolDataUnit, error) {
 	return &ProtocolDataUnit{Data: r.data}, r.err
 }

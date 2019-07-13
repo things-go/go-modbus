@@ -4,8 +4,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"sync"
-
-	"github.com/thinkgos/library/elog"
 )
 
 const (
@@ -32,9 +30,7 @@ var asciiPool = &sync.Pool{New: func() interface{} { return &protocolASCIIFrame{
 // NewASCIIClientProvider allocates and initializes a ASCIIClientProvider.
 func NewASCIIClientProvider(address string) *ASCIIClientProvider {
 	p := &ASCIIClientProvider{
-		logs: logs{
-			Elog: elog.NewElog(nil),
-		},
+		logs: logs{newLogger(), 0},
 		pool: asciiPool,
 	}
 	p.Address = address

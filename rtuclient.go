@@ -6,8 +6,6 @@ import (
 	"io"
 	"sync"
 	"time"
-
-	"github.com/thinkgos/library/elog"
 )
 
 const (
@@ -30,9 +28,7 @@ var rtuPool = &sync.Pool{New: func() interface{} { return &protocolRTUFrame{} }}
 // NewRTUClientProvider allocates and initializes a RTUClientProvider.
 func NewRTUClientProvider(address string) *RTUClientProvider {
 	p := &RTUClientProvider{
-		logs: logs{
-			Elog: elog.NewElog(nil),
-		},
+		logs: logs{newLogger(), 0},
 		pool: rtuPool,
 	}
 	p.Address = address
