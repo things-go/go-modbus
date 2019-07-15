@@ -23,7 +23,7 @@ type RTUClientProvider struct {
 var _ ClientProvider = (*RTUClientProvider)(nil)
 
 // 请求池,所有RTU客户端共用一个请求池
-var rtuPool = &sync.Pool{New: func() interface{} { return &protocolRTUFrame{} }}
+var rtuPool = &sync.Pool{New: func() interface{} { return &protocolFrame{make([]byte, 0, rtuAduMaxSize)} }}
 
 // NewRTUClientProvider allocates and initializes a RTUClientProvider.
 func NewRTUClientProvider(address string) *RTUClientProvider {
@@ -37,55 +37,40 @@ func NewRTUClientProvider(address string) *RTUClientProvider {
 	return p
 }
 
-//  encode slaveID & PDU to a RTU frame,return adu frame
-//  Slave Address   : 1 byte
-//  ---- data Unit ----
-//  Function        : 1 byte
-//  Data            : 0 up to 252 bytes
-//  ---- checksun ----
-//  CRC             : 2 byte
-func (this *protocolRTUFrame) encode(slaveID byte, pdu *ProtocolDataUnit) ([]byte, error) {
+func (this *protocolFrame) encodeRTUFrame(slaveID byte, pdu *ProtocolDataUnit) ([]byte, error) {
 	length := len(pdu.Data) + 4
 	if length > rtuAduMaxSize {
 		return nil, fmt.Errorf("modbus: length of data '%v' must not be bigger than '%v'", length, rtuAduMaxSize)
 	}
-	// save
-	this.slaveID = slaveID
-	this.pdu.FuncCode = pdu.FuncCode
-
-	adu := this.adu[:0:length]
-	adu = append(adu, slaveID, this.pdu.FuncCode)
-	adu = append(adu, pdu.Data...)
-	checksum := crc16(adu)
-	return append(adu, byte(checksum), byte(checksum>>8)), nil
+	requestAdu := this.adu[:0:length]
+	requestAdu = append(requestAdu, slaveID, pdu.FuncCode)
+	requestAdu = append(requestAdu, pdu.Data...)
+	checksum := crc16(requestAdu)
+	requestAdu = append(requestAdu, byte(checksum), byte(checksum>>8))
+	return requestAdu, nil
 }
 
 // decode extracts slaveid and PDU from RTU frame and verify CRC.
-func (this *protocolRTUFrame) decode(adu []byte) (uint8, *ProtocolDataUnit, []byte, error) {
+func decodeRTUFrame(adu []byte) (uint8, []byte, error) {
 	if len(adu) < rtuAduMinSize { // Minimum size (including address, funcCode and CRC)
-		return 0, nil, nil, fmt.Errorf("modbus: response length '%v' does not meet minimum '%v'", len(adu), rtuAduMinSize)
+		return 0, nil, fmt.Errorf("modbus: response length '%v' does not meet minimum '%v'", len(adu), rtuAduMinSize)
 	}
 	// Calculate checksum
 	crc := crc16(adu[0 : len(adu)-2])
 	expect := binary.LittleEndian.Uint16(adu[len(adu)-2:])
 	if crc != expect {
-		return 0, nil, nil, fmt.Errorf("modbus: response crc '%x' does not match expected '%x'", expect, crc)
+		return 0, nil, fmt.Errorf("modbus: response crc '%x' does not match expected '%x'", expect, crc)
 	}
-	// slaveID & PDU(Function code & data) but pass crc
-	return adu[0], &ProtocolDataUnit{adu[1], adu[2 : len(adu)-2]}, adu[1 : len(adu)-2], nil
-}
-
-// verify confirms vaild data
-func (this *protocolRTUFrame) verify(rspSlaveID uint8, rspPDU *ProtocolDataUnit) error {
-	return verify(this.slaveID, rspSlaveID, &this.pdu, rspPDU)
+	// slaveID & PDU but pass crc
+	return adu[0], adu[1 : len(adu)-2], nil
 }
 
 // Send request to the remote server,it implements on SendRawFrame
 func (this *RTUClientProvider) Send(slaveID byte, request *ProtocolDataUnit) (*ProtocolDataUnit, error) {
-	frame := this.pool.Get().(*protocolRTUFrame)
+	frame := this.pool.Get().(*protocolFrame)
 	defer this.pool.Put(frame)
 
-	aduRequest, err := frame.encode(slaveID, request)
+	aduRequest, err := frame.encodeRTUFrame(slaveID, request)
 	if err != nil {
 		return nil, err
 	}
@@ -93,15 +78,16 @@ func (this *RTUClientProvider) Send(slaveID byte, request *ProtocolDataUnit) (*P
 	if err != nil {
 		return nil, err
 	}
-	rspSlaveID, response, _, err := frame.decode(aduResponse)
+	rspSlaveID, pdu, err := decodeRTUFrame(aduResponse)
 	if err != nil {
 		return nil, err
 	}
-	if err = frame.verify(rspSlaveID, response); err != nil {
+	response := &ProtocolDataUnit{pdu[0], pdu[1:]}
+	if err = verify(slaveID, rspSlaveID, request, response); err != nil {
 		return nil, err
 	}
 	return response, nil
-}
+} //Function code & data
 
 // SendPdu send pdu request to the remote server
 func (this *RTUClientProvider) SendPdu(slaveID byte, pduRequest []byte) (pduResponse []byte, err error) {
@@ -110,23 +96,25 @@ func (this *RTUClientProvider) SendPdu(slaveID byte, pduRequest []byte) (pduResp
 			len(pduRequest), pduMinSize, pduMaxSize)
 	}
 
-	frame := this.pool.Get().(*protocolRTUFrame)
+	frame := this.pool.Get().(*protocolFrame)
 	defer this.pool.Put(frame)
 
 	request := &ProtocolDataUnit{pduRequest[0], pduRequest[1:]}
-	aduRequest, err := frame.encode(slaveID, request)
+	requestAdu, err := frame.encodeRTUFrame(slaveID, request)
 	if err != nil {
 		return nil, err
 	}
-	aduResponse, err := this.SendRawFrame(aduRequest)
+
+	aduResponse, err := this.SendRawFrame(requestAdu)
 	if err != nil {
 		return nil, err
 	}
-	rspSlaveID, response, pdu, err := frame.decode(aduResponse)
+	rspSlaveID, pdu, err := decodeRTUFrame(aduResponse)
 	if err != nil {
 		return nil, err
 	}
-	if err = frame.verify(rspSlaveID, response); err != nil {
+	response := &ProtocolDataUnit{pdu[0], pdu[1:]}
+	if err = verify(slaveID, rspSlaveID, request, response); err != nil {
 		return nil, err
 	}
 	//  PDU pass slaveID & crc
@@ -140,7 +128,7 @@ func (this *RTUClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []by
 
 	// check  port is connected
 	if !this.isConnected() {
-		return nil, fmt.Errorf("modbus: Client is not connected")
+		return nil, ErrClosedConnection
 	}
 
 	// Send the request

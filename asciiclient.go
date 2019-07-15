@@ -25,7 +25,7 @@ type ASCIIClientProvider struct {
 var _ ClientProvider = (*ASCIIClientProvider)(nil)
 
 // 请求池,所有ascii客户端共用一个请求池
-var asciiPool = &sync.Pool{New: func() interface{} { return &protocolASCIIFrame{} }}
+var asciiPool = &sync.Pool{New: func() interface{} { return &protocolFrame{make([]byte, 0, asciiCharacterMaxSize)} }}
 
 // NewASCIIClientProvider allocates and initializes a ASCIIClientProvider.
 func NewASCIIClientProvider(address string) *ASCIIClientProvider {
@@ -48,19 +48,15 @@ func NewASCIIClientProvider(address string) *ASCIIClientProvider {
 //  ---- checksun ----
 //  LRC             : 2 chars
 //  End             : 2 chars
-func (this *protocolASCIIFrame) encode(slaveID byte, pdu *ProtocolDataUnit) ([]byte, error) {
+func (this *protocolFrame) encodeAsciiFrame(slaveID byte, pdu *ProtocolDataUnit) ([]byte, error) {
 	length := len(pdu.Data) + 3
 	if length > asciiAduMaxSize {
 		return nil, fmt.Errorf("modbus: length of data '%v' must not be bigger than '%v'", length, asciiAduMaxSize)
 	}
-	// save
-	this.slaveID = slaveID
-	this.pdu.FuncCode = pdu.FuncCode
 
 	// Exclude the beginning colon and terminating CRLF pair characters
 	var lrc lrc
-	lrc.reset().push(this.slaveID)
-	lrc.push(pdu.FuncCode).push(pdu.Data...)
+	lrc.reset().push(slaveID).push(pdu.FuncCode).push(pdu.Data...)
 	lrcVal := lrc.value()
 
 	// real ascii frame to send,
@@ -68,7 +64,7 @@ func (this *protocolASCIIFrame) encode(slaveID byte, pdu *ProtocolDataUnit) ([]b
 	frame := this.adu[: 0 : (len(pdu.Data)+3)*2+3]
 	frame = append(frame, []byte(asciiStart)...) // the beginning colon characters
 	// the real adu
-	frame = append(frame, hexTable[this.slaveID>>4], hexTable[this.slaveID&0x0F]) // slave ID
+	frame = append(frame, hexTable[slaveID>>4], hexTable[slaveID&0x0F])           // slave ID
 	frame = append(frame, hexTable[pdu.FuncCode>>4], hexTable[pdu.FuncCode&0x0F]) // pdu funcCode
 	for _, v := range pdu.Data {
 		frame = append(frame, hexTable[v>>4], hexTable[v&0x0F]) // pdu data
@@ -79,21 +75,21 @@ func (this *protocolASCIIFrame) encode(slaveID byte, pdu *ProtocolDataUnit) ([]b
 }
 
 // decode extracts slaveID & PDU from ASCII frame and verify LRC.
-func (this *protocolASCIIFrame) decode(adu []byte) (uint8, *ProtocolDataUnit, []byte, error) {
+func decodeAsciiFrame(adu []byte) (uint8, []byte, error) {
 	if len(adu) < asciiAduMinSize+6 { // Minimum size (including address, function and LRC)
-		return 0, nil, nil, fmt.Errorf("modbus: response length '%v' does not meet minimum '%v'", len(adu), 9)
+		return 0, nil, fmt.Errorf("modbus: response length '%v' does not meet minimum '%v'", len(adu), 9)
 	}
 	switch {
 	case len(adu)%2 != 1:
 		// Length excluding colon must be an even number
-		return 0, nil, nil, fmt.Errorf("modbus: response length '%v' is not an even number", len(adu)-1)
+		return 0, nil, fmt.Errorf("modbus: response length '%v' is not an even number", len(adu)-1)
 	case string(adu[0:len(asciiStart)]) != asciiStart:
 		// First char must be a colons
-		return 0, nil, nil, fmt.Errorf("modbus: response frame '%x'... is not started with '%x'",
+		return 0, nil, fmt.Errorf("modbus: response frame '%x'... is not started with '%x'",
 			string(adu[0:len(asciiStart)]), asciiStart)
 	case string(adu[len(adu)-len(asciiEnd):]) != asciiEnd:
 		// 2 last chars must be \r\n
-		return 0, nil, nil, fmt.Errorf("modbus: response frame ...'%x' is not ended with '%x'",
+		return 0, nil, fmt.Errorf("modbus: response frame ...'%x' is not ended with '%x'",
 			string(adu[len(adu)-len(asciiEnd):]), asciiEnd)
 	}
 
@@ -102,27 +98,22 @@ func (this *protocolASCIIFrame) decode(adu []byte) (uint8, *ProtocolDataUnit, []
 	buf := make([]byte, hex.DecodedLen(len(dat)))
 	length, err := hex.Decode(buf, dat)
 	if err != nil {
-		return 0, nil, nil, err
+		return 0, nil, err
 	}
 	// Calculate checksum
 	var lrc lrc
 	sum := lrc.reset().push(buf[:length-1]...).value()
 	if buf[length-1] != sum { // LRC
-		return 0, nil, nil, fmt.Errorf("modbus: response lrc '%x' does not match expected '%x'", buf[length-1], sum)
+		return 0, nil, fmt.Errorf("modbus: response lrc '%x' does not match expected '%x'", buf[length-1], sum)
 	}
-	return buf[0], &ProtocolDataUnit{buf[1], buf[2 : length-1]}, buf[1 : length-1], nil
-}
-
-// verify confirms vaild data
-func (this *protocolASCIIFrame) verify(reqSlaveID, rspSlaveID uint8, reqPDU, rspPDU *ProtocolDataUnit) error {
-	return verify(reqSlaveID, rspSlaveID, reqPDU, rspPDU)
+	return buf[0], buf[1 : length-1], nil
 }
 
 // Send request to the remote server,it implements on SendRawFrame
 func (this *ASCIIClientProvider) Send(slaveID byte, request *ProtocolDataUnit) (*ProtocolDataUnit, error) {
-	frame := this.pool.Get().(*protocolASCIIFrame)
+	frame := this.pool.Get().(*protocolFrame)
 	defer this.pool.Put(frame)
-	aduRequest, err := frame.encode(slaveID, request)
+	aduRequest, err := frame.encodeAsciiFrame(slaveID, request)
 	if err != nil {
 		return nil, err
 	}
@@ -130,11 +121,12 @@ func (this *ASCIIClientProvider) Send(slaveID byte, request *ProtocolDataUnit) (
 	if err != nil {
 		return nil, err
 	}
-	rspSlaveID, response, _, err := frame.decode(aduResponse)
+	rspSlaveID, pdu, err := decodeAsciiFrame(aduResponse)
 	if err != nil {
 		return nil, err
 	}
-	if err = frame.verify(slaveID, rspSlaveID, request, response); err != nil {
+	response := &ProtocolDataUnit{pdu[0], pdu[1:]}
+	if err = verify(slaveID, rspSlaveID, request, response); err != nil {
 		return nil, err
 	}
 	return response, nil
@@ -147,10 +139,10 @@ func (this *ASCIIClientProvider) SendPdu(slaveID byte, pduRequest []byte) (pduRe
 			len(pduRequest), pduMinSize, pduMaxSize)
 	}
 
-	frame := this.pool.Get().(*protocolASCIIFrame)
+	frame := this.pool.Get().(*protocolFrame)
 	defer this.pool.Put(frame)
 	request := &ProtocolDataUnit{pduRequest[0], pduRequest[1:]}
-	aduRequest, err := frame.encode(slaveID, request)
+	aduRequest, err := frame.encodeAsciiFrame(slaveID, request)
 	if err != nil {
 		return nil, err
 	}
@@ -158,11 +150,12 @@ func (this *ASCIIClientProvider) SendPdu(slaveID byte, pduRequest []byte) (pduRe
 	if err != nil {
 		return nil, err
 	}
-	rspSlaveID, response, pdu, err := frame.decode(aduResponse)
+	rspSlaveID, pdu, err := decodeAsciiFrame(aduResponse)
 	if err != nil {
 		return nil, err
 	}
-	if err = frame.verify(slaveID, rspSlaveID, request, response); err != nil {
+	response := &ProtocolDataUnit{pdu[0], pdu[1:]}
+	if err = verify(slaveID, rspSlaveID, request, response); err != nil {
 		return nil, err
 	}
 	return pdu, nil
@@ -175,7 +168,7 @@ func (this *ASCIIClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []
 
 	// check  port is connected
 	if !this.isConnected() {
-		return nil, fmt.Errorf("modbus: Client is not connected")
+		return nil, ErrClosedConnection
 	}
 
 	// Send the request

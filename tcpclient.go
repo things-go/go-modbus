@@ -92,9 +92,9 @@ func (this *protocolTCPFrame) encode(slaveID byte, pdu *ProtocolDataUnit) ([]byt
 //  ---- data Unit ----
 //  Function        : 1 byte
 //  Data            : 0 up to 252 bytes
-func (this *protocolTCPFrame) decode(adu []byte) (*protocolTCPHeader, *ProtocolDataUnit, []byte, error) {
+func decodeTCPFrame(adu []byte) (*protocolTCPHeader, []byte, error) {
 	if len(adu) < tcpAduMinSize { // Minimum size (including MBAP, funcCode)
-		return nil, nil, nil, fmt.Errorf("modbus: response length '%v' does not meet minimum '%v'", len(adu), tcpAduMinSize)
+		return nil, nil, fmt.Errorf("modbus: response length '%v' does not meet minimum '%v'", len(adu), tcpAduMinSize)
 	}
 	// Read length value in the header
 	head := &protocolTCPHeader{
@@ -106,12 +106,12 @@ func (this *protocolTCPFrame) decode(adu []byte) (*protocolTCPHeader, *ProtocolD
 
 	pduLength := len(adu) - tcpHeaderMbapSize
 	if pduLength != int(head.length-1) {
-		return nil, nil, nil, fmt.Errorf("modbus: length in response '%v' does not match pdu data length '%v'",
+		return nil, nil, fmt.Errorf("modbus: length in response '%v' does not match pdu data length '%v'",
 			head.length-1, pduLength)
 
 	}
 	// The first byte after header is function code
-	return head, &ProtocolDataUnit{adu[tcpHeaderMbapSize], adu[tcpHeaderMbapSize+1:]}, adu[tcpHeaderMbapSize:], nil
+	return head, adu[tcpHeaderMbapSize:], nil
 }
 
 // verify confirms valid data
@@ -154,10 +154,11 @@ func (this *TCPClientProvider) Send(slaveID byte, request *ProtocolDataUnit) (*P
 	if err != nil {
 		return nil, err
 	}
-	rspHead, response, _, err := frame.decode(aduResponse)
+	rspHead, pdu, err := decodeTCPFrame(aduResponse)
 	if err != nil {
 		return nil, err
 	}
+	response := &ProtocolDataUnit{pdu[0], pdu[1:]}
 	if err = frame.verify(rspHead, response); err != nil {
 		return nil, err
 	}
@@ -167,7 +168,7 @@ func (this *TCPClientProvider) Send(slaveID byte, request *ProtocolDataUnit) (*P
 // SendPdu send pdu request to the remote server
 func (this *TCPClientProvider) SendPdu(slaveID byte, pduRequest []byte) (pduResponse []byte, err error) {
 	if len(pduRequest) < pduMinSize || len(pduRequest) > pduMaxSize {
-		return nil, fmt.Errorf("modbus: pdu size '%v' must not be between '%v' and '%v'",
+		return nil, fmt.Errorf("modbus: rspPdu size '%v' must not be between '%v' and '%v'",
 			len(pduRequest), pduMinSize, pduMaxSize)
 	}
 
@@ -185,15 +186,16 @@ func (this *TCPClientProvider) SendPdu(slaveID byte, pduRequest []byte) (pduResp
 	if err != nil {
 		return nil, err
 	}
-	rspHead, response, pdu, err := frame.decode(aduResponse)
+	rspHead, rspPdu, err := decodeTCPFrame(aduResponse)
 	if err != nil {
 		return nil, err
 	}
+	response := &ProtocolDataUnit{rspPdu[0], rspPdu[1:]}
 	if err = frame.verify(rspHead, response); err != nil {
 		return nil, err
 	}
-	// pdu pass tcpMBAP head
-	return pdu, nil
+	// rspPdu pass tcpMBAP head
+	return rspPdu, nil
 }
 
 // SendRawFrame send raw adu request frame
@@ -202,7 +204,7 @@ func (this *TCPClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []by
 	defer this.mu.Unlock()
 
 	if !this.isConnected() {
-		return nil, fmt.Errorf("modbus: Client is not connected")
+		return nil, ErrClosedConnection
 	}
 	// Send data
 	this.Debug("modbus: sending % x", aduRequest)

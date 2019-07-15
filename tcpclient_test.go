@@ -48,24 +48,22 @@ func TestTCPClientProvider_decode(t *testing.T) {
 	}
 	tests := []struct {
 		name    string
-		tcp     *protocolTCPFrame
 		args    args
 		head    *protocolTCPHeader
-		pdu     *ProtocolDataUnit
+		pdu     []byte
 		wantErr bool
 	}{
 		{
 			"TCP decode",
-			&protocolTCPFrame{},
 			args{[]byte{0, 0, 0, 0, 0, 11, 0, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9}},
 			&protocolTCPHeader{0, 0, 11, 0},
-			&ProtocolDataUnit{1, []byte{1, 2, 3, 4, 5, 6, 7, 8, 9}},
+			[]byte{1, 1, 2, 3, 4, 5, 6, 7, 8, 9},
 			false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gothead, gotpdu, _, err := tt.tcp.decode(tt.args.adu)
+			gothead, gotpdu, err := decodeTCPFrame(tt.args.adu)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("TCPClientProvider.decode() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -189,10 +187,9 @@ func BenchmarkTCPClientProvider_encoder(b *testing.B) {
 }
 
 func BenchmarkTCPClientProvider_decoder(b *testing.B) {
-	tcp := protocolTCPFrame{}
 	adu := []byte{0, 1, 0, 0, 0, 9, 20, 1, 2, 3, 4, 5, 6, 7, 8}
 	for i := 0; i < b.N; i++ {
-		_, _, _, err := tcp.decode(adu)
+		_, _, err := decodeTCPFrame(adu)
 		if err != nil {
 			b.Fatal(err)
 		}

@@ -3,6 +3,7 @@ package modbus
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"strings"
@@ -94,118 +95,116 @@ func (this *TCPServer) Range(f func(slaveID byte, node *NodeRegister) bool) {
 func (this *TCPServer) ServerModbus() {
 	listen, err := net.Listen("tcp", this.addr)
 	if err != nil {
-		this.Error("mobus listen: %v\n", err)
+		this.Error("modbus server: %v\n", err)
 		return
 	}
 	this.mu.Lock()
 	this.listen = listen
 	this.mu.Unlock()
 	defer this.Close()
-	this.Debug("mobus TCP server running")
+	this.Debug("modbus TCP server running")
 	for {
 		conn, err := listen.Accept()
 		if err != nil {
-			this.Error("modbus accept: %#v\n", err)
+			this.Error("modbus accept: %v\n", err)
 			return
 		}
 		this.wg.Add(1)
 		go func() {
 			this.Debug("client(%v) -> server(%v) connected", conn.RemoteAddr(), conn.LocalAddr())
-			// get pool frame
-			frame := this.pool.Get().(*protocolTCPFrame)
 			this.mu.Lock()
 			this.client[conn] = struct{}{}
 			this.mu.Unlock()
-			defer func() {
-				this.Debug("client(%v) -> server(%v) disconnected", conn.RemoteAddr(), conn.LocalAddr())
-				// rest pool frame and put it
-				frame.pdu.Data = nil
-				this.pool.Put(frame)
 
-				this.mu.Lock()
-				delete(this.client, conn)
-				this.mu.Unlock()
-				conn.Close()
-				this.wg.Done()
-			}()
+			if err := this.HandlerModbus(conn); err != nil {
+				this.Error("modbus server: %v", err)
+			}
 
-			for {
-				adu := frame.adu[:]
-				length := tcpHeaderMbapSize
-				for rdCnt := 0; rdCnt < length; {
-					err := conn.SetReadDeadline(time.Now().Add(this.tcpReadTimeout))
+			this.Debug("client(%v) -> server(%v) disconnected", conn.RemoteAddr(), conn.LocalAddr())
+			this.mu.Lock()
+			delete(this.client, conn)
+			this.mu.Unlock()
+			conn.Close()
+			this.wg.Done()
+		}()
+	}
+}
+
+func (this *TCPServer) HandlerModbus(conn net.Conn) error {
+	// get pool frame
+	frame := this.pool.Get().(*protocolTCPFrame)
+
+	defer func() {
+		// rest pool frame and put it
+		frame.pdu.Data = nil
+		this.pool.Put(frame)
+	}()
+
+	for {
+		adu := frame.adu[:]
+		for length, rdCnt := tcpHeaderMbapSize, 0; rdCnt < length; {
+			err := conn.SetReadDeadline(time.Now().Add(this.tcpReadTimeout))
+			if err != nil {
+				return fmt.Errorf("set read deadline %v", err)
+			}
+			bytesRead, err := io.ReadFull(conn, adu[rdCnt:length])
+			if err != nil {
+				if err != io.EOF && err != io.ErrClosedPipe || strings.Contains(err.Error(), "use of closed network connection") {
+					return err
+				}
+
+				if e, ok := err.(net.Error); ok && !e.Temporary() {
+					return err
+				}
+
+				if bytesRead == 0 && err == io.EOF {
+					return fmt.Errorf("remote client closed %v", err)
+				}
+				// cnt >0 do nothing
+				// cnt == 0 && err != io.EOFcontinue do it next
+			}
+			rdCnt += bytesRead
+			if rdCnt >= length {
+				// check hed ProtocolIdentifier
+				if binary.BigEndian.Uint16(adu[2:]) != tcpProtocolIdentifier {
+					break
+				}
+				length = int(binary.BigEndian.Uint16(adu[4:])) + tcpHeaderMbapSize - 1
+				if rdCnt == length {
+					this.Debug("modbus request: % x", adu[:length])
+					response, err := this.frameHandler(frame, adu[:length])
 					if err != nil {
-						this.Error("set read deadline %v\n", err)
-						return
+						return fmt.Errorf("frameHandler %v", err)
 					}
-					bytesRead, err := io.ReadFull(conn, frame.adu[rdCnt:length])
-					if err != nil {
-						if err != io.EOF && err != io.ErrClosedPipe || strings.Contains(err.Error(), "use of closed network connection") {
-							this.Error("modbus server: %v", err)
-							return
-						}
+					this.Debug("modbus response: % x", response)
 
-						if e, ok := err.(net.Error); ok && !e.Temporary() {
-							this.Error("modbus server: %v", err)
-							return
-						}
-
-						if bytesRead == 0 && err == io.EOF {
-							this.Error("remote client closed %v\n", err)
-							return
-						}
-						// cnt >0 do nothing
-						// cnt == 0 && err != io.EOFcontinue do it next
-					}
-					rdCnt += bytesRead
-					if rdCnt >= length {
-						// check hed ProtocolIdentifier
-						if binary.BigEndian.Uint16(adu[2:]) != tcpProtocolIdentifier {
-							break
-						}
-						length = int(binary.BigEndian.Uint16(adu[4:])) + tcpHeaderMbapSize - 1
-						if rdCnt == length {
-							this.Debug("modbus request: % x", adu[:length])
-							response, err := this.frameHandler(frame, adu[:length])
+					err = func(b []byte) error {
+						for wrCnt := 0; len(b) > wrCnt; {
+							err = conn.SetWriteDeadline(time.Now().Add(this.tcpWriteTimeout))
 							if err != nil {
-								this.Error("modbus handler: %v", err)
-								break
+								return fmt.Errorf("set read deadline %v", err)
 							}
-							this.Debug("modbus response: % x", response)
-
-							err = func(b []byte) error {
-								for wrCnt := 0; len(b) > wrCnt; {
-									err = conn.SetWriteDeadline(time.Now().Add(this.tcpWriteTimeout))
-									if err != nil {
-										this.Error("set read deadline %v\n", err)
-										return err
-									}
-									byteCount, err := conn.Write(b[wrCnt:])
-									if err != nil {
-										// See: https://github.com/golang/go/issues/4373
-										if err != io.EOF && err != io.ErrClosedPipe || strings.Contains(err.Error(), "use of closed network connection") {
-											this.Error("cs104 server: %v", err)
-											return err
-										}
-										if e, ok := err.(net.Error); !ok || !e.Temporary() {
-											this.Error("cs104 server: %v", err)
-											return err
-										}
-										// temporary error may be recoverable
-									}
-									wrCnt += byteCount
+							byteCount, err := conn.Write(b[wrCnt:])
+							if err != nil {
+								// See: https://github.com/golang/go/issues/4373
+								if err != io.EOF && err != io.ErrClosedPipe || strings.Contains(err.Error(), "use of closed network connection") {
+									return err
 								}
-								return nil
-							}(response)
-							if err != nil {
-								this.Error("modbus write: %v", err)
-								return
+								if e, ok := err.(net.Error); !ok || !e.Temporary() {
+									return err
+								}
+								// temporary error may be recoverable
 							}
+							wrCnt += byteCount
 						}
+						return nil
+					}(response)
+					if err != nil {
+						return err
 					}
 				}
 			}
-		}()
+		}
 	}
 }
 
@@ -232,37 +231,39 @@ func (this *TCPServer) frameHandler(frame *protocolTCPFrame, requestAdu []byte) 
 		}
 	}()
 
-	// copy head from request adu
-	frame.head.transactionID = binary.BigEndian.Uint16(requestAdu[0:])
-	frame.head.protocolID = binary.BigEndian.Uint16(requestAdu[2:])
-	frame.head.length = binary.BigEndian.Uint16(requestAdu[4:])
-	frame.head.slaveID = uint8(requestAdu[6])
-	frame.pdu.FuncCode = uint8(requestAdu[7])
+	// got head from request adu
+	tcpHeader := protocolTCPHeader{
+		binary.BigEndian.Uint16(requestAdu[0:]),
+		binary.BigEndian.Uint16(requestAdu[2:]),
+		binary.BigEndian.Uint16(requestAdu[4:]),
+		uint8(requestAdu[6]),
+	}
+	funcCode := uint8(requestAdu[7])
 	pduData := requestAdu[8:]
 
-	node, err := this.GetNode(frame.head.slaveID)
+	node, err := this.GetNode(tcpHeader.slaveID)
 	if err != nil {
 		return nil, err
 	}
-	if handle, ok := this.function[frame.pdu.FuncCode]; ok {
-		frame.pdu.Data, err = handle(node, pduData)
+	var rspPduData []byte
+	if handle, ok := this.function[funcCode]; ok {
+		rspPduData, err = handle(node, pduData)
 	} else {
 		err = &ExceptionError{ExceptionCodeIllegalFunction}
 	}
 	if err != nil {
-		frame.pdu.FuncCode |= 0x80
-		frame.pdu.Data = []byte{err.(*ExceptionError).ExceptionCode}
+		funcCode |= 0x80
+		rspPduData = []byte{err.(*ExceptionError).ExceptionCode}
 	}
 
 	// prepare response data,fill it
-	frame.head.length = uint16(2 + len(frame.pdu.Data))
-	response := frame.adu[:tcpHeaderMbapSize+1+len(frame.pdu.Data)]
-	binary.BigEndian.PutUint16(response[0:], frame.head.transactionID)
-	binary.BigEndian.PutUint16(response[2:], frame.head.protocolID)
-	binary.BigEndian.PutUint16(response[4:], frame.head.length)
-	response[6] = frame.head.slaveID
-	response[7] = frame.pdu.FuncCode
-	copy(response[8:], frame.pdu.Data)
+	response := frame.adu[:tcpHeaderMbapSize+1+len(rspPduData)]
+	binary.BigEndian.PutUint16(response[0:], tcpHeader.transactionID)
+	binary.BigEndian.PutUint16(response[2:], tcpHeader.protocolID)
+	binary.BigEndian.PutUint16(response[4:], uint16(2+len(rspPduData)))
+	response[6] = tcpHeader.slaveID
+	response[7] = funcCode
+	copy(response[8:], rspPduData)
 
 	return response, nil
 }

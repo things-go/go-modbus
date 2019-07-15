@@ -182,17 +182,8 @@ type ProtocolDataUnit struct {
 }
 
 // protocolRTUFrame 帧结构用于底层对象缓冲池rtu
-type protocolRTUFrame struct {
-	slaveID byte
-	pdu     ProtocolDataUnit
-	adu     [rtuAduMaxSize]byte
-}
-
-// protocolASCIIFrame 帧结构用于底层对像缓冲池ascii
-type protocolASCIIFrame struct {
-	slaveID byte
-	pdu     ProtocolDataUnit
-	adu     [asciiCharacterMaxSize]byte
+type protocolFrame struct {
+	adu []byte
 }
 
 // protocolTCPFrame 帧结构用于底层对象缓冲池tcp

@@ -5,21 +5,21 @@ import (
 	"testing"
 )
 
-func TestRTUClientProvider_encode(t *testing.T) {
+func TestRTUClientProvider_encodeRTUFrame(t *testing.T) {
 	type args struct {
 		slaveID byte
 		pdu     *ProtocolDataUnit
 	}
 	tests := []struct {
 		name    string
-		rtu     *protocolRTUFrame
+		rtu     *protocolFrame
 		args    args
 		want    []byte
 		wantErr bool
 	}{
 		{
 			"RTU encode",
-			&protocolRTUFrame{},
+			&protocolFrame{make([]byte, 0, rtuAduMaxSize)},
 			args{0x01, &ProtocolDataUnit{0x03, []byte{0x01, 0x02, 0x03, 0x04, 0x05}}},
 			[]byte{0x01, 0x03, 0x01, 0x02, 0x03, 0x04, 0x05, 0x05, 0x48},
 			false,
@@ -27,7 +27,7 @@ func TestRTUClientProvider_encode(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.rtu.encode(tt.args.slaveID, tt.args.pdu)
+			got, err := tt.rtu.encodeRTUFrame(tt.args.slaveID, tt.args.pdu)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RTUClientProvider.encode() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -39,31 +39,28 @@ func TestRTUClientProvider_encode(t *testing.T) {
 	}
 }
 
-func TestRTUClientProvider_decode(t *testing.T) {
+func TestRTUClientProvider_decodeRTUFrame(t *testing.T) {
 	type args struct {
 		adu []byte
 	}
-	p := &protocolRTUFrame{}
 	tests := []struct {
 		name    string
-		rtu     *protocolRTUFrame
 		args    args
 		slaveID uint8
-		pdu     *ProtocolDataUnit
+		pdu     []byte
 		wantErr bool
 	}{
 		{
 			"RTU decode",
-			p,
 			args{[]byte{0x01, 0x03, 0x01, 0x02, 0x03, 0x04, 0x05, 0x05, 0x48}},
 			0x01,
-			&ProtocolDataUnit{0x03, []byte{0x01, 0x02, 0x03, 0x04, 0x05}},
+			[]byte{0x03, 0x01, 0x02, 0x03, 0x04, 0x05},
 			false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotslaveID, gotpdu, _, err := tt.rtu.decode(tt.args.adu)
+			gotslaveID, gotpdu, err := decodeRTUFrame(tt.args.adu)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("RTUClientProvider.decode() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -166,25 +163,24 @@ func Test_calculateResponseLength(t *testing.T) {
 	}
 }
 
-func BenchmarkRTUClientProvider_encode(b *testing.B) {
-	p := &protocolRTUFrame{}
+func BenchmarkRTUClientProvider_encodeRTUFrame(b *testing.B) {
+	p := &protocolFrame{make([]byte, 0, rtuAduMaxSize)}
 	pdu := &ProtocolDataUnit{
 		FuncCode: 1,
 		Data:     []byte{2, 3, 4, 5, 6, 7, 8, 9},
 	}
 	for i := 0; i < b.N; i++ {
-		_, err := p.encode(10, pdu)
+		_, err := p.encodeRTUFrame(10, pdu)
 		if err != nil {
 			b.Fatal(err)
 		}
 	}
 }
 
-func BenchmarkRTUClientProvider_decode(b *testing.B) {
-	p := &protocolRTUFrame{}
+func BenchmarkRTUClientProvider_decodeRTUFrame(b *testing.B) {
 	adu := []byte{0x01, 0x10, 0x8A, 0x00, 0x00, 0x03, 0xAA, 0x10}
 	for i := 0; i < b.N; i++ {
-		_, _, _, err := p.decode(adu)
+		_, _, err := decodeRTUFrame(adu)
 		if err != nil {
 			b.Fatal(err)
 		}
