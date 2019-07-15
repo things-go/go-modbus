@@ -14,19 +14,19 @@ type provider struct {
 	err  error
 }
 
-func (*provider) Connect() error               { return nil }
-func (*provider) IsConnected() bool            { return true }
-func (*provider) SetAutoReconnect(cnt byte)    {}
-func (*provider) LogMode(enable bool)          {}
-func (*provider) SetLogProvider(p LogProvider) {}
-func (*provider) Close() error                 { return nil }
-func (r *provider) Send(slaveID byte, request *ProtocolDataUnit) (*ProtocolDataUnit, error) {
+func (*provider) Connect() error             { return nil }
+func (*provider) IsConnected() bool          { return true }
+func (*provider) SetAutoReconnect(byte)      {}
+func (*provider) LogMode(bool)               {}
+func (*provider) SetLogProvider(LogProvider) {}
+func (*provider) Close() error               { return nil }
+func (r *provider) Send(_ byte, _ *ProtocolDataUnit) (*ProtocolDataUnit, error) {
 	return &ProtocolDataUnit{Data: r.data}, r.err
 }
-func (*provider) SendPdu(slaveID byte, pduRequest []byte) (pduResponse []byte, err error) {
+func (*provider) SendPdu(byte, []byte) (pduResponse []byte, err error) {
 	return nil, nil
 }
-func (*provider) SendRawFrame(aduRequest []byte) (aduResponse []byte, err error) {
+func (*provider) SendRawFrame([]byte) (aduResponse []byte, err error) {
 	return nil, nil
 }
 

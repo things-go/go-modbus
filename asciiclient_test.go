@@ -41,7 +41,7 @@ func TestASCIIClientProvider_encodeAsciiFrame(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.ascii.encodeAsciiFrame(tt.args.slaveID, tt.args.pdu)
+			got, err := tt.ascii.encodeASCIIFrame(tt.args.slaveID, tt.args.pdu)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ASCIIClientProvider.encode() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -81,7 +81,7 @@ func TestASCIIClientProvider_decodeAsciiFrame(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotslaveID, gotpdu, err := decodeAsciiFrame(tt.args.adu)
+			gotslaveID, gotpdu, err := decodeASCIIFrame(tt.args.adu)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ASCIIClientProvider.decode() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -103,7 +103,7 @@ func BenchmarkASCIIClientProvider_encodeAsciiFrame(b *testing.B) {
 		Data:     []byte{2, 3, 4, 5, 6, 7, 8, 9},
 	}
 	for i := 0; i < b.N; i++ {
-		_, err := p.encodeAsciiFrame(10, pdu)
+		_, err := p.encodeASCIIFrame(10, pdu)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -113,7 +113,7 @@ func BenchmarkASCIIClientProvider_encodeAsciiFrame(b *testing.B) {
 func BenchmarkASCIIClientProvider_decodeAsciiFrame(b *testing.B) {
 	adu := []byte(":010308640A0D79\r\n")
 	for i := 0; i < b.N; i++ {
-		_, _, err := decodeAsciiFrame(adu)
+		_, _, err := decodeASCIIFrame(adu)
 		if err != nil {
 			b.Fatal(err)
 		}

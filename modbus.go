@@ -218,7 +218,7 @@ type ClientProvider interface {
 	SendRawFrame(aduRequest []byte) (aduResponse []byte, err error)
 }
 
-// RFC5424 log message levels only Debug and Error
+// LogProvider RFC5424 log message levels only Debug and Error
 type LogProvider interface {
 	Error(format string, v ...interface{})
 	Debug(format string, v ...interface{})
