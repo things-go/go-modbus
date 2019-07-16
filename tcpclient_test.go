@@ -52,7 +52,7 @@ func Test_protocolFrame_encodeTCPFrame(t *testing.T) {
 	}
 }
 
-func TestTCPClientProvider_decode(t *testing.T) {
+func TestTCPClientProvider_decodeTCPFrame(t *testing.T) {
 	type args struct {
 		adu []byte
 	}
@@ -170,7 +170,7 @@ func Test_verifyTCPFrame(t *testing.T) {
 	}
 }
 
-func BenchmarkTCPClientProvider_encoder(b *testing.B) {
+func BenchmarkTCPClientProvider_encodeTCPFrame(b *testing.B) {
 	tcp := &protocolFrame{make([]byte, 0, tcpAduMaxSize)}
 	pdu := ProtocolDataUnit{
 		1,
@@ -185,7 +185,7 @@ func BenchmarkTCPClientProvider_encoder(b *testing.B) {
 	}
 }
 
-func BenchmarkTCPClientProvider_decoder(b *testing.B) {
+func BenchmarkTCPClientProvider_decodeTCPFrame(b *testing.B) {
 	adu := []byte{0, 1, 0, 0, 0, 9, 20, 1, 2, 3, 4, 5, 6, 7, 8}
 	for i := 0; i < b.N; i++ {
 		_, _, err := decodeTCPFrame(adu)

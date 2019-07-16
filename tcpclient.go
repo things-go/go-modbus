@@ -171,7 +171,7 @@ func (this *TCPClientProvider) Send(slaveID byte, request ProtocolDataUnit) (Pro
 }
 
 // SendPdu send pdu request to the remote server
-func (this *TCPClientProvider) SendPdu(slaveID byte, pduRequest []byte) (pduResponse []byte, err error) {
+func (this *TCPClientProvider) SendPdu(slaveID byte, pduRequest []byte) ([]byte, error) {
 	if len(pduRequest) < pduMinSize || len(pduRequest) > pduMaxSize {
 		return nil, fmt.Errorf("modbus: rspPdu size '%v' must not be between '%v' and '%v'",
 			len(pduRequest), pduMinSize, pduMaxSize)

@@ -44,7 +44,7 @@ func NewASCIIClientProvider(address string) *ASCIIClientProvider {
 //  ---- data Unit ----
 //  Function        : 2 chars
 //  Data            : 0 up to 2x252 chars
-//  ---- checksun ----
+//  ---- checksum ----
 //  LRC             : 2 chars
 //  End             : 2 chars
 func (this *protocolFrame) encodeASCIIFrame(slaveID byte, pdu ProtocolDataUnit) ([]byte, error) {
@@ -59,7 +59,7 @@ func (this *protocolFrame) encodeASCIIFrame(slaveID byte, pdu ProtocolDataUnit) 
 	lrcVal := lrc.value()
 
 	// real ascii frame to send,
-	// includeing asciiStart + ( slaveID + funciton + data + lrc ) + CRLF
+	// including asciiStart + ( slaveID + functionCode + data + lrc ) + CRLF
 	frame := this.adu[: 0 : (len(pdu.Data)+3)*2+3]
 	frame = append(frame, []byte(asciiStart)...) // the beginning colon characters
 	// the real adu
@@ -114,6 +114,7 @@ func (this *ASCIIClientProvider) Send(slaveID byte, request ProtocolDataUnit) (P
 
 	frame := this.pool.get()
 	defer this.pool.put(frame)
+
 	aduRequest, err := frame.encodeASCIIFrame(slaveID, request)
 	if err != nil {
 		return response, err
@@ -126,6 +127,7 @@ func (this *ASCIIClientProvider) Send(slaveID byte, request ProtocolDataUnit) (P
 	if err != nil {
 		return response, err
 	}
+
 	response = ProtocolDataUnit{pdu[0], pdu[1:]}
 	if err = verify(slaveID, rspSlaveID, request, response); err != nil {
 		return response, err
@@ -134,7 +136,7 @@ func (this *ASCIIClientProvider) Send(slaveID byte, request ProtocolDataUnit) (P
 }
 
 // SendPdu send pdu request to the remote server
-func (this *ASCIIClientProvider) SendPdu(slaveID byte, pduRequest []byte) (pduResponse []byte, err error) {
+func (this *ASCIIClientProvider) SendPdu(slaveID byte, pduRequest []byte) ([]byte, error) {
 	if len(pduRequest) < pduMinSize || len(pduRequest) > pduMaxSize {
 		return nil, fmt.Errorf("modbus: pdu size '%v' must not be between '%v' and '%v'",
 			len(pduRequest), pduMinSize, pduMaxSize)
@@ -142,6 +144,7 @@ func (this *ASCIIClientProvider) SendPdu(slaveID byte, pduRequest []byte) (pduRe
 
 	frame := this.pool.get()
 	defer this.pool.put(frame)
+
 	request := ProtocolDataUnit{pduRequest[0], pduRequest[1:]}
 	aduRequest, err := frame.encodeASCIIFrame(slaveID, request)
 	if err != nil {

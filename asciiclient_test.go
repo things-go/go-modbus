@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestASCIIClientProvider_encodeAsciiFrame(t *testing.T) {
+func TestASCIIClientProvider_encodeASCIIFrame(t *testing.T) {
 	type args struct {
 		slaveID byte
 		pdu     ProtocolDataUnit
@@ -53,7 +53,7 @@ func TestASCIIClientProvider_encodeAsciiFrame(t *testing.T) {
 	}
 }
 
-func TestASCIIClientProvider_decodeAsciiFrame(t *testing.T) {
+func TestASCIIClientProvider_decodeASCIIFrame(t *testing.T) {
 	type args struct {
 		adu []byte
 	}
@@ -96,7 +96,7 @@ func TestASCIIClientProvider_decodeAsciiFrame(t *testing.T) {
 	}
 }
 
-func BenchmarkASCIIClientProvider_encodeAsciiFrame(b *testing.B) {
+func BenchmarkASCIIClientProvider_encodeASCIIFrame(b *testing.B) {
 	p := protocolFrame{adu: make([]byte, 0, asciiCharacterMaxSize)}
 	pdu := ProtocolDataUnit{
 		1,
@@ -110,7 +110,7 @@ func BenchmarkASCIIClientProvider_encodeAsciiFrame(b *testing.B) {
 	}
 }
 
-func BenchmarkASCIIClientProvider_decodeAsciiFrame(b *testing.B) {
+func BenchmarkASCIIClientProvider_decodeASCIIFrame(b *testing.B) {
 	adu := []byte(":010308640A0D79\r\n")
 	for i := 0; i < b.N; i++ {
 		_, _, err := decodeASCIIFrame(adu)

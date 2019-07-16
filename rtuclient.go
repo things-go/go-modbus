@@ -91,7 +91,7 @@ func (this *RTUClientProvider) Send(slaveID byte, request ProtocolDataUnit) (Pro
 } //Function code & data
 
 // SendPdu send pdu request to the remote server
-func (this *RTUClientProvider) SendPdu(slaveID byte, pduRequest []byte) (pduResponse []byte, err error) {
+func (this *RTUClientProvider) SendPdu(slaveID byte, pduRequest []byte) ([]byte, error) {
 	if len(pduRequest) < pduMinSize || len(pduRequest) > pduMaxSize {
 		return nil, fmt.Errorf("modbus: pdu size '%v' must not be between '%v' and '%v'",
 			len(pduRequest), pduMinSize, pduMaxSize)
