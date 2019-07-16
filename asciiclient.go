@@ -3,7 +3,6 @@ package modbus
 import (
 	"encoding/hex"
 	"fmt"
-	"sync"
 )
 
 const (
@@ -18,14 +17,14 @@ type ASCIIClientProvider struct {
 	serialPort
 	logs
 	// 请求池,所有ascii客户端共用一个请求池
-	pool *sync.Pool
+	*pool
 }
 
 // check ASCIIClientProvider implements underlying method
 var _ ClientProvider = (*ASCIIClientProvider)(nil)
 
 // 请求池,所有ascii客户端共用一个请求池
-var asciiPool = &sync.Pool{New: func() interface{} { return &protocolFrame{make([]byte, 0, asciiCharacterMaxSize)} }}
+var asciiPool = newPool(asciiCharacterMaxSize)
 
 // NewASCIIClientProvider allocates and initializes a ASCIIClientProvider.
 func NewASCIIClientProvider(address string) *ASCIIClientProvider {
@@ -48,7 +47,7 @@ func NewASCIIClientProvider(address string) *ASCIIClientProvider {
 //  ---- checksun ----
 //  LRC             : 2 chars
 //  End             : 2 chars
-func (this *protocolFrame) encodeASCIIFrame(slaveID byte, pdu *ProtocolDataUnit) ([]byte, error) {
+func (this *protocolFrame) encodeASCIIFrame(slaveID byte, pdu ProtocolDataUnit) ([]byte, error) {
 	length := len(pdu.Data) + 3
 	if length > asciiAduMaxSize {
 		return nil, fmt.Errorf("modbus: length of data '%v' must not be bigger than '%v'", length, asciiAduMaxSize)
@@ -110,24 +109,26 @@ func decodeASCIIFrame(adu []byte) (uint8, []byte, error) {
 }
 
 // Send request to the remote server,it implements on SendRawFrame
-func (this *ASCIIClientProvider) Send(slaveID byte, request *ProtocolDataUnit) (*ProtocolDataUnit, error) {
-	frame := this.pool.Get().(*protocolFrame)
-	defer this.pool.Put(frame)
+func (this *ASCIIClientProvider) Send(slaveID byte, request ProtocolDataUnit) (ProtocolDataUnit, error) {
+	var response ProtocolDataUnit
+
+	frame := this.pool.get()
+	defer this.pool.put(frame)
 	aduRequest, err := frame.encodeASCIIFrame(slaveID, request)
 	if err != nil {
-		return nil, err
+		return response, err
 	}
 	aduResponse, err := this.SendRawFrame(aduRequest)
 	if err != nil {
-		return nil, err
+		return response, err
 	}
 	rspSlaveID, pdu, err := decodeASCIIFrame(aduResponse)
 	if err != nil {
-		return nil, err
+		return response, err
 	}
-	response := &ProtocolDataUnit{pdu[0], pdu[1:]}
+	response = ProtocolDataUnit{pdu[0], pdu[1:]}
 	if err = verify(slaveID, rspSlaveID, request, response); err != nil {
-		return nil, err
+		return response, err
 	}
 	return response, nil
 }
@@ -139,9 +140,9 @@ func (this *ASCIIClientProvider) SendPdu(slaveID byte, pduRequest []byte) (pduRe
 			len(pduRequest), pduMinSize, pduMaxSize)
 	}
 
-	frame := this.pool.Get().(*protocolFrame)
-	defer this.pool.Put(frame)
-	request := &ProtocolDataUnit{pduRequest[0], pduRequest[1:]}
+	frame := this.pool.get()
+	defer this.pool.put(frame)
+	request := ProtocolDataUnit{pduRequest[0], pduRequest[1:]}
 	aduRequest, err := frame.encodeASCIIFrame(slaveID, request)
 	if err != nil {
 		return nil, err
@@ -154,7 +155,7 @@ func (this *ASCIIClientProvider) SendPdu(slaveID byte, pduRequest []byte) (pduRe
 	if err != nil {
 		return nil, err
 	}
-	response := &ProtocolDataUnit{pdu[0], pdu[1:]}
+	response := ProtocolDataUnit{pdu[0], pdu[1:]}
 	if err = verify(slaveID, rspSlaveID, request, response); err != nil {
 		return nil, err
 	}

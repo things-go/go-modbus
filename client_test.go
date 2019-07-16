@@ -20,8 +20,8 @@ func (*provider) SetAutoReconnect(byte)      {}
 func (*provider) LogMode(bool)               {}
 func (*provider) SetLogProvider(LogProvider) {}
 func (*provider) Close() error               { return nil }
-func (r *provider) Send(_ byte, _ *ProtocolDataUnit) (*ProtocolDataUnit, error) {
-	return &ProtocolDataUnit{Data: r.data}, r.err
+func (r *provider) Send(_ byte, _ ProtocolDataUnit) (ProtocolDataUnit, error) {
+	return ProtocolDataUnit{Data: r.data}, r.err
 }
 func (*provider) SendPdu(byte, []byte) (pduResponse []byte, err error) {
 	return nil, nil

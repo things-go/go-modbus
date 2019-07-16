@@ -33,14 +33,14 @@ type TCPClientProvider struct {
 	// For synchronization between messages of server & client
 	transactionID uint32
 	// 请求池,所有tcp客户端共用一个请求池
-	pool *sync.Pool
+	*pool
 }
 
 // check TCPClientProvider implements underlying method
 var _ ClientProvider = (*TCPClientProvider)(nil)
 
 // 请求池,所有TCP客户端共用一个请求池
-var tcpPool = &sync.Pool{New: func() interface{} { return &protocolTCPFrame{} }}
+var tcpPool = newPool(tcpAduMaxSize)
 
 // NewTCPClientProvider allocates a new TCPClientProvider.
 func NewTCPClientProvider(address string) *TCPClientProvider {
@@ -62,25 +62,28 @@ func NewTCPClientProvider(address string) *TCPClientProvider {
 //  ---- data Unit ----
 //  Function code: 1 byte
 //  Data: n bytes
-func (this *protocolTCPFrame) encode(slaveID byte, pdu *ProtocolDataUnit) ([]byte, error) {
+func (this *protocolFrame) encodeTCPFrame(tid uint16, slaveID byte, pdu ProtocolDataUnit) (protocolTCPHeader, []byte, error) {
 	length := tcpHeaderMbapSize + 1 + len(pdu.Data)
 	if length > tcpAduMaxSize {
-		return nil, fmt.Errorf("modbus: length of data '%v' must not be bigger than '%v'", length, tcpAduMaxSize)
+		return protocolTCPHeader{}, nil, fmt.Errorf("modbus: length of data '%v' must not be bigger than '%v'", length, tcpAduMaxSize)
 	}
-	this.pdu.FuncCode = pdu.FuncCode
-	this.head.length = uint16(2 + len(pdu.Data)) // Length = sizeof(SlaveId) + sizeof(FuncCode) + Data
-	this.head.slaveID = slaveID
-	this.head.protocolID = tcpProtocolIdentifier
+
+	head := protocolTCPHeader{
+		tid,
+		tcpProtocolIdentifier,
+		uint16(2 + len(pdu.Data)), // Length = sizeof(SlaveId) + sizeof(FuncCode) + Data
+		slaveID,
+	}
 
 	// fill adu buffer
 	adu := this.adu[0:length]
-	binary.BigEndian.PutUint16(adu, this.head.transactionID)  // MBAP Transaction identifier
-	binary.BigEndian.PutUint16(adu[2:], this.head.protocolID) // MBAP Protocol identifier
-	binary.BigEndian.PutUint16(adu[4:], this.head.length)     // MBAP Length
-	adu[6] = this.head.slaveID                                // MBAP Unit identifier
-	adu[tcpHeaderMbapSize] = this.pdu.FuncCode                // PDU funcCode
-	copy(adu[tcpHeaderMbapSize+1:], pdu.Data)                 // PDU data
-	return adu, nil
+	binary.BigEndian.PutUint16(adu, head.transactionID)  // MBAP Transaction identifier
+	binary.BigEndian.PutUint16(adu[2:], head.protocolID) // MBAP Protocol identifier
+	binary.BigEndian.PutUint16(adu[4:], head.length)     // MBAP Length
+	adu[6] = head.slaveID                                // MBAP Unit identifier
+	adu[tcpHeaderMbapSize] = pdu.FuncCode                // PDU funcCode
+	copy(adu[tcpHeaderMbapSize+1:], pdu.Data)            // PDU data
+	return head, adu, nil
 }
 
 // decode extracts tcpHeader & PDU from TCP frame:
@@ -92,12 +95,12 @@ func (this *protocolTCPFrame) encode(slaveID byte, pdu *ProtocolDataUnit) ([]byt
 //  ---- data Unit ----
 //  Function        : 1 byte
 //  Data            : 0 up to 252 bytes
-func decodeTCPFrame(adu []byte) (*protocolTCPHeader, []byte, error) {
+func decodeTCPFrame(adu []byte) (protocolTCPHeader, []byte, error) {
 	if len(adu) < tcpAduMinSize { // Minimum size (including MBAP, funcCode)
-		return nil, nil, fmt.Errorf("modbus: response length '%v' does not meet minimum '%v'", len(adu), tcpAduMinSize)
+		return protocolTCPHeader{}, nil, fmt.Errorf("modbus: response length '%v' does not meet minimum '%v'", len(adu), tcpAduMinSize)
 	}
 	// Read length value in the header
-	head := &protocolTCPHeader{
+	head := protocolTCPHeader{
 		transactionID: binary.BigEndian.Uint16(adu),
 		protocolID:    binary.BigEndian.Uint16(adu[2:]),
 		length:        binary.BigEndian.Uint16(adu[4:]),
@@ -106,7 +109,7 @@ func decodeTCPFrame(adu []byte) (*protocolTCPHeader, []byte, error) {
 
 	pduLength := len(adu) - tcpHeaderMbapSize
 	if pduLength != int(head.length-1) {
-		return nil, nil, fmt.Errorf("modbus: length in response '%v' does not match pdu data length '%v'",
+		return head, nil, fmt.Errorf("modbus: length in response '%v' does not match pdu data length '%v'",
 			head.length-1, pduLength)
 
 	}
@@ -115,21 +118,21 @@ func decodeTCPFrame(adu []byte) (*protocolTCPHeader, []byte, error) {
 }
 
 // verify confirms valid data
-func (this *protocolTCPFrame) verify(rspHead *protocolTCPHeader, rspPDU *ProtocolDataUnit) error {
+func verifyTCPFrame(reqHead, rspHead protocolTCPHeader, reqPDU, rspPDU ProtocolDataUnit) error {
 	switch {
-	case rspHead.transactionID != this.head.transactionID:
+	case rspHead.transactionID != reqHead.transactionID:
 		// Check transaction ID
 		return fmt.Errorf("modbus: response transaction id '%v' does not match request '%v'",
-			rspHead.transactionID, this.head.transactionID)
-	case rspHead.protocolID != this.head.protocolID:
+			rspHead.transactionID, reqHead.transactionID)
+	case rspHead.protocolID != reqHead.protocolID:
 		// Check protocol ID
 		return fmt.Errorf("modbus: response protocol id '%v' does not match request '%v'",
-			rspHead.protocolID, this.head.protocolID)
-	case rspHead.slaveID != this.head.slaveID:
+			rspHead.protocolID, reqHead.protocolID)
+	case rspHead.slaveID != reqHead.slaveID:
 		// Check slaveID same
 		return fmt.Errorf("modbus: response unit id '%v' does not match request '%v'",
-			rspHead.slaveID, this.head.slaveID)
-	case rspPDU.FuncCode != this.pdu.FuncCode:
+			rspHead.slaveID, reqHead.slaveID)
+	case rspPDU.FuncCode != reqPDU.FuncCode:
 		// Check correct function code returned (exception)
 		return responseError(rspPDU)
 	case rspPDU.Data == nil || len(rspPDU.Data) == 0:
@@ -140,27 +143,29 @@ func (this *protocolTCPFrame) verify(rspHead *protocolTCPHeader, rspPDU *Protoco
 }
 
 // Send the request to tcp and get the response
-func (this *TCPClientProvider) Send(slaveID byte, request *ProtocolDataUnit) (*ProtocolDataUnit, error) {
-	frame := this.pool.Get().(*protocolTCPFrame)
-	defer this.pool.Put(frame)
-	// add transaction id
-	frame.head.transactionID = uint16(atomic.AddUint32(&this.transactionID, 1))
+func (this *TCPClientProvider) Send(slaveID byte, request ProtocolDataUnit) (ProtocolDataUnit, error) {
+	var response ProtocolDataUnit
 
-	aduRequest, err := frame.encode(slaveID, request)
+	frame := this.pool.get()
+	defer this.pool.put(frame)
+	// add transaction id
+	tid := uint16(atomic.AddUint32(&this.transactionID, 1))
+
+	head, aduRequest, err := frame.encodeTCPFrame(tid, slaveID, request)
 	if err != nil {
-		return nil, err
+		return response, err
 	}
 	aduResponse, err := this.SendRawFrame(aduRequest)
 	if err != nil {
-		return nil, err
+		return response, err
 	}
 	rspHead, pdu, err := decodeTCPFrame(aduResponse)
 	if err != nil {
-		return nil, err
+		return response, err
 	}
-	response := &ProtocolDataUnit{pdu[0], pdu[1:]}
-	if err = frame.verify(rspHead, response); err != nil {
-		return nil, err
+	response = ProtocolDataUnit{pdu[0], pdu[1:]}
+	if err = verifyTCPFrame(head, rspHead, request, response); err != nil {
+		return response, err
 	}
 	return response, nil
 }
@@ -172,13 +177,13 @@ func (this *TCPClientProvider) SendPdu(slaveID byte, pduRequest []byte) (pduResp
 			len(pduRequest), pduMinSize, pduMaxSize)
 	}
 
-	frame := this.pool.Get().(*protocolTCPFrame)
-	defer this.pool.Put(frame)
+	frame := this.pool.get()
+	defer this.pool.put(frame)
 	// add transaction id
-	frame.head.transactionID = uint16(atomic.AddUint32(&this.transactionID, 1))
+	tid := uint16(atomic.AddUint32(&this.transactionID, 1))
 
-	request := &ProtocolDataUnit{pduRequest[0], pduRequest[1:]}
-	aduRequest, err := frame.encode(slaveID, request)
+	request := ProtocolDataUnit{pduRequest[0], pduRequest[1:]}
+	head, aduRequest, err := frame.encodeTCPFrame(tid, slaveID, request)
 	if err != nil {
 		return nil, err
 	}
@@ -190,8 +195,7 @@ func (this *TCPClientProvider) SendPdu(slaveID byte, pduRequest []byte) (pduResp
 	if err != nil {
 		return nil, err
 	}
-	response := &ProtocolDataUnit{rspPdu[0], rspPdu[1:]}
-	if err = frame.verify(rspHead, response); err != nil {
+	if err = verifyTCPFrame(head, rspHead, request, ProtocolDataUnit{rspPdu[0], rspPdu[1:]}); err != nil {
 		return nil, err
 	}
 	// rspPdu pass tcpMBAP head

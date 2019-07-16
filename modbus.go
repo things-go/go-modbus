@@ -211,7 +211,7 @@ type ClientProvider interface {
 	// Close disconnect the remote server
 	Close() error
 	// Send request to the remote server,it implements on SendRawFrame
-	Send(slaveID byte, request *ProtocolDataUnit) (*ProtocolDataUnit, error)
+	Send(slaveID byte, request ProtocolDataUnit) (ProtocolDataUnit, error)
 	// SendPdu send pdu request to the remote server
 	SendPdu(slaveID byte, pduRequest []byte) (pduResponse []byte, err error)
 	// SendRawFrame send raw frame to the remote server

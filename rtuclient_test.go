@@ -8,7 +8,7 @@ import (
 func TestRTUClientProvider_encodeRTUFrame(t *testing.T) {
 	type args struct {
 		slaveID byte
-		pdu     *ProtocolDataUnit
+		pdu     ProtocolDataUnit
 	}
 	tests := []struct {
 		name    string
@@ -20,7 +20,7 @@ func TestRTUClientProvider_encodeRTUFrame(t *testing.T) {
 		{
 			"RTU encode",
 			&protocolFrame{make([]byte, 0, rtuAduMaxSize)},
-			args{0x01, &ProtocolDataUnit{0x03, []byte{0x01, 0x02, 0x03, 0x04, 0x05}}},
+			args{0x01, ProtocolDataUnit{0x03, []byte{0x01, 0x02, 0x03, 0x04, 0x05}}},
 			[]byte{0x01, 0x03, 0x01, 0x02, 0x03, 0x04, 0x05, 0x05, 0x48},
 			false,
 		},
@@ -79,8 +79,8 @@ func Test_verify(t *testing.T) {
 	type args struct {
 		reqSlaveID uint8
 		rspSlaveID uint8
-		reqPDU     *ProtocolDataUnit
-		rspPDU     *ProtocolDataUnit
+		reqPDU     ProtocolDataUnit
+		rspPDU     ProtocolDataUnit
 	}
 	tests := []struct {
 		name    string
@@ -92,8 +92,8 @@ func Test_verify(t *testing.T) {
 			args{
 				5,
 				5,
-				&ProtocolDataUnit{10, []byte{1, 2, 3, 4}},
-				&ProtocolDataUnit{10, []byte{1, 2, 3, 4}},
+				ProtocolDataUnit{10, []byte{1, 2, 3, 4}},
+				ProtocolDataUnit{10, []byte{1, 2, 3, 4}},
 			},
 			false,
 		},
@@ -102,8 +102,8 @@ func Test_verify(t *testing.T) {
 			args{
 				4,
 				5,
-				&ProtocolDataUnit{10, []byte{1, 2, 3, 4}},
-				&ProtocolDataUnit{10, []byte{1, 2, 3, 4}},
+				ProtocolDataUnit{10, []byte{1, 2, 3, 4}},
+				ProtocolDataUnit{10, []byte{1, 2, 3, 4}},
 			},
 			true,
 		},
@@ -112,8 +112,8 @@ func Test_verify(t *testing.T) {
 			args{
 				5,
 				5,
-				&ProtocolDataUnit{11, []byte{1, 2, 3, 4}},
-				&ProtocolDataUnit{10, []byte{1, 2, 3, 4}},
+				ProtocolDataUnit{11, []byte{1, 2, 3, 4}},
+				ProtocolDataUnit{10, []byte{1, 2, 3, 4}},
 			},
 			true,
 		},
@@ -122,8 +122,8 @@ func Test_verify(t *testing.T) {
 			args{
 				5,
 				5,
-				&ProtocolDataUnit{10, []byte{}},
-				&ProtocolDataUnit{10, []byte{}},
+				ProtocolDataUnit{10, []byte{}},
+				ProtocolDataUnit{10, []byte{}},
 			},
 			true,
 		},
@@ -165,9 +165,9 @@ func Test_calculateResponseLength(t *testing.T) {
 
 func BenchmarkRTUClientProvider_encodeRTUFrame(b *testing.B) {
 	p := &protocolFrame{make([]byte, 0, rtuAduMaxSize)}
-	pdu := &ProtocolDataUnit{
-		FuncCode: 1,
-		Data:     []byte{2, 3, 4, 5, 6, 7, 8, 9},
+	pdu := ProtocolDataUnit{
+		1,
+		[]byte{2, 3, 4, 5, 6, 7, 8, 9},
 	}
 	for i := 0; i < b.N; i++ {
 		_, err := p.encodeRTUFrame(10, pdu)

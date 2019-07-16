@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	"sync"
 	"time"
 )
 
@@ -16,14 +15,14 @@ const (
 type RTUClientProvider struct {
 	serialPort
 	logs
-	pool *sync.Pool // 请求池,所有RTU客户端共用一个请求池
+	*pool // 请求池,所有RTU客户端共用一个请求池
 }
 
 // check RTUClientProvider implements underlying method
 var _ ClientProvider = (*RTUClientProvider)(nil)
 
 // 请求池,所有RTU客户端共用一个请求池
-var rtuPool = &sync.Pool{New: func() interface{} { return &protocolFrame{make([]byte, 0, rtuAduMaxSize)} }}
+var rtuPool = newPool(rtuAduMaxSize)
 
 // NewRTUClientProvider allocates and initializes a RTUClientProvider.
 func NewRTUClientProvider(address string) *RTUClientProvider {
@@ -37,7 +36,7 @@ func NewRTUClientProvider(address string) *RTUClientProvider {
 	return p
 }
 
-func (this *protocolFrame) encodeRTUFrame(slaveID byte, pdu *ProtocolDataUnit) ([]byte, error) {
+func (this *protocolFrame) encodeRTUFrame(slaveID byte, pdu ProtocolDataUnit) ([]byte, error) {
 	length := len(pdu.Data) + 4
 	if length > rtuAduMaxSize {
 		return nil, fmt.Errorf("modbus: length of data '%v' must not be bigger than '%v'", length, rtuAduMaxSize)
@@ -66,25 +65,27 @@ func decodeRTUFrame(adu []byte) (uint8, []byte, error) {
 }
 
 // Send request to the remote server,it implements on SendRawFrame
-func (this *RTUClientProvider) Send(slaveID byte, request *ProtocolDataUnit) (*ProtocolDataUnit, error) {
-	frame := this.pool.Get().(*protocolFrame)
-	defer this.pool.Put(frame)
+func (this *RTUClientProvider) Send(slaveID byte, request ProtocolDataUnit) (ProtocolDataUnit, error) {
+	var response ProtocolDataUnit
+
+	frame := this.pool.get()
+	defer this.pool.put(frame)
 
 	aduRequest, err := frame.encodeRTUFrame(slaveID, request)
 	if err != nil {
-		return nil, err
+		return response, err
 	}
 	aduResponse, err := this.SendRawFrame(aduRequest)
 	if err != nil {
-		return nil, err
+		return response, err
 	}
 	rspSlaveID, pdu, err := decodeRTUFrame(aduResponse)
 	if err != nil {
-		return nil, err
+		return response, err
 	}
-	response := &ProtocolDataUnit{pdu[0], pdu[1:]}
+	response = ProtocolDataUnit{pdu[0], pdu[1:]}
 	if err = verify(slaveID, rspSlaveID, request, response); err != nil {
-		return nil, err
+		return response, err
 	}
 	return response, nil
 } //Function code & data
@@ -96,10 +97,10 @@ func (this *RTUClientProvider) SendPdu(slaveID byte, pduRequest []byte) (pduResp
 			len(pduRequest), pduMinSize, pduMaxSize)
 	}
 
-	frame := this.pool.Get().(*protocolFrame)
-	defer this.pool.Put(frame)
+	frame := this.pool.get()
+	defer this.pool.put(frame)
 
-	request := &ProtocolDataUnit{pduRequest[0], pduRequest[1:]}
+	request := ProtocolDataUnit{pduRequest[0], pduRequest[1:]}
 	requestAdu, err := frame.encodeRTUFrame(slaveID, request)
 	if err != nil {
 		return nil, err
@@ -113,7 +114,7 @@ func (this *RTUClientProvider) SendPdu(slaveID byte, pduRequest []byte) (pduResp
 	if err != nil {
 		return nil, err
 	}
-	response := &ProtocolDataUnit{pdu[0], pdu[1:]}
+	response := ProtocolDataUnit{pdu[0], pdu[1:]}
 	if err = verify(slaveID, rspSlaveID, request, response); err != nil {
 		return nil, err
 	}
@@ -243,7 +244,7 @@ func calculateResponseLength(adu []byte) int {
 // helper
 
 // verify confirms vaild data(including slaveID,funcCode,response data)
-func verify(reqSlaveID, rspSlaveID uint8, reqPDU, rspPDU *ProtocolDataUnit) error {
+func verify(reqSlaveID, rspSlaveID uint8, reqPDU, rspPDU ProtocolDataUnit) error {
 	switch {
 	case reqSlaveID != rspSlaveID:
 		// Check slaveid same

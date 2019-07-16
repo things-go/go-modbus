@@ -8,7 +8,7 @@ import (
 func TestASCIIClientProvider_encodeAsciiFrame(t *testing.T) {
 	type args struct {
 		slaveID byte
-		pdu     *ProtocolDataUnit
+		pdu     ProtocolDataUnit
 	}
 	tests := []struct {
 		name    string
@@ -20,21 +20,21 @@ func TestASCIIClientProvider_encodeAsciiFrame(t *testing.T) {
 		{
 			"ASCII encode right 1",
 			&protocolFrame{adu: make([]byte, 0, asciiCharacterMaxSize)},
-			args{8, &ProtocolDataUnit{1, []byte{2, 66, 1, 5}}},
+			args{8, ProtocolDataUnit{1, []byte{2, 66, 1, 5}}},
 			[]byte(":080102420105AD\r\n"),
 			false,
 		},
 		{
 			"ASCII encode right 2",
 			&protocolFrame{adu: make([]byte, 0, asciiCharacterMaxSize)},
-			args{1, &ProtocolDataUnit{3, []byte{8, 100, 10, 13}}},
+			args{1, ProtocolDataUnit{3, []byte{8, 100, 10, 13}}},
 			[]byte(":010308640A0D79\r\n"),
 			false,
 		},
 		{
 			"ASCII encode error",
 			&protocolFrame{adu: make([]byte, 0, asciiCharacterMaxSize)},
-			args{1, &ProtocolDataUnit{3, make([]byte, 254)}},
+			args{1, ProtocolDataUnit{3, make([]byte, 254)}},
 			nil,
 			true,
 		},
@@ -98,9 +98,9 @@ func TestASCIIClientProvider_decodeAsciiFrame(t *testing.T) {
 
 func BenchmarkASCIIClientProvider_encodeAsciiFrame(b *testing.B) {
 	p := protocolFrame{adu: make([]byte, 0, asciiCharacterMaxSize)}
-	pdu := &ProtocolDataUnit{
-		FuncCode: 1,
-		Data:     []byte{2, 3, 4, 5, 6, 7, 8, 9},
+	pdu := ProtocolDataUnit{
+		1,
+		[]byte{2, 3, 4, 5, 6, 7, 8, 9},
 	}
 	for i := 0; i < b.N; i++ {
 		_, err := p.encodeASCIIFrame(10, pdu)
