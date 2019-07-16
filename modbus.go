@@ -186,13 +186,6 @@ type protocolFrame struct {
 	adu []byte
 }
 
-// protocolTCPFrame 帧结构用于底层对象缓冲池tcp
-type protocolTCPFrame struct {
-	head protocolTCPHeader
-	pdu  ProtocolDataUnit
-	adu  [tcpAduMaxSize]byte
-}
-
 // ClientProvider is the interface implements underlying methods.
 type ClientProvider interface {
 	// Connect try to connect the remote server

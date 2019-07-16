@@ -23,11 +23,11 @@ type TCPServer struct {
 	tcpReadTimeout  time.Duration
 	tcpWriteTimeout time.Duration
 	node            sync.Map
-	pool            *sync.Pool
-	mu              sync.Mutex
-	listen          net.Listener
-	client          map[net.Conn]struct{}
-	wg              sync.WaitGroup
+	*pool
+	mu     sync.Mutex
+	listen net.Listener
+	client map[net.Conn]struct{}
+	wg     sync.WaitGroup
 	*serverHandler
 	logs
 }
@@ -38,7 +38,7 @@ func NewTCPServer(addr string) *TCPServer {
 		addr:            addr,
 		tcpReadTimeout:  TCPDefaultReadTimeout,
 		tcpWriteTimeout: TCPDefaultWriteTimeout,
-		pool:            &sync.Pool{New: func() interface{} { return &protocolTCPFrame{} }},
+		pool:            newPool(tcpAduMaxSize),
 		serverHandler:   newServerHandler(),
 		client:          make(map[net.Conn]struct{}),
 		logs:            logs{newLogger(), 0},
@@ -116,7 +116,7 @@ func (this *TCPServer) ServerModbus() {
 			this.client[conn] = struct{}{}
 			this.mu.Unlock()
 
-			if err := this.HandlerModbus(conn); err != nil {
+			if err := this.handlerModbus(conn); err != nil {
 				this.Error("modbus server: %v", err)
 			}
 
@@ -130,18 +130,16 @@ func (this *TCPServer) ServerModbus() {
 	}
 }
 
-func (this *TCPServer) HandlerModbus(conn net.Conn) error {
+// handler net conn
+func (this *TCPServer) handlerModbus(conn net.Conn) error {
 	// get pool frame
-	frame := this.pool.Get().(*protocolTCPFrame)
-
+	frame := this.pool.get()
 	defer func() {
-		// rest pool frame and put it
-		frame.pdu.Data = nil
-		this.pool.Put(frame)
+		this.pool.put(frame)
 	}()
 
 	for {
-		adu := frame.adu[:]
+		adu := frame.adu[:tcpAduMaxSize]
 		for length, rdCnt := tcpHeaderMbapSize, 0; rdCnt < length; {
 			err := conn.SetReadDeadline(time.Now().Add(this.tcpReadTimeout))
 			if err != nil {
@@ -172,7 +170,7 @@ func (this *TCPServer) HandlerModbus(conn net.Conn) error {
 				length = int(binary.BigEndian.Uint16(adu[4:])) + tcpHeaderMbapSize - 1
 				if rdCnt == length {
 					this.Debug("modbus request: % x", adu[:length])
-					response, err := this.frameHandler(frame, adu[:length])
+					response, err := this.frameHandler(adu[:length])
 					if err != nil {
 						return fmt.Errorf("frameHandler %v", err)
 					}
@@ -224,7 +222,7 @@ func (this *TCPServer) Close() error {
 }
 
 // modbus 包处理
-func (this *TCPServer) frameHandler(frame *protocolTCPFrame, requestAdu []byte) ([]byte, error) {
+func (this *TCPServer) frameHandler(requestAdu []byte) ([]byte, error) {
 	defer func() {
 		if err := recover(); err != nil {
 			this.Error("painc happen,%v", err)
@@ -256,14 +254,14 @@ func (this *TCPServer) frameHandler(frame *protocolTCPFrame, requestAdu []byte) 
 		rspPduData = []byte{err.(*ExceptionError).ExceptionCode}
 	}
 
-	// prepare response data,fill it
-	response := frame.adu[:tcpHeaderMbapSize+1+len(rspPduData)]
-	binary.BigEndian.PutUint16(response[0:], tcpHeader.transactionID)
-	binary.BigEndian.PutUint16(response[2:], tcpHeader.protocolID)
-	binary.BigEndian.PutUint16(response[4:], uint16(2+len(rspPduData)))
-	response[6] = tcpHeader.slaveID
-	response[7] = funcCode
-	copy(response[8:], rspPduData)
+	// prepare responseAdu data,fill it
+	responseAdu := requestAdu[:tcpHeaderMbapSize]
+	binary.BigEndian.PutUint16(responseAdu[0:], tcpHeader.transactionID)
+	binary.BigEndian.PutUint16(responseAdu[2:], tcpHeader.protocolID)
+	binary.BigEndian.PutUint16(responseAdu[4:], uint16(2+len(rspPduData)))
+	responseAdu[6] = tcpHeader.slaveID
+	responseAdu = append(responseAdu, funcCode)
+	responseAdu = append(responseAdu, rspPduData...)
 
-	return response, nil
+	return responseAdu, nil
 }
