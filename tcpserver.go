@@ -29,7 +29,7 @@ type TCPServer struct {
 	client map[net.Conn]struct{}
 	wg     sync.WaitGroup
 	*serverHandler
-	logs
+	clogs
 }
 
 // NewTCPServer the modbus server listening on "address:port".
@@ -41,7 +41,7 @@ func NewTCPServer(addr string) *TCPServer {
 		pool:            newPool(tcpAduMaxSize),
 		serverHandler:   newServerHandler(),
 		client:          make(map[net.Conn]struct{}),
-		logs:            logs{newLogger(), 0},
+		clogs:           clogs{newDefaultLogger("modbusTCPSlave =>"), 0},
 	}
 }
 
@@ -102,11 +102,11 @@ func (this *TCPServer) ServerModbus() {
 	this.listen = listen
 	this.mu.Unlock()
 	defer this.Close()
-	this.Debug("modbus TCP server running")
+	this.Debug("server running")
 	for {
 		conn, err := listen.Accept()
 		if err != nil {
-			this.Error("modbus accept: %v\n", err)
+			this.Error("accept failed, %v\n", err)
 			return
 		}
 		this.wg.Add(1)
@@ -117,7 +117,7 @@ func (this *TCPServer) ServerModbus() {
 			this.mu.Unlock()
 
 			if err := this.handlerModbus(conn); err != nil {
-				this.Error("modbus server: %v", err)
+				this.Error("handler modbus failed %v", err)
 			}
 
 			this.Debug("client(%v) -> server(%v) disconnected", conn.RemoteAddr(), conn.LocalAddr())
@@ -169,12 +169,12 @@ func (this *TCPServer) handlerModbus(conn net.Conn) error {
 				}
 				length = int(binary.BigEndian.Uint16(adu[4:])) + tcpHeaderMbapSize - 1
 				if rdCnt == length {
-					this.Debug("modbus request: % x", adu[:length])
+					this.Debug("RX Raw[% x]", adu[:length])
 					response, err := this.frameHandler(adu[:length])
 					if err != nil {
 						return fmt.Errorf("frameHandler %v", err)
 					}
-					this.Debug("modbus response: % x", response)
+					this.Debug("TX Raw[% x]", response)
 
 					err = func(b []byte) error {
 						for wrCnt := 0; len(b) > wrCnt; {
@@ -185,7 +185,8 @@ func (this *TCPServer) handlerModbus(conn net.Conn) error {
 							byteCount, err := conn.Write(b[wrCnt:])
 							if err != nil {
 								// See: https://github.com/golang/go/issues/4373
-								if err != io.EOF && err != io.ErrClosedPipe || strings.Contains(err.Error(), "use of closed network connection") {
+								if err != io.EOF && err != io.ErrClosedPipe ||
+									strings.Contains(err.Error(), "use of closed network connection") {
 									return err
 								}
 								if e, ok := err.(net.Error); !ok || !e.Temporary() {

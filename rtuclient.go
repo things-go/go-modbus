@@ -14,7 +14,7 @@ const (
 // RTUClientProvider implements ClientProvider interface.
 type RTUClientProvider struct {
 	serialPort
-	logs
+	clogs
 	*pool // 请求池,所有RTU客户端共用一个请求池
 }
 
@@ -27,8 +27,8 @@ var rtuPool = newPool(rtuAduMaxSize)
 // NewRTUClientProvider allocates and initializes a RTUClientProvider.
 func NewRTUClientProvider(address string) *RTUClientProvider {
 	p := &RTUClientProvider{
-		logs: logs{newLogger(), 0},
-		pool: rtuPool,
+		clogs: clogs{newDefaultLogger("modbusRTUMaster =>"), 0},
+		pool:  rtuPool,
 	}
 	p.Address = address
 	p.Timeout = SerialDefaultTimeout
@@ -133,7 +133,7 @@ func (this *RTUClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []by
 	}
 
 	// Send the request
-	this.Debug("modbus: sending % x", aduRequest)
+	this.Debug("sending % x", aduRequest)
 	var tryCnt byte
 	for {
 		_, err = this.port.Write(aduRequest)
@@ -193,7 +193,7 @@ func (this *RTUClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []by
 		return
 	}
 	aduResponse = data[:n]
-	this.Debug("modbus: received % x\n", aduResponse)
+	this.Debug("received % x\n", aduResponse)
 	return
 }
 

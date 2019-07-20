@@ -15,7 +15,7 @@ const (
 // ASCIIClientProvider implements ClientProvider interface.
 type ASCIIClientProvider struct {
 	serialPort
-	logs
+	clogs
 	// 请求池,所有ascii客户端共用一个请求池
 	*pool
 }
@@ -29,8 +29,8 @@ var asciiPool = newPool(asciiCharacterMaxSize)
 // NewASCIIClientProvider allocates and initializes a ASCIIClientProvider.
 func NewASCIIClientProvider(address string) *ASCIIClientProvider {
 	p := &ASCIIClientProvider{
-		logs: logs{newLogger(), 0},
-		pool: asciiPool,
+		clogs: clogs{newDefaultLogger("modbusASCIIMaster =>"), 0},
+		pool:  asciiPool,
 	}
 	p.Address = address
 	p.Timeout = SerialDefaultTimeout
@@ -176,7 +176,7 @@ func (this *ASCIIClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []
 	}
 
 	// Send the request
-	this.Debug("modbus: sending % x", aduRequest)
+	this.Debug("sending % x", aduRequest)
 	var tryCnt byte
 	for {
 		_, err = this.port.Write(aduRequest)
@@ -217,6 +217,6 @@ func (this *ASCIIClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []
 		}
 	}
 	aduResponse = data[:length]
-	this.Debug("modbus: received % x\n", aduResponse)
+	this.Debug("received % x\n", aduResponse)
 	return
 }

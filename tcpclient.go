@@ -19,7 +19,7 @@ const (
 
 // TCPClientProvider implements ClientProvider interface.
 type TCPClientProvider struct {
-	logs
+	clogs
 	Address string
 	mu      sync.Mutex
 	// TCP connection
@@ -49,7 +49,7 @@ func NewTCPClientProvider(address string) *TCPClientProvider {
 		Timeout:       TCPDefaultTimeout,
 		autoReconnect: TCPDefaultAutoReconnect,
 		pool:          tcpPool,
-		logs:          logs{newLogger(), 0},
+		clogs:         clogs{newDefaultLogger("modbusTCPMaster =>"), 0},
 	}
 }
 
@@ -211,7 +211,7 @@ func (this *TCPClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []by
 		return nil, ErrClosedConnection
 	}
 	// Send data
-	this.Debug("modbus: sending % x", aduRequest)
+	this.Debug("sending % x", aduRequest)
 	// Set write and read timeout
 	var timeout time.Time
 	var tryCnt byte
@@ -264,7 +264,7 @@ func (this *TCPClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []by
 		return
 	}
 	aduResponse = data[:length]
-	this.Debug("modbus: received % x\n", aduResponse)
+	this.Debug("received % x\n", aduResponse)
 	return
 }
 

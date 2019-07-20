@@ -1,20 +1,31 @@
 package modbus
 
 import (
+	"os"
 	"sync/atomic"
 
 	"log"
 )
 
 // 内部调试实现
-type logs struct {
+type clogs struct {
 	logger LogProvider
 	// is log output enabled,1: enable, 0: disable
 	hasLog uint32
 }
 
+func New() *clogs {
+	return NewWithPrefix("")
+}
+
+func NewWithPrefix(prefix string) *clogs {
+	return &clogs{
+		logger: newDefaultLogger(prefix),
+	}
+}
+
 // LogMode set enable or disable log output when you has set logger
-func (this *logs) LogMode(enable bool) {
+func (this *clogs) LogMode(enable bool) {
 	if enable {
 		atomic.StoreUint32(&this.hasLog, 1)
 	} else {
@@ -23,41 +34,45 @@ func (this *logs) LogMode(enable bool) {
 }
 
 // SetLogProvider set logger provider
-func (this *logs) SetLogProvider(p LogProvider) {
+func (this *clogs) SetLogProvider(p LogProvider) {
 	if p != nil {
 		this.logger = p
 	}
 }
 
 // Error Log ERROR level message.
-func (this *logs) Error(format string, v ...interface{}) {
+func (this *clogs) Error(format string, v ...interface{}) {
 	if atomic.LoadUint32(&this.hasLog) == 1 {
 		this.logger.Error(format, v...)
 	}
 }
 
 // Debug Log DEBUG level message.
-func (this *logs) Debug(format string, v ...interface{}) {
+func (this *clogs) Debug(format string, v ...interface{}) {
 	if atomic.LoadUint32(&this.hasLog) == 1 {
 		this.logger.Debug(format, v...)
 	}
 }
 
 // default log
-type logger struct{}
+type logger struct {
+	*log.Logger
+}
 
 var _ LogProvider = (*logger)(nil)
 
-func newLogger() *logger {
-	return &logger{}
+func newDefaultLogger(prefix string) *logger {
+	return &logger{
+		log.New(os.Stderr, prefix, log.LstdFlags),
+	}
 }
 
 // Error Log ERROR level message.
 func (this *logger) Error(format string, v ...interface{}) {
-	log.Printf(format, v...)
+	this.Printf("[E]: "+format, v...)
 }
 
 // Debug Log DEBUG level message.
 func (this *logger) Debug(format string, v ...interface{}) {
-	log.Printf(format, v...)
+	this.Printf("[D]: "+format, v...)
 }
