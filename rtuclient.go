@@ -133,7 +133,7 @@ func (this *RTUClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []by
 	}
 
 	// Send the request
-	this.Debug("sending % x", aduRequest)
+	this.Debug("sending [% x]", aduRequest)
 	var tryCnt byte
 	for {
 		_, err = this.port.Write(aduRequest)
@@ -193,7 +193,7 @@ func (this *RTUClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []by
 		return
 	}
 	aduResponse = data[:n]
-	this.Debug("received % x\n", aduResponse)
+	this.Debug("received [% x]", aduResponse)
 	return
 }
 

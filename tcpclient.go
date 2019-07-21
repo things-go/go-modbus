@@ -211,7 +211,7 @@ func (this *TCPClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []by
 		return nil, ErrClosedConnection
 	}
 	// Send data
-	this.Debug("sending % x", aduRequest)
+	this.Debug("sending [% x]", aduRequest)
 	// Set write and read timeout
 	var timeout time.Time
 	var tryCnt byte
@@ -264,7 +264,7 @@ func (this *TCPClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []by
 		return
 	}
 	aduResponse = data[:length]
-	this.Debug("received % x\n", aduResponse)
+	this.Debug("received [% x]", aduResponse)
 	return
 }
 
