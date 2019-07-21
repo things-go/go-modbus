@@ -1,6 +1,7 @@
 package modbus
 
 import (
+	"context"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -19,30 +20,37 @@ const (
 
 // TCPServer modbus tcp server
 type TCPServer struct {
-	addr            string
-	tcpReadTimeout  time.Duration
-	tcpWriteTimeout time.Duration
-	node            sync.Map
+	readTimeout  time.Duration
+	writeTimeout time.Duration
+	node         sync.Map
 	*pool
 	mu     sync.Mutex
 	listen net.Listener
-	client map[net.Conn]struct{}
 	wg     sync.WaitGroup
+	cancel context.CancelFunc
 	*serverHandler
 	clogs
 }
 
 // NewTCPServer the modbus server listening on "address:port".
-func NewTCPServer(addr string) *TCPServer {
+func NewTCPServer() *TCPServer {
 	return &TCPServer{
-		addr:            addr,
-		tcpReadTimeout:  TCPDefaultReadTimeout,
-		tcpWriteTimeout: TCPDefaultWriteTimeout,
-		pool:            newPool(tcpAduMaxSize),
-		serverHandler:   newServerHandler(),
-		client:          make(map[net.Conn]struct{}),
-		clogs:           clogs{newDefaultLogger("modbusTCPSlave =>"), 0},
+		readTimeout:   TCPDefaultReadTimeout,
+		writeTimeout:  TCPDefaultWriteTimeout,
+		pool:          newPool(tcpAduMaxSize),
+		serverHandler: newServerHandler(),
+		clogs:         clogs{newDefaultLogger("modbusTCPSlave =>"), 0},
 	}
+}
+
+// SetReadTimeout set read timeout
+func (this *TCPServer) SetReadTimeout(t time.Duration) {
+	this.readTimeout = t
+}
+
+// SetWriteTimeout set write timeout
+func (this *TCPServer) SetWriteTimeout(t time.Duration) {
+	this.writeTimeout = t
 }
 
 // AddNodes 增加节点
@@ -91,72 +99,77 @@ func (this *TCPServer) Range(f func(slaveID byte, node *NodeRegister) bool) {
 	})
 }
 
-// ServerModbus 服务
-func (this *TCPServer) ServerModbus() {
-	listen, err := net.Listen("tcp", this.addr)
+// ListenAndServe 服务
+func (this *TCPServer) ListenAndServe(addr string) error {
+	listen, err := net.Listen("tcp", addr)
 	if err != nil {
-		this.Error("modbus server: %v\n", err)
-		return
+		return err
 	}
+	ctx, cancel := context.WithCancel(context.Background())
 	this.mu.Lock()
 	this.listen = listen
+	this.cancel = cancel
 	this.mu.Unlock()
-	defer this.Close()
+
+	defer func() {
+		this.Close()
+		this.Error("server stop")
+	}()
 	this.Debug("server running")
 	for {
 		conn, err := listen.Accept()
 		if err != nil {
-			this.Error("accept failed, %v\n", err)
-			return
+			return err
 		}
 		this.wg.Add(1)
 		go func() {
-			this.Debug("client(%v) -> server(%v) connected", conn.RemoteAddr(), conn.LocalAddr())
-			this.mu.Lock()
-			this.client[conn] = struct{}{}
-			this.mu.Unlock()
-
-			if err := this.handlerModbus(conn); err != nil {
-				this.Error("handler modbus failed %v", err)
-			}
-
-			this.Debug("client(%v) -> server(%v) disconnected", conn.RemoteAddr(), conn.LocalAddr())
-			this.mu.Lock()
-			delete(this.client, conn)
-			this.mu.Unlock()
-			conn.Close()
+			this.handlerModbus(ctx, conn)
 			this.wg.Done()
 		}()
 	}
 }
 
 // handler net conn
-func (this *TCPServer) handlerModbus(conn net.Conn) error {
+func (this *TCPServer) handlerModbus(ctx context.Context, conn net.Conn) {
+	var err error
+	var bytesRead int
+
+	this.Debug("client(%v) -> server(%v) connected", conn.RemoteAddr(), conn.LocalAddr())
 	// get pool frame
 	frame := this.pool.get()
 	defer func() {
 		this.pool.put(frame)
+		conn.Close()
+		this.Debug("client(%v) -> server(%v) disconnected,cause by %v", conn.RemoteAddr(), conn.LocalAddr(), err)
 	}()
 
 	for {
+		select {
+		case <-ctx.Done():
+			err = errors.New("server active close")
+			return
+		default:
+		}
+
 		adu := frame.adu[:tcpAduMaxSize]
 		for length, rdCnt := tcpHeaderMbapSize, 0; rdCnt < length; {
-			err := conn.SetReadDeadline(time.Now().Add(this.tcpReadTimeout))
+			err = conn.SetReadDeadline(time.Now().Add(this.readTimeout))
 			if err != nil {
-				return fmt.Errorf("set read deadline %v", err)
+				return
 			}
-			bytesRead, err := io.ReadFull(conn, adu[rdCnt:length])
+			bytesRead, err = io.ReadFull(conn, adu[rdCnt:length])
 			if err != nil {
 				if err != io.EOF && err != io.ErrClosedPipe || strings.Contains(err.Error(), "use of closed network connection") {
-					return err
+					return
 				}
 
 				if e, ok := err.(net.Error); ok && !e.Temporary() {
-					return err
+					return
 				}
 
 				if bytesRead == 0 && err == io.EOF {
-					return fmt.Errorf("remote client closed %v", err)
+					err = fmt.Errorf("remote client closed, %v", err)
+					return
 				}
 				// cnt >0 do nothing
 				// cnt == 0 && err != io.EOFcontinue do it next
@@ -169,37 +182,9 @@ func (this *TCPServer) handlerModbus(conn net.Conn) error {
 				}
 				length = int(binary.BigEndian.Uint16(adu[4:])) + tcpHeaderMbapSize - 1
 				if rdCnt == length {
-					this.Debug("RX Raw[% x]", adu[:length])
-					response, err := this.frameHandler(adu[:length])
+					err = this.frameHandler(conn, adu[:length])
 					if err != nil {
-						return fmt.Errorf("frameHandler %v", err)
-					}
-					this.Debug("TX Raw[% x]", response)
-
-					err = func(b []byte) error {
-						for wrCnt := 0; len(b) > wrCnt; {
-							err = conn.SetWriteDeadline(time.Now().Add(this.tcpWriteTimeout))
-							if err != nil {
-								return fmt.Errorf("set read deadline %v", err)
-							}
-							byteCount, err := conn.Write(b[wrCnt:])
-							if err != nil {
-								// See: https://github.com/golang/go/issues/4373
-								if err != io.EOF && err != io.ErrClosedPipe ||
-									strings.Contains(err.Error(), "use of closed network connection") {
-									return err
-								}
-								if e, ok := err.(net.Error); !ok || !e.Temporary() {
-									return err
-								}
-								// temporary error may be recoverable
-							}
-							wrCnt += byteCount
-						}
-						return nil
-					}(response)
-					if err != nil {
-						return err
+						return
 					}
 				}
 			}
@@ -212,10 +197,8 @@ func (this *TCPServer) Close() error {
 	this.mu.Lock()
 	if this.listen != nil {
 		this.listen.Close()
+		this.cancel()
 		this.listen = nil
-	}
-	for k := range this.client {
-		k.Close()
 	}
 	this.mu.Unlock()
 	this.wg.Wait()
@@ -223,13 +206,13 @@ func (this *TCPServer) Close() error {
 }
 
 // modbus 包处理
-func (this *TCPServer) frameHandler(requestAdu []byte) ([]byte, error) {
+func (this *TCPServer) frameHandler(conn net.Conn, requestAdu []byte) error {
 	defer func() {
 		if err := recover(); err != nil {
 			this.Error("painc happen,%v", err)
 		}
 	}()
-
+	this.Debug("RX Raw[% x]", requestAdu)
 	// got head from request adu
 	tcpHeader := protocolTCPHeader{
 		binary.BigEndian.Uint16(requestAdu[0:]),
@@ -241,8 +224,8 @@ func (this *TCPServer) frameHandler(requestAdu []byte) ([]byte, error) {
 	pduData := requestAdu[8:]
 
 	node, err := this.GetNode(tcpHeader.slaveID)
-	if err != nil {
-		return nil, err
+	if err != nil { // slave id not exit, ignore it
+		return nil
 	}
 	var rspPduData []byte
 	if handle, ok := this.function[funcCode]; ok {
@@ -264,5 +247,28 @@ func (this *TCPServer) frameHandler(requestAdu []byte) ([]byte, error) {
 	responseAdu = append(responseAdu, funcCode)
 	responseAdu = append(responseAdu, rspPduData...)
 
-	return responseAdu, nil
+	this.Debug("TX Raw[% x]", responseAdu)
+
+	return func(b []byte) error {
+		for wrCnt := 0; len(b) > wrCnt; {
+			err = conn.SetWriteDeadline(time.Now().Add(this.writeTimeout))
+			if err != nil {
+				return fmt.Errorf("set read deadline %v", err)
+			}
+			byteCount, err := conn.Write(b[wrCnt:])
+			if err != nil {
+				// See: https://github.com/golang/go/issues/4373
+				if err != io.EOF && err != io.ErrClosedPipe ||
+					strings.Contains(err.Error(), "use of closed network connection") {
+					return err
+				}
+				if e, ok := err.(net.Error); !ok || !e.Temporary() {
+					return err
+				}
+				// temporary error may be recoverable
+			}
+			wrCnt += byteCount
+		}
+		return nil
+	}(responseAdu)
 }

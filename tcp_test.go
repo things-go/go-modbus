@@ -12,32 +12,34 @@ const (
 
 func Test_TCPClientWithServer(t *testing.T) {
 	t.Run("", func(t *testing.T) {
-		mbsrv := NewTCPServer("localhost:48091")
-		mbsrv.AddNodes(NewNodeRegister(testslaveID1, 0, 10, 0, 10,
-			0, 10, 0, 10))
-		mbsrv.AddNodes(NewNodeRegister(testslaveID2, 0, 10, 0, 10,
-			0, 10, 0, 10))
+		mbSrv := NewTCPServer()
+		mbSrv.AddNodes(NewNodeRegister(testslaveID1,
+			0, 10, 0, 10,
+			0, 10, 0, 10),
+			NewNodeRegister(testslaveID2,
+				0, 10, 0, 10,
+				0, 10, 0, 10))
 
-		_, err := mbsrv.GetNode(testslaveID2)
+		_, err := mbSrv.GetNode(testslaveID2)
 		if err != nil {
 			t.Errorf("GetNode(%#v) error = %v, wantErr %v", testslaveID2, err, nil)
 			return
 		}
 
-		list := mbsrv.GetNodeList()
+		list := mbSrv.GetNodeList()
 		if list == nil {
 			t.Errorf("GetNodeList() should not nil")
 			return
 		}
 
-		mbsrv.DeleteNode(testslaveID2)
-		_, err = mbsrv.GetNode(testslaveID2)
+		mbSrv.DeleteNode(testslaveID2)
+		_, err = mbSrv.GetNode(testslaveID2)
 		if err == nil {
 			t.Errorf("GetNode(%#v) error = %v, wantErr %v", testslaveID2, err, "slaveID not exist")
 			return
 		}
 
-		go mbsrv.ServerModbus()
+		go mbSrv.ListenAndServe("localhost:48091")
 
 		mbPro := NewTCPClientProvider("localhost:48091")
 		mbCli := NewClient(mbPro)
@@ -73,7 +75,7 @@ func Test_TCPClientWithServer(t *testing.T) {
 			return
 		}
 
-		err = mbsrv.Close()
+		err = mbSrv.Close()
 		if err != nil {
 			t.Errorf("server Close() error = %v, wantErr %v", err, nil)
 			return
