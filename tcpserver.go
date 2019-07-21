@@ -22,24 +22,23 @@ const (
 type TCPServer struct {
 	readTimeout  time.Duration
 	writeTimeout time.Duration
-	node         sync.Map
 	*pool
 	mu     sync.Mutex
 	listen net.Listener
 	wg     sync.WaitGroup
 	cancel context.CancelFunc
-	*serverHandler
+	*serverCommon
 	clogs
 }
 
 // NewTCPServer the modbus server listening on "address:port".
 func NewTCPServer() *TCPServer {
 	return &TCPServer{
-		readTimeout:   TCPDefaultReadTimeout,
-		writeTimeout:  TCPDefaultWriteTimeout,
-		pool:          newPool(tcpAduMaxSize),
-		serverHandler: newServerHandler(),
-		clogs:         clogs{newDefaultLogger("modbusTCPSlave =>"), 0},
+		readTimeout:  TCPDefaultReadTimeout,
+		writeTimeout: TCPDefaultWriteTimeout,
+		pool:         newPool(tcpAduMaxSize),
+		serverCommon: newServerHandler(),
+		clogs:        clogs{newDefaultLogger("modbusTCPSlave =>"), 0},
 	}
 }
 
@@ -53,50 +52,17 @@ func (this *TCPServer) SetWriteTimeout(t time.Duration) {
 	this.writeTimeout = t
 }
 
-// AddNodes 增加节点
-func (this *TCPServer) AddNodes(nodes ...*NodeRegister) {
-	for _, v := range nodes {
-		this.node.Store(v.slaveID, v)
+// Close close the server
+func (this *TCPServer) Close() error {
+	this.mu.Lock()
+	if this.listen != nil {
+		this.listen.Close()
+		this.cancel()
+		this.listen = nil
 	}
-}
-
-// DeleteNode 删除一个节点
-func (this *TCPServer) DeleteNode(slaveID byte) {
-	this.node.Delete(slaveID)
-}
-
-// DeleteAllNode 删除所有节点
-func (this *TCPServer) DeleteAllNode() {
-	this.node.Range(func(k, v interface{}) bool {
-		this.node.Delete(k)
-		return true
-	})
-}
-
-// GetNode 获取一个节点
-func (this *TCPServer) GetNode(slaveID byte) (*NodeRegister, error) {
-	v, ok := this.node.Load(slaveID)
-	if !ok {
-		return nil, errors.New("slaveID not exist")
-	}
-	return v.(*NodeRegister), nil
-}
-
-// GetNodeList 获取节点列表
-func (this *TCPServer) GetNodeList() []*NodeRegister {
-	list := make([]*NodeRegister, 0)
-	this.node.Range(func(k, v interface{}) bool {
-		list = append(list, v.(*NodeRegister))
-		return true
-	})
-	return list
-}
-
-// Range 扫描节点 same as sync map range
-func (this *TCPServer) Range(f func(slaveID byte, node *NodeRegister) bool) {
-	this.node.Range(func(k, v interface{}) bool {
-		return f(k.(byte), v.(*NodeRegister))
-	})
+	this.mu.Unlock()
+	this.wg.Wait()
+	return nil
 }
 
 // ListenAndServe 服务
@@ -123,24 +89,41 @@ func (this *TCPServer) ListenAndServe(addr string) error {
 		}
 		this.wg.Add(1)
 		go func() {
-			this.handlerModbus(ctx, conn)
+			sess := &session{
+				conn,
+				this.readTimeout,
+				this.writeTimeout,
+				this.pool,
+				this.serverCommon,
+				&this.clogs,
+			}
+			sess.run(ctx)
 			this.wg.Done()
 		}()
 	}
 }
 
+type session struct {
+	conn         net.Conn
+	readTimeout  time.Duration
+	writeTimeout time.Duration
+	*pool
+	*serverCommon
+	*clogs
+}
+
 // handler net conn
-func (this *TCPServer) handlerModbus(ctx context.Context, conn net.Conn) {
+func (this *session) run(ctx context.Context) {
 	var err error
 	var bytesRead int
 
-	this.Debug("client(%v) -> server(%v) connected", conn.RemoteAddr(), conn.LocalAddr())
+	this.Debug("client(%v) -> server(%v) connected", this.conn.RemoteAddr(), this.conn.LocalAddr())
 	// get pool frame
 	frame := this.pool.get()
 	defer func() {
 		this.pool.put(frame)
-		conn.Close()
-		this.Debug("client(%v) -> server(%v) disconnected,cause by %v", conn.RemoteAddr(), conn.LocalAddr(), err)
+		this.conn.Close()
+		this.Debug("client(%v) -> server(%v) disconnected,cause by %v", this.conn.RemoteAddr(), this.conn.LocalAddr(), err)
 	}()
 
 	for {
@@ -153,11 +136,11 @@ func (this *TCPServer) handlerModbus(ctx context.Context, conn net.Conn) {
 
 		adu := frame.adu[:tcpAduMaxSize]
 		for length, rdCnt := tcpHeaderMbapSize, 0; rdCnt < length; {
-			err = conn.SetReadDeadline(time.Now().Add(this.readTimeout))
+			err = this.conn.SetReadDeadline(time.Now().Add(this.readTimeout))
 			if err != nil {
 				return
 			}
-			bytesRead, err = io.ReadFull(conn, adu[rdCnt:length])
+			bytesRead, err = io.ReadFull(this.conn, adu[rdCnt:length])
 			if err != nil {
 				if err != io.EOF && err != io.ErrClosedPipe || strings.Contains(err.Error(), "use of closed network connection") {
 					return
@@ -182,7 +165,7 @@ func (this *TCPServer) handlerModbus(ctx context.Context, conn net.Conn) {
 				}
 				length = int(binary.BigEndian.Uint16(adu[4:])) + tcpHeaderMbapSize - 1
 				if rdCnt == length {
-					err = this.frameHandler(conn, adu[:length])
+					err = this.frameHandler(adu[:length])
 					if err != nil {
 						return
 					}
@@ -192,21 +175,8 @@ func (this *TCPServer) handlerModbus(ctx context.Context, conn net.Conn) {
 	}
 }
 
-// Close close the server
-func (this *TCPServer) Close() error {
-	this.mu.Lock()
-	if this.listen != nil {
-		this.listen.Close()
-		this.cancel()
-		this.listen = nil
-	}
-	this.mu.Unlock()
-	this.wg.Wait()
-	return nil
-}
-
 // modbus 包处理
-func (this *TCPServer) frameHandler(conn net.Conn, requestAdu []byte) error {
+func (this *session) frameHandler(requestAdu []byte) error {
 	defer func() {
 		if err := recover(); err != nil {
 			this.Error("painc happen,%v", err)
@@ -251,11 +221,11 @@ func (this *TCPServer) frameHandler(conn net.Conn, requestAdu []byte) error {
 
 	return func(b []byte) error {
 		for wrCnt := 0; len(b) > wrCnt; {
-			err = conn.SetWriteDeadline(time.Now().Add(this.writeTimeout))
+			err = this.conn.SetWriteDeadline(time.Now().Add(this.writeTimeout))
 			if err != nil {
 				return fmt.Errorf("set read deadline %v", err)
 			}
-			byteCount, err := conn.Write(b[wrCnt:])
+			byteCount, err := this.conn.Write(b[wrCnt:])
 			if err != nil {
 				// See: https://github.com/golang/go/issues/4373
 				if err != io.EOF && err != io.ErrClosedPipe ||

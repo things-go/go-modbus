@@ -227,6 +227,7 @@ func (this *TCPClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []by
 		if err == nil { // success
 			break
 		}
+
 		if this.autoReconnect == 0 {
 			return
 		}

@@ -30,6 +30,7 @@ func main() {
 			panic(err)
 		}
 	}()
+
 	err := srv.ListenAndServe(":502")
 	if err != nil {
 		panic(err)

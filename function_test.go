@@ -9,8 +9,8 @@ func Test_newServerHandler(t *testing.T) {
 	sh := newServerHandler()
 	tests := []struct {
 		name string
-		got  *serverHandler
-		want *serverHandler
+		got  *serverCommon
+		want *serverCommon
 	}{
 		{"just cover", sh, sh},
 	}

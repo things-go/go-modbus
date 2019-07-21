@@ -2,6 +2,8 @@ package modbus
 
 import (
 	"encoding/binary"
+	"errors"
+	"sync"
 )
 
 // pdu数据域 各功能码要求的最小长度
@@ -17,12 +19,13 @@ const (
 // data 仅pdu数据域 不含功能码, return pdu 数据域,不含功能码
 type FunctionHandler func(reg *NodeRegister, data []byte) ([]byte, error)
 
-type serverHandler struct {
+type serverCommon struct {
+	node     sync.Map
 	function map[uint8]FunctionHandler
 }
 
-func newServerHandler() *serverHandler {
-	return &serverHandler{
+func newServerHandler() *serverCommon {
+	return &serverCommon{
 		function: map[uint8]FunctionHandler{
 			FuncCodeReadDiscreteInputs:         funcReadDiscreteInputs,
 			FuncCodeReadCoils:                  funcReadCoils,
@@ -39,8 +42,54 @@ func newServerHandler() *serverHandler {
 	}
 }
 
+// AddNodes 增加节点
+func (this *serverCommon) AddNodes(nodes ...*NodeRegister) {
+	for _, v := range nodes {
+		this.node.Store(v.slaveID, v)
+	}
+}
+
+// DeleteNode 删除一个节点
+func (this *serverCommon) DeleteNode(slaveID byte) {
+	this.node.Delete(slaveID)
+}
+
+// DeleteAllNode 删除所有节点
+func (this *serverCommon) DeleteAllNode() {
+	this.node.Range(func(k, v interface{}) bool {
+		this.node.Delete(k)
+		return true
+	})
+}
+
+// GetNode 获取一个节点
+func (this *serverCommon) GetNode(slaveID byte) (*NodeRegister, error) {
+	v, ok := this.node.Load(slaveID)
+	if !ok {
+		return nil, errors.New("slaveID not exist")
+	}
+	return v.(*NodeRegister), nil
+}
+
+// GetNodeList 获取节点列表
+func (this *serverCommon) GetNodeList() []*NodeRegister {
+	list := make([]*NodeRegister, 0)
+	this.node.Range(func(k, v interface{}) bool {
+		list = append(list, v.(*NodeRegister))
+		return true
+	})
+	return list
+}
+
+// Range 扫描节点 same as sync map range
+func (this *serverCommon) Range(f func(slaveID byte, node *NodeRegister) bool) {
+	this.node.Range(func(k, v interface{}) bool {
+		return f(k.(byte), v.(*NodeRegister))
+	})
+}
+
 // RegisterFunctionHandler 注册回调函数
-func (this *serverHandler) RegisterFunctionHandler(funcCode uint8, function FunctionHandler) {
+func (this *serverCommon) RegisterFunctionHandler(funcCode uint8, function FunctionHandler) {
 	if function != nil {
 		this.function[funcCode] = function
 	}
