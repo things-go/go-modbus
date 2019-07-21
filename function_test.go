@@ -6,7 +6,7 @@ import (
 )
 
 func Test_newServerHandler(t *testing.T) {
-	sh := newServerHandler()
+	sh := newServerCommon()
 	tests := []struct {
 		name string
 		got  *serverCommon
@@ -17,7 +17,7 @@ func Test_newServerHandler(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if !reflect.DeepEqual(tt.got, tt.want) {
-				t.Errorf("newServerHandler() = %v, want %v", tt.want, tt.want)
+				t.Errorf("newServerCommon() = %v, want %v", tt.want, tt.want)
 			}
 		})
 	}

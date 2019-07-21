@@ -24,7 +24,7 @@ type serverCommon struct {
 	function map[uint8]FunctionHandler
 }
 
-func newServerHandler() *serverCommon {
+func newServerCommon() *serverCommon {
 	return &serverCommon{
 		function: map[uint8]FunctionHandler{
 			FuncCodeReadDiscreteInputs:         funcReadDiscreteInputs,
