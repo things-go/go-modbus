@@ -3,10 +3,10 @@ language: go
 go:
   - 1.11.x
   - 1.12.x
-  - tip
+  - Master
 
 before_install:
-  - go get -v ./...
+  - go get -v .
 
 install:
   - go test -v -benchmem -test.bench=".*" -coverprofile=coverage.txt -covermode=atomic ./...
