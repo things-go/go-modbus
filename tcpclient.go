@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -231,6 +232,7 @@ func (this *TCPClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []by
 		if this.autoReconnect == 0 {
 			return
 		}
+
 		for {
 			err = this.connect()
 			if err == nil {
@@ -244,8 +246,39 @@ func (this *TCPClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []by
 
 	// Read header first
 	var data [tcpAduMaxSize]byte
-	if _, err = io.ReadFull(this.conn, data[:tcpHeaderMbapSize]); err != nil {
-		return
+	var cnt int
+	for {
+		if this.Timeout > 0 {
+			timeout = time.Now().Add(this.Timeout)
+		}
+		if err = this.conn.SetDeadline(timeout); err != nil {
+			return nil, err
+		}
+
+		if cnt, err = io.ReadFull(this.conn, data[:tcpHeaderMbapSize]); err == nil {
+			break
+		}
+		if this.autoReconnect == 0 {
+			return
+		}
+
+		if e, ok := err.(net.Error); ok && !e.Temporary() ||
+			err != io.EOF && err != io.ErrClosedPipe ||
+			strings.Contains(err.Error(), "use of closed network connection") ||
+			cnt == 0 && err == io.EOF {
+			for {
+				err = this.connect()
+				if err == nil {
+					break
+				}
+				if tryCnt++; tryCnt >= this.autoReconnect {
+					return
+				}
+			}
+		}
+		if tryCnt++; tryCnt >= this.autoReconnect {
+			return
+		}
 	}
 	// Read length, ignore transaction & protocol id (4 bytes)
 	length := int(binary.BigEndian.Uint16(data[4:]))
@@ -259,6 +292,14 @@ func (this *TCPClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []by
 		err = fmt.Errorf("modbus: length in response header '%v' must not greater than '%v'", length, tcpAduMaxSize-tcpHeaderMbapSize+1)
 		return
 	}
+
+	if this.Timeout > 0 {
+		timeout = time.Now().Add(this.Timeout)
+	}
+	if err = this.conn.SetDeadline(timeout); err != nil {
+		return nil, err
+	}
+
 	// Skip unit id
 	length += tcpHeaderMbapSize - 1
 	if _, err = io.ReadFull(this.conn, data[tcpHeaderMbapSize:length]); err != nil {

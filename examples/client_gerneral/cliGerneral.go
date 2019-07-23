@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	p := modbus.NewTCPClientProvider(":502")
+	p := modbus.NewTCPClientProvider("192.168.199.188:502")
 	// p.BaudRate = 115200
 	// p.DataBits = 8
 	// p.Parity = "N"
@@ -31,6 +31,7 @@ func main() {
 		} else {
 			//	fmt.Printf("ReadDiscreteInputs %#v\r\n", results)
 		}
+		fmt.Println("???")
 		time.Sleep(time.Second * 1)
 	}
 }
