@@ -25,7 +25,7 @@ func main() {
 
 	fmt.Println("starting")
 	for {
-		_, err := client.ReadCoils(2, 0, 10)
+		_, err := client.ReadCoils(3, 0, 10)
 		if err != nil {
 			fmt.Println(err.Error())
 		}

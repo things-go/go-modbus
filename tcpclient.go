@@ -247,6 +247,7 @@ func (this *TCPClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []by
 	// Read header first
 	var data [tcpAduMaxSize]byte
 	var cnt int
+	var mErr error
 	for {
 		if this.Timeout > 0 {
 			timeout = time.Now().Add(this.Timeout)
@@ -261,7 +262,7 @@ func (this *TCPClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []by
 		if this.autoReconnect == 0 {
 			return
 		}
-
+		mErr = err
 		if e, ok := err.(net.Error); ok && !e.Temporary() ||
 			err != io.EOF && err != io.ErrClosedPipe ||
 			strings.Contains(err.Error(), "use of closed network connection") ||
@@ -277,6 +278,7 @@ func (this *TCPClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []by
 			}
 		}
 		if tryCnt++; tryCnt >= this.autoReconnect {
+			err = mErr
 			return
 		}
 	}
