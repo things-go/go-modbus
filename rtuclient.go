@@ -25,12 +25,12 @@ var _ ClientProvider = (*RTUClientProvider)(nil)
 var rtuPool = newPool(rtuAduMaxSize)
 
 // NewRTUClientProvider allocates and initializes a RTUClientProvider.
-func NewRTUClientProvider(address string) *RTUClientProvider {
+// it will use default /dev/ttyS0 19200 8 1 N and timeout 1000
+func NewRTUClientProvider() *RTUClientProvider {
 	p := &RTUClientProvider{
 		clogs: clogs{newDefaultLogger("modbusRTUMaster =>"), 0},
 		pool:  rtuPool,
 	}
-	p.Address = address
 	p.Timeout = SerialDefaultTimeout
 	p.autoReconnect = SerialDefaultAutoReconnect
 	return p
