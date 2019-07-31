@@ -6,7 +6,7 @@ go:
   - master
 
 before_install:
-  - go get -v .
+  - go get -t -v .
 
 install:
   - go test -v -benchmem -test.bench=".*" -coverprofile=coverage.txt -covermode=atomic ./...
