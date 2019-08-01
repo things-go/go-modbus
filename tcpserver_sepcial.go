@@ -18,6 +18,7 @@ import (
 const (
 	DefaultConnectTimeout    = 15 * time.Second
 	DefaultReconnectInterval = 1 * time.Minute
+	defaultKeepAliveInterval = 30 * time.Second
 )
 const (
 	initial uint32 = iota
@@ -41,7 +42,8 @@ type TCPServerSpecial interface {
 	SetReadTimeout(t time.Duration)
 	SetWriteTimeout(t time.Duration)
 	SetOnConnectHandler(f OnConnectHandler)
-	SetConnectionLostHandler(f ConnectionLostHandler)
+	SetConnectionLostHandler(f OnConnectionLostHandler)
+	SetKeepAlive(b bool, t time.Duration, f OnKeepAliveHandler)
 
 	LogMode(enable bool)
 	SetLogProvider(p LogProvider)
@@ -50,8 +52,11 @@ type TCPServerSpecial interface {
 // OnConnectHandler when connected it will be call
 type OnConnectHandler func(c TCPServerSpecial) error
 
-// ConnectionLostHandler when Connection lost it will be call
-type ConnectionLostHandler func(c TCPServerSpecial)
+// OnConnectionLostHandler when Connection lost it will be call
+type OnConnectionLostHandler func(c TCPServerSpecial)
+
+// KeepAlive keep alive function
+type OnKeepAliveHandler func(c TCPServerSpecial)
 
 // tcpServerSpecial modbus tcp server special
 type tcpServerSpecial struct {
@@ -62,9 +67,12 @@ type tcpServerSpecial struct {
 	connectTimeout    time.Duration // 连接超时时间
 	autoReconnect     bool          // 是否启动重连
 	reconnectInterval time.Duration // 重连间隔时间
+	enableKeepAlive   bool          // 是否使能心跳包
+	keepAliveInterval time.Duration // 心跳包间隔
 	TLSConfig         *tls.Config
-	onConnect         OnConnectHandler
-	onConnectionLost  ConnectionLostHandler
+	onConnect         OnConnectHandler // 心跳包函数
+	onConnectionLost  OnConnectionLostHandler
+	onKeepAlive       OnKeepAliveHandler
 	cancel            context.CancelFunc
 }
 
@@ -80,6 +88,9 @@ func NewTCPServerSpecial() *tcpServerSpecial {
 		connectTimeout:    DefaultConnectTimeout,
 		autoReconnect:     true,
 		reconnectInterval: DefaultReconnectInterval,
+		enableKeepAlive:   false,
+		keepAliveInterval: defaultKeepAliveInterval,
+		onKeepAlive:       func(TCPServerSpecial) {},
 		onConnect:         func(TCPServerSpecial) error { return nil },
 		onConnectionLost:  func(TCPServerSpecial) {},
 	}
@@ -127,9 +138,18 @@ func (this *tcpServerSpecial) SetOnConnectHandler(f OnConnectHandler) {
 }
 
 // SetConnectionLostHandler set connection lost handler
-func (this *tcpServerSpecial) SetConnectionLostHandler(f ConnectionLostHandler) {
+func (this *tcpServerSpecial) SetConnectionLostHandler(f OnConnectionLostHandler) {
 	if f != nil {
 		this.onConnectionLost = f
+	}
+}
+func (this *tcpServerSpecial) SetKeepAlive(b bool, t time.Duration, f OnKeepAliveHandler) {
+	this.enableKeepAlive = b
+	if t > 0 {
+		this.keepAliveInterval = t
+	}
+	if f != nil {
+		this.onKeepAlive = f
 	}
 }
 
@@ -197,6 +217,20 @@ func (this *tcpServerSpecial) run() {
 		if err := this.onConnect(this); err != nil {
 			time.Sleep(this.reconnectInterval)
 			continue
+		}
+		if this.enableKeepAlive {
+			go func() {
+				tick := time.NewTicker(this.keepAliveInterval)
+				defer tick.Stop()
+				for {
+					select {
+					case <-ctx.Done():
+						return
+					case <-tick.C:
+						this.onKeepAlive(this)
+					}
+				}
+			}()
 		}
 		this.setConnectStatus(connected)
 		this.running(ctx)
