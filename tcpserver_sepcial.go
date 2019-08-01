@@ -165,6 +165,7 @@ func (this *tcpServerSpecial) Start() error {
 // 增加间隔
 func (this *tcpServerSpecial) run() {
 	var ctx context.Context
+
 	this.rwMux.Lock()
 	if !atomic.CompareAndSwapUint32(&this.status, initial, disconnected) {
 		this.rwMux.Unlock()
@@ -179,7 +180,6 @@ func (this *tcpServerSpecial) run() {
 		case <-ctx.Done():
 			return
 		default:
-
 		}
 
 		this.Debug("connecting server %+v", this.server)
