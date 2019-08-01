@@ -88,7 +88,7 @@ func (this *RTUClientProvider) Send(slaveID byte, request ProtocolDataUnit) (Pro
 		return response, err
 	}
 	return response, nil
-} //Function code & data
+}
 
 // SendPdu send pdu request to the remote server
 func (this *RTUClientProvider) SendPdu(slaveID byte, pduRequest []byte) ([]byte, error) {
