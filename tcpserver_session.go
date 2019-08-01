@@ -15,7 +15,6 @@ type ServerSession struct {
 	conn         net.Conn
 	readTimeout  time.Duration
 	writeTimeout time.Duration
-	*pool
 	*serverCommon
 	*clogs
 }
@@ -26,14 +25,13 @@ func (this *ServerSession) running(ctx context.Context) {
 	var bytesRead int
 
 	this.Debug("client(%v) -> server(%v) connected", this.conn.RemoteAddr(), this.conn.LocalAddr())
-	// get pool frame
-	frame := this.pool.get()
+	// get pool raw
 	defer func() {
-		this.pool.put(frame)
 		this.conn.Close()
 		this.Debug("client(%v) -> server(%v) disconnected,cause by %v", this.conn.RemoteAddr(), this.conn.LocalAddr(), err)
 	}()
 
+	raw := make([]byte, tcpAduMaxSize)
 	for {
 		select {
 		case <-ctx.Done():
@@ -42,7 +40,7 @@ func (this *ServerSession) running(ctx context.Context) {
 		default:
 		}
 
-		adu := frame.adu[:tcpAduMaxSize]
+		adu := raw[:]
 		for length, rdCnt := tcpHeaderMbapSize, 0; rdCnt < length; {
 			err = this.conn.SetReadDeadline(time.Now().Add(this.readTimeout))
 			if err != nil {
@@ -63,7 +61,7 @@ func (this *ServerSession) running(ctx context.Context) {
 					return
 				}
 				// cnt >0 do nothing
-				// cnt == 0 && err != io.EOFcontinue do it next
+				// cnt == 0 && err != io.EOF continue do it next
 			}
 			rdCnt += bytesRead
 			if rdCnt >= length {
@@ -73,8 +71,7 @@ func (this *ServerSession) running(ctx context.Context) {
 				}
 				length = int(binary.BigEndian.Uint16(adu[4:])) + tcpHeaderMbapSize - 1
 				if rdCnt == length {
-					err = this.frameHandler(adu[:length])
-					if err != nil {
+					if err = this.frameHandler(adu[:length]); err != nil {
 						return
 					}
 				}
@@ -90,6 +87,7 @@ func (this *ServerSession) frameHandler(requestAdu []byte) error {
 			this.Error("painc happen,%v", err)
 		}
 	}()
+
 	this.Debug("RX Raw[% x]", requestAdu)
 	// got head from request adu
 	tcpHeader := protocolTCPHeader{
@@ -126,7 +124,7 @@ func (this *ServerSession) frameHandler(requestAdu []byte) error {
 	responseAdu = append(responseAdu, rspPduData...)
 
 	this.Debug("TX Raw[% x]", responseAdu)
-
+	// write response
 	return func(b []byte) error {
 		for wrCnt := 0; len(b) > wrCnt; {
 			err = this.conn.SetWriteDeadline(time.Now().Add(this.writeTimeout))

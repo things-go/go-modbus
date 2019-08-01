@@ -9,6 +9,7 @@ import (
 
 func main() {
 	p := modbus.NewTCPClientProvider("192.168.199.188:502")
+	// p.Address = "COM5"
 	// p.BaudRate = 115200
 	// p.DataBits = 8
 	// p.Parity = "N"
@@ -18,7 +19,7 @@ func main() {
 	client.LogMode(true)
 	err := client.Connect()
 	if err != nil {
-		fmt.Println("connect", err)
+		fmt.Println("connect failed, ", err)
 		return
 	}
 	defer client.Close()

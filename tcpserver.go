@@ -15,13 +15,12 @@ const (
 
 // TCPServer modbus tcp server
 type TCPServer struct {
+	mu           sync.Mutex
+	listen       net.Listener
+	wg           sync.WaitGroup
+	cancel       context.CancelFunc
 	readTimeout  time.Duration
 	writeTimeout time.Duration
-	*pool
-	mu     sync.Mutex
-	listen net.Listener
-	wg     sync.WaitGroup
-	cancel context.CancelFunc
 	*serverCommon
 	clogs
 }
@@ -31,9 +30,8 @@ func NewTCPServer() *TCPServer {
 	return &TCPServer{
 		readTimeout:  TCPDefaultReadTimeout,
 		writeTimeout: TCPDefaultWriteTimeout,
-		pool:         newPool(tcpAduMaxSize),
 		serverCommon: newServerCommon(),
-		clogs:        clogs{newDefaultLogger("modbusTCPSlave =>"), 0},
+		clogs:        clogs{newDefaultLogger("modbusTCPServer =>"), 0},
 	}
 }
 
@@ -88,7 +86,6 @@ func (this *TCPServer) ListenAndServe(addr string) error {
 				conn,
 				this.readTimeout,
 				this.writeTimeout,
-				this.pool,
 				this.serverCommon,
 				&this.clogs,
 			}
