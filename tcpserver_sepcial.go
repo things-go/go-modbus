@@ -18,36 +18,13 @@ import (
 const (
 	DefaultConnectTimeout    = 15 * time.Second
 	DefaultReconnectInterval = 1 * time.Minute
-	defaultKeepAliveInterval = 30 * time.Second
+	DefaultKeepAliveInterval = 30 * time.Second
 )
 const (
 	initial uint32 = iota
 	disconnected
 	connected
 )
-
-// TCPServerSpecial server special interface
-type TCPServerSpecial interface {
-	UnderlyingConn() net.Conn
-	IsConnected() bool
-	IsClosed() bool
-	Start() error
-	io.Closer
-
-	SetTLSConfig(t *tls.Config)
-	AddRemoteServer(server string) error
-	SetConnectTimeout(t time.Duration)
-	SetReconnectInterval(t time.Duration)
-	EnableAutoReconnect(b bool)
-	SetReadTimeout(t time.Duration)
-	SetWriteTimeout(t time.Duration)
-	SetOnConnectHandler(f OnConnectHandler)
-	SetConnectionLostHandler(f OnConnectionLostHandler)
-	SetKeepAlive(b bool, t time.Duration, f OnKeepAliveHandler)
-
-	LogMode(enable bool)
-	SetLogProvider(p LogProvider)
-}
 
 // OnConnectHandler when connected it will be call
 type OnConnectHandler func(c TCPServerSpecial) error
@@ -58,27 +35,28 @@ type OnConnectionLostHandler func(c TCPServerSpecial)
 // KeepAlive keep alive function
 type OnKeepAliveHandler func(c TCPServerSpecial)
 
-// tcpServerSpecial modbus tcp server special
-type tcpServerSpecial struct {
+// TCPServerSpecial modbus tcp server special
+type TCPServerSpecial struct {
 	ServerSession
-	server            *url.URL // 连接的服务器端
-	rwMux             sync.RWMutex
-	status            uint32
-	connectTimeout    time.Duration // 连接超时时间
-	autoReconnect     bool          // 是否启动重连
-	reconnectInterval time.Duration // 重连间隔时间
-	enableKeepAlive   bool          // 是否使能心跳包
-	keepAliveInterval time.Duration // 心跳包间隔
-	TLSConfig         *tls.Config
-	onConnect         OnConnectHandler // 心跳包函数
-	onConnectionLost  OnConnectionLostHandler
-	onKeepAlive       OnKeepAliveHandler
-	cancel            context.CancelFunc
+	server    *url.URL // 连接的服务器端
+	TLSConfig *tls.Config
+	rwMux     sync.RWMutex
+	status    uint32 // 状态
+
+	connectTimeout    time.Duration           // 连接超时时间
+	autoReconnect     bool                    // 是否启动重连
+	reconnectInterval time.Duration           // 重连间隔时间
+	enableKeepAlive   bool                    // 是否使能心跳包
+	keepAliveInterval time.Duration           // 心跳包间隔
+	onConnect         OnConnectHandler        // 连接回调
+	onConnectionLost  OnConnectionLostHandler // 失连回调
+	onKeepAlive       OnKeepAliveHandler      // 保活函数
+	cancel            context.CancelFunc      // cancel
 }
 
 // NewTCPServerSpecial new tcp server special
-func NewTCPServerSpecial() *tcpServerSpecial {
-	return &tcpServerSpecial{
+func NewTCPServerSpecial() *TCPServerSpecial {
+	return &TCPServerSpecial{
 		ServerSession: ServerSession{
 			readTimeout:  TCPDefaultReadTimeout,
 			writeTimeout: TCPDefaultWriteTimeout,
@@ -89,34 +67,34 @@ func NewTCPServerSpecial() *tcpServerSpecial {
 		autoReconnect:     true,
 		reconnectInterval: DefaultReconnectInterval,
 		enableKeepAlive:   false,
-		keepAliveInterval: defaultKeepAliveInterval,
+		keepAliveInterval: DefaultKeepAliveInterval,
 		onKeepAlive:       func(TCPServerSpecial) {},
 		onConnect:         func(TCPServerSpecial) error { return nil },
 		onConnectionLost:  func(TCPServerSpecial) {},
 	}
 }
 
-// UnderlyingConn go underlying tcp conn
-func (this *tcpServerSpecial) UnderlyingConn() net.Conn {
+// UnderlyingConn got underlying tcp conn
+func (this *TCPServerSpecial) UnderlyingConn() net.Conn {
 	return this.conn
 }
 
 // SetConnectTimeout set tcp connect the host timeout
-func (this *tcpServerSpecial) SetConnectTimeout(t time.Duration) {
+func (this *TCPServerSpecial) SetConnectTimeout(t time.Duration) {
 	this.connectTimeout = t
 }
 
 // SetReconnectInterval set tcp  reconnect the host interval when connect failed after try
-func (this *tcpServerSpecial) SetReconnectInterval(t time.Duration) {
+func (this *TCPServerSpecial) SetReconnectInterval(t time.Duration) {
 	this.reconnectInterval = t
 }
 
-func (this *tcpServerSpecial) EnableAutoReconnect(b bool) {
+func (this *TCPServerSpecial) EnableAutoReconnect(b bool) {
 	this.autoReconnect = b
 }
 
 // SetTLSConfig set tls config
-func (this *tcpServerSpecial) SetTLSConfig(t *tls.Config) {
+func (this *TCPServerSpecial) SetTLSConfig(t *tls.Config) {
 	this.TLSConfig = t
 }
 
@@ -131,19 +109,19 @@ func (this *ServerSession) SetWriteTimeout(t time.Duration) {
 }
 
 // SetOnConnectHandler set on connect handler
-func (this *tcpServerSpecial) SetOnConnectHandler(f OnConnectHandler) {
+func (this *TCPServerSpecial) SetOnConnectHandler(f OnConnectHandler) {
 	if f != nil {
 		this.onConnect = f
 	}
 }
 
 // SetConnectionLostHandler set connection lost handler
-func (this *tcpServerSpecial) SetConnectionLostHandler(f OnConnectionLostHandler) {
+func (this *TCPServerSpecial) SetConnectionLostHandler(f OnConnectionLostHandler) {
 	if f != nil {
 		this.onConnectionLost = f
 	}
 }
-func (this *tcpServerSpecial) SetKeepAlive(b bool, t time.Duration, f OnKeepAliveHandler) {
+func (this *TCPServerSpecial) SetKeepAlive(b bool, t time.Duration, f OnKeepAliveHandler) {
 	this.enableKeepAlive = b
 	if t > 0 {
 		this.keepAliveInterval = t
@@ -157,7 +135,7 @@ func (this *tcpServerSpecial) SetKeepAlive(b bool, t time.Duration, f OnKeepAliv
 // The format should be scheme://host:port
 // Default values for hostname is "127.0.0.1", for schema is "tcp://".
 // An example broker URI would look like: tcp://foobar.com:1204
-func (this *tcpServerSpecial) AddRemoteServer(server string) error {
+func (this *TCPServerSpecial) AddRemoteServer(server string) error {
 	if len(server) > 0 && server[0] == ':' {
 		server = "127.0.0.1" + server
 	}
@@ -173,7 +151,7 @@ func (this *tcpServerSpecial) AddRemoteServer(server string) error {
 }
 
 // Start start the server,and return quickly,if it nil,the server will connecting background,other failed
-func (this *tcpServerSpecial) Start() error {
+func (this *TCPServerSpecial) Start() error {
 	if this.server == nil {
 		return errors.New("empty remote server")
 	}
@@ -183,7 +161,7 @@ func (this *tcpServerSpecial) Start() error {
 }
 
 // 增加间隔
-func (this *tcpServerSpecial) run() {
+func (this *TCPServerSpecial) run() {
 	var ctx context.Context
 
 	this.rwMux.Lock()
@@ -247,16 +225,17 @@ func (this *tcpServerSpecial) run() {
 }
 
 // IsConnected check connect is online
-func (this *tcpServerSpecial) IsConnected() bool {
+func (this *TCPServerSpecial) IsConnected() bool {
 	return this.connectStatus() == connected
 }
 
-func (this *tcpServerSpecial) IsClosed() bool {
+// IsConnected check server is closed
+func (this *TCPServerSpecial) IsClosed() bool {
 	return this.connectStatus() == initial
 }
 
 // Close close the server
-func (this *tcpServerSpecial) Close() error {
+func (this *TCPServerSpecial) Close() error {
 	this.rwMux.Lock()
 	if this.cancel != nil {
 		this.cancel()
@@ -265,13 +244,13 @@ func (this *tcpServerSpecial) Close() error {
 	return nil
 }
 
-func (this *tcpServerSpecial) setConnectStatus(status uint32) {
+func (this *TCPServerSpecial) setConnectStatus(status uint32) {
 	this.rwMux.Lock()
 	atomic.StoreUint32(&this.status, status)
 	this.rwMux.Unlock()
 }
 
-func (this *tcpServerSpecial) connectStatus() uint32 {
+func (this *TCPServerSpecial) connectStatus() uint32 {
 	this.rwMux.RLock()
 	status := atomic.LoadUint32(&this.status)
 	this.rwMux.RUnlock()

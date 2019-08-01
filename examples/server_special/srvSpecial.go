@@ -37,13 +37,14 @@ func main() {
 		log.Println("connect lost")
 	})
 
+	srv.SetKeepAlive(true, time.Second*20, func(c modbus.TCPServerSpecial) {
+		c.UnderlyingConn().Write([]byte("keep alive"))
+	})
+
 	if err := srv.Start(); err != nil {
 		panic(err)
 	}
-	go func() {
-		time.Sleep(time.Second * 10)
-		srv.Close()
-	}()
+
 	if err := http.ListenAndServe(":6060", nil); err != nil {
 		panic(err)
 	}
