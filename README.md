@@ -35,23 +35,23 @@ Bit access:
 ### Example
 ----------
 ```
-    // modbus TCP Client
-    p := modbus.NewTCPClientProvider(":502")
-	p.Logger = log.New(os.Stdout, "", log.LstdFlags)
+	p := modbus.NewTCPClientProvider("192.168.199.188:502")
 	client := modbus.NewClient(p)
 	client.LogMode(true)
 	err := client.Connect()
 	if err != nil {
-		fmt.Println("connect", err)
+		fmt.Println("connect failed, ", err)
 		return
 	}
+
 	defer client.Close()
+    fmt.Println("starting")
 	for {
 		_, err := client.ReadCoils(1, 0, 10)
 		if err != nil {
 			fmt.Println(err.Error())
 		} else {
-			fmt.Printf("ReadDiscreteInputs %#v\r\n", results)
+			fmt.Printf("ReadCoils % x", results)
 		}
 		time.Sleep(time.Second * 5)
 	}
@@ -59,20 +59,22 @@ Bit access:
 
 ```
     // modbus RTU/ASCII Client
-    p := modbus.NewTCPClientProvider("COM1")
+    p := modbus.NewTCPClientProvider(")
+    p.Address = "COM5"
     p.BaudRate = 115200
 	p.DataBits = 8
 	p.Parity = "N"
 	p.StopBits = 1
-	p.Logger = log.New(os.Stdout, "", log.LstdFlags)
 	client := modbus.NewClient(p)
 	client.LogMode(true)
 	err := client.Connect()
 	if err != nil {
-		fmt.Println("connect", err)
+		fmt.Println("connect failed, ", err)
 		return
 	}
+
 	defer client.Close()
+    fmt.Println("starting")
 	for {
 		_, err := client.ReadCoils(1, 0, 10)
 		if err != nil {
@@ -95,7 +97,10 @@ Bit access:
 		0, []uint16{0x1234, 0x4567, 0x1234, 0x4567, 0x1234, 0x4567, 0x4567, 0x1234, 0x4567, 0x1234},
 		0, []uint16{0x4567, 0x1234, 0x4567, 0x1234, 0x4567, 0x1234, 0x4567, 0x1234, 0x4567, 0x1234},
 	))
-	srv.ServerModbus()
+	err := srv.ListenAndServe(":502")
+	if err != nil {
+		panic(err)
+	}
 ```
 ### References
 ----------
