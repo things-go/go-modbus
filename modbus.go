@@ -44,7 +44,7 @@
  */
 
 /*
-Package modbus provides a client for modbus TCP and RTU/ASCII.contain modbus TCP Server
+Package modbus provides a client for modbus TCP and RTU/ASCII.contain modbus TCP server
 */
 package modbus
 

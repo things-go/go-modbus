@@ -20,8 +20,8 @@ const (
 	DefaultReconnectInterval = 1 * time.Minute
 )
 const (
-	disconnected uint32 = iota
-	connecting
+	initial uint32 = iota
+	disconnected
 	connected
 )
 
@@ -29,6 +29,7 @@ const (
 type TCPServerSpecial interface {
 	UnderlyingConn() net.Conn
 	IsConnected() bool
+	IsClosed() bool
 	Start() error
 	io.Closer
 
@@ -55,7 +56,7 @@ type ConnectionLostHandler func(c TCPServerSpecial)
 // tcpServerSpecial modbus tcp server special
 type tcpServerSpecial struct {
 	ServerSession
-	Server            *url.URL // 连接的服务器端
+	server            *url.URL // 连接的服务器端
 	rwMux             sync.RWMutex
 	status            uint32
 	connectTimeout    time.Duration // 连接超时时间
@@ -147,13 +148,13 @@ func (this *tcpServerSpecial) AddRemoteServer(server string) error {
 	if err != nil {
 		return err
 	}
-	this.Server = remoteURL
+	this.server = remoteURL
 	return nil
 }
 
 // Start start the server,and return quickly,if it nil,the server will connecting background,other failed
 func (this *tcpServerSpecial) Start() error {
-	if this.Server == nil {
+	if this.server == nil {
 		return errors.New("empty remote server")
 	}
 
@@ -165,27 +166,27 @@ func (this *tcpServerSpecial) Start() error {
 func (this *tcpServerSpecial) run() {
 	var ctx context.Context
 	this.rwMux.Lock()
-	if !atomic.CompareAndSwapUint32(&this.status, disconnected, connecting) {
+	if !atomic.CompareAndSwapUint32(&this.status, initial, disconnected) {
 		this.rwMux.Unlock()
 		return
 	}
 	ctx, this.cancel = context.WithCancel(context.Background())
 	this.rwMux.Unlock()
+	defer this.setConnectStatus(initial)
 
 	for {
 		select {
 		case <-ctx.Done():
-			this.setConnectStatus(disconnected)
 			return
 		default:
+
 		}
 
-		this.Debug("connecting server %+v", this.Server)
-		conn, err := openConnection(this.Server, this.TLSConfig, this.connectTimeout)
+		this.Debug("connecting server %+v", this.server)
+		conn, err := openConnection(this.server, this.TLSConfig, this.connectTimeout)
 		if err != nil {
 			this.Error("connect failed, %v", err)
 			if !this.autoReconnect {
-				this.setConnectStatus(disconnected)
 				return
 			}
 			time.Sleep(this.reconnectInterval)
@@ -201,13 +202,23 @@ func (this *tcpServerSpecial) run() {
 		this.running(ctx)
 		this.setConnectStatus(disconnected)
 		this.onConnectionLost(this)
-		time.Sleep(time.Second * time.Duration(5+rand.Intn(5)))
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			// 随机500ms-1s的重试，避免快速重试造成服务器许多无效连接
+			time.Sleep(time.Millisecond * time.Duration(500+rand.Intn(5)))
+		}
 	}
 }
 
 // IsConnected check connect is online
 func (this *tcpServerSpecial) IsConnected() bool {
 	return this.connectStatus() == connected
+}
+
+func (this *tcpServerSpecial) IsClosed() bool {
+	return this.connectStatus() == initial
 }
 
 // Close close the server
