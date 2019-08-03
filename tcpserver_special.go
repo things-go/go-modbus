@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
-	"io"
 	"math/rand"
 	"net"
 	"net/url"
@@ -27,13 +26,13 @@ const (
 )
 
 // OnConnectHandler when connected it will be call
-type OnConnectHandler func(c TCPServerSpecial) error
+type OnConnectHandler func(c *TCPServerSpecial) error
 
 // OnConnectionLostHandler when Connection lost it will be call
-type OnConnectionLostHandler func(c TCPServerSpecial)
+type OnConnectionLostHandler func(c *TCPServerSpecial)
 
 // KeepAlive keep alive function
-type OnKeepAliveHandler func(c TCPServerSpecial)
+type OnKeepAliveHandler func(c *TCPServerSpecial)
 
 // TCPServerSpecial modbus tcp server special
 type TCPServerSpecial struct {
@@ -68,9 +67,9 @@ func NewTCPServerSpecial() *TCPServerSpecial {
 		reconnectInterval: DefaultReconnectInterval,
 		enableKeepAlive:   false,
 		keepAliveInterval: DefaultKeepAliveInterval,
-		onKeepAlive:       func(TCPServerSpecial) {},
-		onConnect:         func(TCPServerSpecial) error { return nil },
-		onConnectionLost:  func(TCPServerSpecial) {},
+		onKeepAlive:       func(*TCPServerSpecial) {},
+		onConnect:         func(*TCPServerSpecial) error { return nil },
+		onConnectionLost:  func(*TCPServerSpecial) {},
 	}
 }
 
@@ -171,7 +170,11 @@ func (this *TCPServerSpecial) run() {
 	}
 	ctx, this.cancel = context.WithCancel(context.Background())
 	this.rwMux.Unlock()
-	defer this.setConnectStatus(initial)
+	defer func() {
+		this.setConnectStatus(initial)
+		this.Debug("tcp server special stop!")
+	}()
+	this.Debug("tcp server special start!")
 
 	for {
 		select {
@@ -196,6 +199,8 @@ func (this *TCPServerSpecial) run() {
 			time.Sleep(this.reconnectInterval)
 			continue
 		}
+
+		keepAlive := make(chan struct{})
 		if this.enableKeepAlive {
 			go func() {
 				tick := time.NewTicker(this.keepAliveInterval)
@@ -203,6 +208,8 @@ func (this *TCPServerSpecial) run() {
 				for {
 					select {
 					case <-ctx.Done():
+						return
+					case <-keepAlive:
 						return
 					case <-tick.C:
 						this.onKeepAlive(this)
@@ -214,12 +221,13 @@ func (this *TCPServerSpecial) run() {
 		this.running(ctx)
 		this.setConnectStatus(disconnected)
 		this.onConnectionLost(this)
+		close(keepAlive)
 		select {
 		case <-ctx.Done():
 			return
 		default:
 			// 随机500ms-1s的重试，避免快速重试造成服务器许多无效连接
-			time.Sleep(time.Millisecond * time.Duration(500+rand.Intn(5)))
+			time.Sleep(time.Millisecond * time.Duration(500+rand.Intn(500)))
 		}
 	}
 }

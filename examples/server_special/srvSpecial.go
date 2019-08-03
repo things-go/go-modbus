@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	_ "net/http/pprof"
 	"time"
 
 	modbus "github.com/thinkgos/gomodbus"
@@ -28,16 +29,16 @@ func main() {
 			0, 10, 0, 10,
 			0, 10, 0, 10))
 
-	srv.SetOnConnectHandler(func(c modbus.TCPServerSpecial) error {
+	srv.SetOnConnectHandler(func(c *modbus.TCPServerSpecial) error {
 		_, err := c.UnderlyingConn().Write([]byte("hello world"))
 		return err
 	})
 
-	srv.SetConnectionLostHandler(func(c modbus.TCPServerSpecial) {
+	srv.SetConnectionLostHandler(func(c *modbus.TCPServerSpecial) {
 		log.Println("connect lost")
 	})
 
-	srv.SetKeepAlive(true, time.Second*20, func(c modbus.TCPServerSpecial) {
+	srv.SetKeepAlive(true, time.Second*20, func(c *modbus.TCPServerSpecial) {
 		c.UnderlyingConn().Write([]byte("keep alive"))
 	})
 
