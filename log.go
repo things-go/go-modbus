@@ -14,11 +14,8 @@ type clogs struct {
 	hasLog uint32
 }
 
-func NewClog() *clogs {
-	return NewClogWithPrefix("")
-}
-
-func NewClogWithPrefix(prefix string) *clogs {
+// newClogWithPrefix new clog with prefix
+func newClogWithPrefix(prefix string) *clogs {
 	return &clogs{
 		logger: newDefaultLogger(prefix),
 	}

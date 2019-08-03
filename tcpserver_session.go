@@ -11,6 +11,7 @@ import (
 	"time"
 )
 
+// ServerSession tcp server session
 type ServerSession struct {
 	conn         net.Conn
 	readTimeout  time.Duration

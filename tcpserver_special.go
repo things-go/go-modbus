@@ -31,7 +31,7 @@ type OnConnectHandler func(c *TCPServerSpecial) error
 // OnConnectionLostHandler when Connection lost it will be call
 type OnConnectionLostHandler func(c *TCPServerSpecial)
 
-// KeepAlive keep alive function
+// OnKeepAliveHandler keep alive function
 type OnKeepAliveHandler func(c *TCPServerSpecial)
 
 // TCPServerSpecial modbus tcp server special
@@ -60,7 +60,7 @@ func NewTCPServerSpecial() *TCPServerSpecial {
 			readTimeout:  TCPDefaultReadTimeout,
 			writeTimeout: TCPDefaultWriteTimeout,
 			serverCommon: newServerCommon(),
-			clogs:        NewClogWithPrefix("modbusTCPServerSpec =>"),
+			clogs:        newClogWithPrefix("modbusTCPServerSpec =>"),
 		},
 		connectTimeout:    DefaultConnectTimeout,
 		autoReconnect:     true,
@@ -88,6 +88,7 @@ func (this *TCPServerSpecial) SetReconnectInterval(t time.Duration) {
 	this.reconnectInterval = t
 }
 
+// EnableAutoReconnect enable auto reconnect
 func (this *TCPServerSpecial) EnableAutoReconnect(b bool) {
 	this.autoReconnect = b
 }
@@ -120,6 +121,8 @@ func (this *TCPServerSpecial) SetConnectionLostHandler(f OnConnectionLostHandler
 		this.onConnectionLost = f
 	}
 }
+
+// SetKeepAlive set keep alive enable, alive time and handler
 func (this *TCPServerSpecial) SetKeepAlive(b bool, t time.Duration, f OnKeepAliveHandler) {
 	this.enableKeepAlive = b
 	if t > 0 {
@@ -237,7 +240,7 @@ func (this *TCPServerSpecial) IsConnected() bool {
 	return this.connectStatus() == connected
 }
 
-// IsConnected check server is closed
+// IsClosed check server is closed
 func (this *TCPServerSpecial) IsClosed() bool {
 	return this.connectStatus() == initial
 }
