@@ -3,14 +3,17 @@ on: [push]
 jobs:
 
   build:
-    name: Build
+    name: Build on GO ${{matrix.go-version}}
     runs-on: ubuntu-latest
-    steps:
+    strategy:
+      matrix:
+        go-version: ["1.11.x", "1.12.x", "1.13.x"]
 
-    - name: Set up Go 1.13
+    steps:
+    - name: Set up Go ${{matrix.go-version}}
       uses: actions/setup-go@v1
       with:
-        go-version: 1.13
+        go-version: ${{matrix.go-version}}
       id: go
 
     - name: Check out code into the Go module directory
@@ -24,5 +27,5 @@ jobs:
             dep ensure
         fi
 
-    - name: Build
-      run: go build -v .
+    - name: Go test
+      run: go test -v -benchmem -test.bench=".*" -coverprofile=coverage.txt -covermode=atomic ./...
