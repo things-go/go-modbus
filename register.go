@@ -49,18 +49,18 @@ func NewNodeRegister(slaveID byte,
 }
 
 // SlaveID 获取从站地址
-func (this *NodeRegister) SlaveID() byte {
-	this.rw.RLock()
-	id := this.slaveID
-	this.rw.RUnlock()
+func (sf *NodeRegister) SlaveID() byte {
+	sf.rw.RLock()
+	id := sf.slaveID
+	sf.rw.RUnlock()
 	return id
 }
 
 // SetSlaveID 更改从站地址
-func (this *NodeRegister) SetSlaveID(id byte) {
-	this.rw.Lock()
-	this.slaveID = id
-	this.rw.Unlock()
+func (sf *NodeRegister) SetSlaveID(id byte) {
+	sf.rw.Lock()
+	sf.slaveID = id
+	sf.rw.Unlock()
 }
 
 // getBits 读取切片的位的值, nBits <= 8, nBits + start <= len(buf)*8
@@ -99,43 +99,43 @@ func setBits(buf []byte, start, nBits uint16, value byte) {
 }
 
 // WriteCoils 写线圈
-func (this *NodeRegister) WriteCoils(address, quality uint16, valBuf []byte) error {
-	this.rw.Lock()
-	if len(valBuf)*8 >= int(quality) && (address >= this.coilsAddrStart) &&
-		((address + quality) <= (this.coilsAddrStart + this.coilsQuantity)) {
-		start := address - this.coilsAddrStart
+func (sf *NodeRegister) WriteCoils(address, quality uint16, valBuf []byte) error {
+	sf.rw.Lock()
+	if len(valBuf)*8 >= int(quality) && (address >= sf.coilsAddrStart) &&
+		((address + quality) <= (sf.coilsAddrStart + sf.coilsQuantity)) {
+		start := address - sf.coilsAddrStart
 		nCoils := int16(quality)
 		for idx := 0; nCoils > 0; idx++ {
 			num := nCoils
 			if nCoils > 8 {
 				num = 8
 			}
-			setBits(this.coils, start, uint16(num), valBuf[idx])
+			setBits(sf.coils, start, uint16(num), valBuf[idx])
 			start += 8
 			nCoils -= 8
 		}
-		this.rw.Unlock()
+		sf.rw.Unlock()
 		return nil
 	}
-	this.rw.Unlock()
+	sf.rw.Unlock()
 	return &ExceptionError{ExceptionCodeIllegalDataAddress}
 }
 
 // WriteSingleCoil 写单个线圈
-func (this *NodeRegister) WriteSingleCoil(address uint16, val bool) error {
+func (sf *NodeRegister) WriteSingleCoil(address uint16, val bool) error {
 	newVal := byte(0)
 	if val {
 		newVal = 1
 	}
-	return this.WriteCoils(address, 1, []byte{newVal})
+	return sf.WriteCoils(address, 1, []byte{newVal})
 }
 
 // ReadCoils 读线圈,返回值
-func (this *NodeRegister) ReadCoils(address, quality uint16) ([]byte, error) {
-	this.rw.RLock()
-	if (address >= this.coilsAddrStart) &&
-		((address + quality) <= (this.coilsAddrStart + this.coilsQuantity)) {
-		start := address - this.coilsAddrStart
+func (sf *NodeRegister) ReadCoils(address, quality uint16) ([]byte, error) {
+	sf.rw.RLock()
+	if (address >= sf.coilsAddrStart) &&
+		((address + quality) <= (sf.coilsAddrStart + sf.coilsQuantity)) {
+		start := address - sf.coilsAddrStart
 		nCoils := int16(quality)
 		result := make([]byte, 0, (quality+7)/8)
 		for ; nCoils > 0; nCoils -= 8 {
@@ -143,19 +143,19 @@ func (this *NodeRegister) ReadCoils(address, quality uint16) ([]byte, error) {
 			if nCoils > 8 {
 				num = 8
 			}
-			result = append(result, getBits(this.coils, start, uint16(num)))
+			result = append(result, getBits(sf.coils, start, uint16(num)))
 			start += 8
 		}
-		this.rw.RUnlock()
+		sf.rw.RUnlock()
 		return result, nil
 	}
-	this.rw.RUnlock()
+	sf.rw.RUnlock()
 	return nil, &ExceptionError{ExceptionCodeIllegalDataAddress}
 }
 
 // ReadSingleCoil 读单个线圈
-func (this *NodeRegister) ReadSingleCoil(address uint16) (bool, error) {
-	v, err := this.ReadCoils(address, 1)
+func (sf *NodeRegister) ReadSingleCoil(address uint16) (bool, error) {
+	v, err := sf.ReadCoils(address, 1)
 	if err != nil {
 		return false, err
 	}
@@ -163,43 +163,43 @@ func (this *NodeRegister) ReadSingleCoil(address uint16) (bool, error) {
 }
 
 // WriteDiscretes 写离散量
-func (this *NodeRegister) WriteDiscretes(address, quality uint16, valBuf []byte) error {
-	this.rw.Lock()
-	if len(valBuf)*8 >= int(quality) && (address >= this.discreteAddrStart) &&
-		((address + quality) <= (this.discreteAddrStart + this.discreteQuantity)) {
-		start := address - this.discreteAddrStart
+func (sf *NodeRegister) WriteDiscretes(address, quality uint16, valBuf []byte) error {
+	sf.rw.Lock()
+	if len(valBuf)*8 >= int(quality) && (address >= sf.discreteAddrStart) &&
+		((address + quality) <= (sf.discreteAddrStart + sf.discreteQuantity)) {
+		start := address - sf.discreteAddrStart
 		nCoils := int16(quality)
 		for idx := 0; nCoils > 0; idx++ {
 			num := nCoils
 			if nCoils > 8 {
 				num = 8
 			}
-			setBits(this.discrete, start, uint16(num), valBuf[idx])
+			setBits(sf.discrete, start, uint16(num), valBuf[idx])
 			start += 8
 			nCoils -= 8
 		}
-		this.rw.Unlock()
+		sf.rw.Unlock()
 		return nil
 	}
-	this.rw.Unlock()
+	sf.rw.Unlock()
 	return &ExceptionError{ExceptionCodeIllegalDataAddress}
 }
 
 // WriteSingleDiscrete 写单个离散量
-func (this *NodeRegister) WriteSingleDiscrete(address uint16, val bool) error {
+func (sf *NodeRegister) WriteSingleDiscrete(address uint16, val bool) error {
 	newVal := byte(0)
 	if val {
 		newVal = 1
 	}
-	return this.WriteDiscretes(address, 1, []byte{newVal})
+	return sf.WriteDiscretes(address, 1, []byte{newVal})
 }
 
 // ReadDiscretes 读离散量
-func (this *NodeRegister) ReadDiscretes(address, quality uint16) ([]byte, error) {
-	this.rw.RLock()
-	if (address >= this.discreteAddrStart) &&
-		((address + quality) <= (this.discreteAddrStart + this.discreteQuantity)) {
-		start := address - this.discreteAddrStart
+func (sf *NodeRegister) ReadDiscretes(address, quality uint16) ([]byte, error) {
+	sf.rw.RLock()
+	if (address >= sf.discreteAddrStart) &&
+		((address + quality) <= (sf.discreteAddrStart + sf.discreteQuantity)) {
+		start := address - sf.discreteAddrStart
 		nCoils := int16(quality)
 		result := make([]byte, 0, (quality+7)/8)
 		for ; nCoils > 0; nCoils -= 8 {
@@ -207,19 +207,19 @@ func (this *NodeRegister) ReadDiscretes(address, quality uint16) ([]byte, error)
 			if nCoils > 8 {
 				num = 8
 			}
-			result = append(result, getBits(this.discrete, start, uint16(num)))
+			result = append(result, getBits(sf.discrete, start, uint16(num)))
 			start += 8
 		}
-		this.rw.RUnlock()
+		sf.rw.RUnlock()
 		return result, nil
 	}
-	this.rw.RUnlock()
+	sf.rw.RUnlock()
 	return nil, &ExceptionError{ExceptionCodeIllegalDataAddress}
 }
 
 // ReadSingleDiscrete 读单个离散量
-func (this *NodeRegister) ReadSingleDiscrete(address uint16) (bool, error) {
-	v, err := this.ReadDiscretes(address, 1)
+func (sf *NodeRegister) ReadSingleDiscrete(address uint16) (bool, error) {
+	v, err := sf.ReadDiscretes(address, 1)
 	if err != nil {
 		return false, err
 	}
@@ -227,157 +227,157 @@ func (this *NodeRegister) ReadSingleDiscrete(address uint16) (bool, error) {
 }
 
 // WriteHoldingsBytes 写保持寄存器
-func (this *NodeRegister) WriteHoldingsBytes(address, quality uint16, valBuf []byte) error {
-	this.rw.Lock()
+func (sf *NodeRegister) WriteHoldingsBytes(address, quality uint16, valBuf []byte) error {
+	sf.rw.Lock()
 	if len(valBuf) == int(quality*2) &&
-		(address >= this.holdingAddrStart) &&
-		((address + quality) <= (this.holdingAddrStart + uint16(len(this.holding)))) {
-		start := address - this.holdingAddrStart
+		(address >= sf.holdingAddrStart) &&
+		((address + quality) <= (sf.holdingAddrStart + uint16(len(sf.holding)))) {
+		start := address - sf.holdingAddrStart
 		end := start + quality
 		buf := bytes.NewBuffer(valBuf)
-		err := binary.Read(buf, binary.BigEndian, this.holding[start:end])
-		this.rw.Unlock()
+		err := binary.Read(buf, binary.BigEndian, sf.holding[start:end])
+		sf.rw.Unlock()
 		if err != nil {
 			return &ExceptionError{ExceptionCodeServerDeviceFailure}
 		}
 		return nil
 	}
-	this.rw.Unlock()
+	sf.rw.Unlock()
 	return &ExceptionError{ExceptionCodeIllegalDataAddress}
 }
 
 // WriteHoldings 写保持寄存器
-func (this *NodeRegister) WriteHoldings(address uint16, valBuf []uint16) error {
+func (sf *NodeRegister) WriteHoldings(address uint16, valBuf []uint16) error {
 	quality := uint16(len(valBuf))
-	this.rw.Lock()
-	if (address >= this.holdingAddrStart) &&
-		((address + quality) <= (this.holdingAddrStart + uint16(len(this.holding)))) {
-		start := address - this.holdingAddrStart
+	sf.rw.Lock()
+	if (address >= sf.holdingAddrStart) &&
+		((address + quality) <= (sf.holdingAddrStart + uint16(len(sf.holding)))) {
+		start := address - sf.holdingAddrStart
 		end := start + quality
-		copy(this.holding[start:end], valBuf)
-		this.rw.Unlock()
+		copy(sf.holding[start:end], valBuf)
+		sf.rw.Unlock()
 		return nil
 	}
-	this.rw.Unlock()
+	sf.rw.Unlock()
 	return &ExceptionError{ExceptionCodeIllegalDataAddress}
 }
 
 // ReadHoldingsBytes 读保持寄存器,仅返回寄存器值
-func (this *NodeRegister) ReadHoldingsBytes(address, quality uint16) ([]byte, error) {
-	this.rw.RLock()
-	if (address >= this.holdingAddrStart) &&
-		((address + quality) <= (this.holdingAddrStart + uint16(len(this.holding)))) {
-		start := address - this.holdingAddrStart
+func (sf *NodeRegister) ReadHoldingsBytes(address, quality uint16) ([]byte, error) {
+	sf.rw.RLock()
+	if (address >= sf.holdingAddrStart) &&
+		((address + quality) <= (sf.holdingAddrStart + uint16(len(sf.holding)))) {
+		start := address - sf.holdingAddrStart
 		end := start + quality
 		buf := new(bytes.Buffer)
-		err := binary.Write(buf, binary.BigEndian, this.holding[start:end])
-		this.rw.RUnlock()
+		err := binary.Write(buf, binary.BigEndian, sf.holding[start:end])
+		sf.rw.RUnlock()
 		if err != nil {
 			return nil, &ExceptionError{ExceptionCodeServerDeviceFailure}
 		}
 		return buf.Bytes(), nil
 	}
-	this.rw.RUnlock()
+	sf.rw.RUnlock()
 	return nil, &ExceptionError{ExceptionCodeIllegalDataAddress}
 }
 
 // ReadHoldings 读保持寄存器,仅返回寄存器值
-func (this *NodeRegister) ReadHoldings(address, quality uint16) ([]uint16, error) {
-	this.rw.RLock()
-	if (address >= this.holdingAddrStart) &&
-		((address + quality) <= (this.holdingAddrStart + uint16(len(this.holding)))) {
-		start := address - this.holdingAddrStart
+func (sf *NodeRegister) ReadHoldings(address, quality uint16) ([]uint16, error) {
+	sf.rw.RLock()
+	if (address >= sf.holdingAddrStart) &&
+		((address + quality) <= (sf.holdingAddrStart + uint16(len(sf.holding)))) {
+		start := address - sf.holdingAddrStart
 		end := start + quality
 		result := make([]uint16, quality)
-		copy(result, this.holding[start:end])
-		this.rw.RUnlock()
+		copy(result, sf.holding[start:end])
+		sf.rw.RUnlock()
 		return result, nil
 	}
-	this.rw.RUnlock()
+	sf.rw.RUnlock()
 	return nil, &ExceptionError{ExceptionCodeIllegalDataAddress}
 }
 
 // WriteInputsBytes 写输入寄存器
-func (this *NodeRegister) WriteInputsBytes(address, quality uint16, regBuf []byte) error {
-	this.rw.Lock()
+func (sf *NodeRegister) WriteInputsBytes(address, quality uint16, regBuf []byte) error {
+	sf.rw.Lock()
 	if len(regBuf) == int(quality*2) &&
-		(address >= this.inputAddrStart) &&
-		((address + quality) <= (this.inputAddrStart + uint16(len(this.input)))) {
-		start := address - this.inputAddrStart
+		(address >= sf.inputAddrStart) &&
+		((address + quality) <= (sf.inputAddrStart + uint16(len(sf.input)))) {
+		start := address - sf.inputAddrStart
 		end := start + quality
 		buf := bytes.NewBuffer(regBuf)
-		err := binary.Read(buf, binary.BigEndian, this.input[start:end])
-		this.rw.Unlock()
+		err := binary.Read(buf, binary.BigEndian, sf.input[start:end])
+		sf.rw.Unlock()
 		if err != nil {
 			return &ExceptionError{ExceptionCodeServerDeviceFailure}
 		}
 		return nil
 	}
-	this.rw.Unlock()
+	sf.rw.Unlock()
 	return &ExceptionError{ExceptionCodeIllegalDataAddress}
 }
 
 // WriteInputs 写输入寄存器
-func (this *NodeRegister) WriteInputs(address uint16, valBuf []uint16) error {
+func (sf *NodeRegister) WriteInputs(address uint16, valBuf []uint16) error {
 	quality := uint16(len(valBuf))
-	this.rw.Lock()
-	if (address >= this.inputAddrStart) &&
-		((address + quality) <= (this.inputAddrStart + uint16(len(this.input)))) {
-		start := address - this.inputAddrStart
+	sf.rw.Lock()
+	if (address >= sf.inputAddrStart) &&
+		((address + quality) <= (sf.inputAddrStart + uint16(len(sf.input)))) {
+		start := address - sf.inputAddrStart
 		end := start + quality
-		copy(this.input[start:end], valBuf)
-		this.rw.Unlock()
+		copy(sf.input[start:end], valBuf)
+		sf.rw.Unlock()
 		return nil
 	}
-	this.rw.Unlock()
+	sf.rw.Unlock()
 	return &ExceptionError{ExceptionCodeIllegalDataAddress}
 }
 
 // ReadInputsBytes 读输入寄存器
-func (this *NodeRegister) ReadInputsBytes(address, quality uint16) ([]byte, error) {
-	this.rw.RLock()
-	if (address >= this.inputAddrStart) &&
-		((address + quality) <= (this.inputAddrStart + uint16(len(this.input)))) {
-		start := address - this.inputAddrStart
+func (sf *NodeRegister) ReadInputsBytes(address, quality uint16) ([]byte, error) {
+	sf.rw.RLock()
+	if (address >= sf.inputAddrStart) &&
+		((address + quality) <= (sf.inputAddrStart + uint16(len(sf.input)))) {
+		start := address - sf.inputAddrStart
 		end := start + quality
 		buf := new(bytes.Buffer)
-		err := binary.Write(buf, binary.BigEndian, this.input[start:end])
-		this.rw.RUnlock()
+		err := binary.Write(buf, binary.BigEndian, sf.input[start:end])
+		sf.rw.RUnlock()
 		if err != nil {
 			return nil, &ExceptionError{ExceptionCodeServerDeviceFailure}
 		}
 		return buf.Bytes(), nil
 	}
-	this.rw.RUnlock()
+	sf.rw.RUnlock()
 	return nil, &ExceptionError{ExceptionCodeIllegalDataAddress}
 }
 
 // ReadInputs 读输入寄存器
-func (this *NodeRegister) ReadInputs(address, quality uint16) ([]uint16, error) {
-	this.rw.RLock()
-	if (address >= this.inputAddrStart) &&
-		((address + quality) <= (this.inputAddrStart + uint16(len(this.input)))) {
-		start := address - this.inputAddrStart
+func (sf *NodeRegister) ReadInputs(address, quality uint16) ([]uint16, error) {
+	sf.rw.RLock()
+	if (address >= sf.inputAddrStart) &&
+		((address + quality) <= (sf.inputAddrStart + uint16(len(sf.input)))) {
+		start := address - sf.inputAddrStart
 		end := start + quality
 		result := make([]uint16, quality)
-		copy(result, this.input[start:end])
-		this.rw.RUnlock()
+		copy(result, sf.input[start:end])
+		sf.rw.RUnlock()
 		return result, nil
 	}
-	this.rw.RUnlock()
+	sf.rw.RUnlock()
 	return nil, &ExceptionError{ExceptionCodeIllegalDataAddress}
 }
 
 // MaskWriteHolding 屏蔽写保持寄存器 (val & andMask) | (orMask & ^andMask)
-func (this *NodeRegister) MaskWriteHolding(address, andMask, orMask uint16) error {
-	this.rw.Lock()
-	if (address >= this.holdingAddrStart) &&
-		((address + 1) <= (this.holdingAddrStart + uint16(len(this.holding)))) {
-		this.holding[address] &= andMask
-		this.holding[address] |= orMask & ^andMask
-		this.rw.Unlock()
+func (sf *NodeRegister) MaskWriteHolding(address, andMask, orMask uint16) error {
+	sf.rw.Lock()
+	if (address >= sf.holdingAddrStart) &&
+		((address + 1) <= (sf.holdingAddrStart + uint16(len(sf.holding)))) {
+		sf.holding[address] &= andMask
+		sf.holding[address] |= orMask & ^andMask
+		sf.rw.Unlock()
 		return nil
 	}
-	this.rw.Unlock()
+	sf.rw.Unlock()
 	return &ExceptionError{ExceptionCodeIllegalDataAddress}
 }

@@ -22,32 +22,32 @@ func newClogWithPrefix(prefix string) *clogs {
 }
 
 // LogMode set enable or disable log output when you has set logger
-func (this *clogs) LogMode(enable bool) {
+func (sf *clogs) LogMode(enable bool) {
 	if enable {
-		atomic.StoreUint32(&this.hasLog, 1)
+		atomic.StoreUint32(&sf.hasLog, 1)
 	} else {
-		atomic.StoreUint32(&this.hasLog, 0)
+		atomic.StoreUint32(&sf.hasLog, 0)
 	}
 }
 
 // SetLogProvider set logger provider
-func (this *clogs) SetLogProvider(p LogProvider) {
+func (sf *clogs) SetLogProvider(p LogProvider) {
 	if p != nil {
-		this.logger = p
+		sf.logger = p
 	}
 }
 
 // Error Log ERROR level message.
-func (this *clogs) Error(format string, v ...interface{}) {
-	if atomic.LoadUint32(&this.hasLog) == 1 {
-		this.logger.Error(format, v...)
+func (sf *clogs) Error(format string, v ...interface{}) {
+	if atomic.LoadUint32(&sf.hasLog) == 1 {
+		sf.logger.Error(format, v...)
 	}
 }
 
 // Debug Log DEBUG level message.
-func (this *clogs) Debug(format string, v ...interface{}) {
-	if atomic.LoadUint32(&this.hasLog) == 1 {
-		this.logger.Debug(format, v...)
+func (sf *clogs) Debug(format string, v ...interface{}) {
+	if atomic.LoadUint32(&sf.hasLog) == 1 {
+		sf.logger.Debug(format, v...)
 	}
 }
 
@@ -65,11 +65,11 @@ func newDefaultLogger(prefix string) *logger {
 }
 
 // Error Log ERROR level message.
-func (this *logger) Error(format string, v ...interface{}) {
-	this.Printf("[E]: "+format, v...)
+func (sf *logger) Error(format string, v ...interface{}) {
+	sf.Printf("[E]: "+format, v...)
 }
 
 // Debug Log DEBUG level message.
-func (this *logger) Debug(format string, v ...interface{}) {
-	this.Printf("[D]: "+format, v...)
+func (sf *logger) Debug(format string, v ...interface{}) {
+	sf.Printf("[D]: "+format, v...)
 }

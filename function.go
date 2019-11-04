@@ -43,28 +43,28 @@ func newServerCommon() *serverCommon {
 }
 
 // AddNodes 增加节点
-func (this *serverCommon) AddNodes(nodes ...*NodeRegister) {
+func (sf *serverCommon) AddNodes(nodes ...*NodeRegister) {
 	for _, v := range nodes {
-		this.node.Store(v.slaveID, v)
+		sf.node.Store(v.slaveID, v)
 	}
 }
 
 // DeleteNode 删除一个节点
-func (this *serverCommon) DeleteNode(slaveID byte) {
-	this.node.Delete(slaveID)
+func (sf *serverCommon) DeleteNode(slaveID byte) {
+	sf.node.Delete(slaveID)
 }
 
 // DeleteAllNode 删除所有节点
-func (this *serverCommon) DeleteAllNode() {
-	this.node.Range(func(k, v interface{}) bool {
-		this.node.Delete(k)
+func (sf *serverCommon) DeleteAllNode() {
+	sf.node.Range(func(k, v interface{}) bool {
+		sf.node.Delete(k)
 		return true
 	})
 }
 
 // GetNode 获取一个节点
-func (this *serverCommon) GetNode(slaveID byte) (*NodeRegister, error) {
-	v, ok := this.node.Load(slaveID)
+func (sf *serverCommon) GetNode(slaveID byte) (*NodeRegister, error) {
+	v, ok := sf.node.Load(slaveID)
 	if !ok {
 		return nil, errors.New("slaveID not exist")
 	}
@@ -72,9 +72,9 @@ func (this *serverCommon) GetNode(slaveID byte) (*NodeRegister, error) {
 }
 
 // GetNodeList 获取节点列表
-func (this *serverCommon) GetNodeList() []*NodeRegister {
+func (sf *serverCommon) GetNodeList() []*NodeRegister {
 	list := make([]*NodeRegister, 0)
-	this.node.Range(func(k, v interface{}) bool {
+	sf.node.Range(func(k, v interface{}) bool {
 		list = append(list, v.(*NodeRegister))
 		return true
 	})
@@ -82,16 +82,16 @@ func (this *serverCommon) GetNodeList() []*NodeRegister {
 }
 
 // Range 扫描节点 same as sync map range
-func (this *serverCommon) Range(f func(slaveID byte, node *NodeRegister) bool) {
-	this.node.Range(func(k, v interface{}) bool {
+func (sf *serverCommon) Range(f func(slaveID byte, node *NodeRegister) bool) {
+	sf.node.Range(func(k, v interface{}) bool {
 		return f(k.(byte), v.(*NodeRegister))
 	})
 }
 
 // RegisterFunctionHandler 注册回调函数
-func (this *serverCommon) RegisterFunctionHandler(funcCode uint8, function FunctionHandler) {
+func (sf *serverCommon) RegisterFunctionHandler(funcCode uint8, function FunctionHandler) {
 	if function != nil {
-		this.function[funcCode] = function
+		sf.function[funcCode] = function
 	}
 }
 

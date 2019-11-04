@@ -74,62 +74,62 @@ func NewTCPServerSpecial() *TCPServerSpecial {
 }
 
 // UnderlyingConn got underlying tcp conn
-func (this *TCPServerSpecial) UnderlyingConn() net.Conn {
-	return this.conn
+func (sf *TCPServerSpecial) UnderlyingConn() net.Conn {
+	return sf.conn
 }
 
 // SetConnectTimeout set tcp connect the host timeout
-func (this *TCPServerSpecial) SetConnectTimeout(t time.Duration) {
-	this.connectTimeout = t
+func (sf *TCPServerSpecial) SetConnectTimeout(t time.Duration) {
+	sf.connectTimeout = t
 }
 
 // SetReconnectInterval set tcp  reconnect the host interval when connect failed after try
-func (this *TCPServerSpecial) SetReconnectInterval(t time.Duration) {
-	this.reconnectInterval = t
+func (sf *TCPServerSpecial) SetReconnectInterval(t time.Duration) {
+	sf.reconnectInterval = t
 }
 
 // EnableAutoReconnect enable auto reconnect
-func (this *TCPServerSpecial) EnableAutoReconnect(b bool) {
-	this.autoReconnect = b
+func (sf *TCPServerSpecial) EnableAutoReconnect(b bool) {
+	sf.autoReconnect = b
 }
 
 // SetTLSConfig set tls config
-func (this *TCPServerSpecial) SetTLSConfig(t *tls.Config) {
-	this.TLSConfig = t
+func (sf *TCPServerSpecial) SetTLSConfig(t *tls.Config) {
+	sf.TLSConfig = t
 }
 
 // SetReadTimeout set read timeout
-func (this *ServerSession) SetReadTimeout(t time.Duration) {
-	this.readTimeout = t
+func (sf *ServerSession) SetReadTimeout(t time.Duration) {
+	sf.readTimeout = t
 }
 
 // SetWriteTimeout set write timeout
-func (this *ServerSession) SetWriteTimeout(t time.Duration) {
-	this.writeTimeout = t
+func (sf *ServerSession) SetWriteTimeout(t time.Duration) {
+	sf.writeTimeout = t
 }
 
 // SetOnConnectHandler set on connect handler
-func (this *TCPServerSpecial) SetOnConnectHandler(f OnConnectHandler) {
+func (sf *TCPServerSpecial) SetOnConnectHandler(f OnConnectHandler) {
 	if f != nil {
-		this.onConnect = f
+		sf.onConnect = f
 	}
 }
 
 // SetConnectionLostHandler set connection lost handler
-func (this *TCPServerSpecial) SetConnectionLostHandler(f OnConnectionLostHandler) {
+func (sf *TCPServerSpecial) SetConnectionLostHandler(f OnConnectionLostHandler) {
 	if f != nil {
-		this.onConnectionLost = f
+		sf.onConnectionLost = f
 	}
 }
 
 // SetKeepAlive set keep alive enable, alive time and handler
-func (this *TCPServerSpecial) SetKeepAlive(b bool, t time.Duration, f OnKeepAliveHandler) {
-	this.enableKeepAlive = b
+func (sf *TCPServerSpecial) SetKeepAlive(b bool, t time.Duration, f OnKeepAliveHandler) {
+	sf.enableKeepAlive = b
 	if t > 0 {
-		this.keepAliveInterval = t
+		sf.keepAliveInterval = t
 	}
 	if f != nil {
-		this.onKeepAlive = f
+		sf.onKeepAlive = f
 	}
 }
 
@@ -137,7 +137,7 @@ func (this *TCPServerSpecial) SetKeepAlive(b bool, t time.Duration, f OnKeepAliv
 // The format should be scheme://host:port
 // Default values for hostname is "127.0.0.1", for schema is "tcp://".
 // An example broker URI would look like: tcp://foobar.com:1204
-func (this *TCPServerSpecial) AddRemoteServer(server string) error {
+func (sf *TCPServerSpecial) AddRemoteServer(server string) error {
 	if len(server) > 0 && server[0] == ':' {
 		server = "127.0.0.1" + server
 	}
@@ -148,36 +148,36 @@ func (this *TCPServerSpecial) AddRemoteServer(server string) error {
 	if err != nil {
 		return err
 	}
-	this.server = remoteURL
+	sf.server = remoteURL
 	return nil
 }
 
 // Start start the server,and return quickly,if it nil,the server will connecting background,other failed
-func (this *TCPServerSpecial) Start() error {
-	if this.server == nil {
+func (sf *TCPServerSpecial) Start() error {
+	if sf.server == nil {
 		return errors.New("empty remote server")
 	}
 
-	go this.run()
+	go sf.run()
 	return nil
 }
 
 // 增加间隔
-func (this *TCPServerSpecial) run() {
+func (sf *TCPServerSpecial) run() {
 	var ctx context.Context
 
-	this.rwMux.Lock()
-	if !atomic.CompareAndSwapUint32(&this.status, initial, disconnected) {
-		this.rwMux.Unlock()
+	sf.rwMux.Lock()
+	if !atomic.CompareAndSwapUint32(&sf.status, initial, disconnected) {
+		sf.rwMux.Unlock()
 		return
 	}
-	ctx, this.cancel = context.WithCancel(context.Background())
-	this.rwMux.Unlock()
+	ctx, sf.cancel = context.WithCancel(context.Background())
+	sf.rwMux.Unlock()
 	defer func() {
-		this.setConnectStatus(initial)
-		this.Debug("tcp server special stop!")
+		sf.setConnectStatus(initial)
+		sf.Debug("tcp server special stop!")
 	}()
-	this.Debug("tcp server special start!")
+	sf.Debug("tcp server special start!")
 
 	for {
 		select {
@@ -186,27 +186,27 @@ func (this *TCPServerSpecial) run() {
 		default:
 		}
 
-		this.Debug("connecting server %+v", this.server)
-		conn, err := openConnection(this.server, this.TLSConfig, this.connectTimeout)
+		sf.Debug("connecting server %+v", sf.server)
+		conn, err := openConnection(sf.server, sf.TLSConfig, sf.connectTimeout)
 		if err != nil {
-			this.Error("connect failed, %v", err)
-			if !this.autoReconnect {
+			sf.Error("connect failed, %v", err)
+			if !sf.autoReconnect {
 				return
 			}
-			time.Sleep(this.reconnectInterval)
+			time.Sleep(sf.reconnectInterval)
 			continue
 		}
-		this.Debug("connect success")
-		this.conn = conn
-		if err := this.onConnect(this); err != nil {
-			time.Sleep(this.reconnectInterval)
+		sf.Debug("connect success")
+		sf.conn = conn
+		if err := sf.onConnect(sf); err != nil {
+			time.Sleep(sf.reconnectInterval)
 			continue
 		}
 
 		keepAlive := make(chan struct{})
-		if this.enableKeepAlive {
+		if sf.enableKeepAlive {
 			go func() {
-				tick := time.NewTicker(this.keepAliveInterval)
+				tick := time.NewTicker(sf.keepAliveInterval)
 				defer tick.Stop()
 				for {
 					select {
@@ -215,15 +215,15 @@ func (this *TCPServerSpecial) run() {
 					case <-keepAlive:
 						return
 					case <-tick.C:
-						this.onKeepAlive(this)
+						sf.onKeepAlive(sf)
 					}
 				}
 			}()
 		}
-		this.setConnectStatus(connected)
-		this.running(ctx)
-		this.setConnectStatus(disconnected)
-		this.onConnectionLost(this)
+		sf.setConnectStatus(connected)
+		sf.running(ctx)
+		sf.setConnectStatus(disconnected)
+		sf.onConnectionLost(sf)
 		close(keepAlive)
 		select {
 		case <-ctx.Done():
@@ -236,35 +236,35 @@ func (this *TCPServerSpecial) run() {
 }
 
 // IsConnected check connect is online
-func (this *TCPServerSpecial) IsConnected() bool {
-	return this.connectStatus() == connected
+func (sf *TCPServerSpecial) IsConnected() bool {
+	return sf.connectStatus() == connected
 }
 
 // IsClosed check server is closed
-func (this *TCPServerSpecial) IsClosed() bool {
-	return this.connectStatus() == initial
+func (sf *TCPServerSpecial) IsClosed() bool {
+	return sf.connectStatus() == initial
 }
 
 // Close close the server
-func (this *TCPServerSpecial) Close() error {
-	this.rwMux.Lock()
-	if this.cancel != nil {
-		this.cancel()
+func (sf *TCPServerSpecial) Close() error {
+	sf.rwMux.Lock()
+	if sf.cancel != nil {
+		sf.cancel()
 	}
-	this.rwMux.Unlock()
+	sf.rwMux.Unlock()
 	return nil
 }
 
-func (this *TCPServerSpecial) setConnectStatus(status uint32) {
-	this.rwMux.Lock()
-	atomic.StoreUint32(&this.status, status)
-	this.rwMux.Unlock()
+func (sf *TCPServerSpecial) setConnectStatus(status uint32) {
+	sf.rwMux.Lock()
+	atomic.StoreUint32(&sf.status, status)
+	sf.rwMux.Unlock()
 }
 
-func (this *TCPServerSpecial) connectStatus() uint32 {
-	this.rwMux.RLock()
-	status := atomic.LoadUint32(&this.status)
-	this.rwMux.RUnlock()
+func (sf *TCPServerSpecial) connectStatus() uint32 {
+	sf.rwMux.RLock()
+	status := atomic.LoadUint32(&sf.status)
+	sf.rwMux.RUnlock()
 	return status
 }
 

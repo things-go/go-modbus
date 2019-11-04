@@ -36,12 +36,12 @@ func NewRTUClientProvider() *RTUClientProvider {
 	return p
 }
 
-func (this *protocolFrame) encodeRTUFrame(slaveID byte, pdu ProtocolDataUnit) ([]byte, error) {
+func (sf *protocolFrame) encodeRTUFrame(slaveID byte, pdu ProtocolDataUnit) ([]byte, error) {
 	length := len(pdu.Data) + 4
 	if length > rtuAduMaxSize {
 		return nil, fmt.Errorf("modbus: length of data '%v' must not be bigger than '%v'", length, rtuAduMaxSize)
 	}
-	requestAdu := this.adu[:0:length]
+	requestAdu := sf.adu[:0:length]
 	requestAdu = append(requestAdu, slaveID, pdu.FuncCode)
 	requestAdu = append(requestAdu, pdu.Data...)
 	checksum := crc16(requestAdu)
@@ -65,17 +65,17 @@ func decodeRTUFrame(adu []byte) (uint8, []byte, error) {
 }
 
 // Send request to the remote server,it implements on SendRawFrame
-func (this *RTUClientProvider) Send(slaveID byte, request ProtocolDataUnit) (ProtocolDataUnit, error) {
+func (sf *RTUClientProvider) Send(slaveID byte, request ProtocolDataUnit) (ProtocolDataUnit, error) {
 	var response ProtocolDataUnit
 
-	frame := this.pool.get()
-	defer this.pool.put(frame)
+	frame := sf.pool.get()
+	defer sf.pool.put(frame)
 
 	aduRequest, err := frame.encodeRTUFrame(slaveID, request)
 	if err != nil {
 		return response, err
 	}
-	aduResponse, err := this.SendRawFrame(aduRequest)
+	aduResponse, err := sf.SendRawFrame(aduRequest)
 	if err != nil {
 		return response, err
 	}
@@ -91,14 +91,14 @@ func (this *RTUClientProvider) Send(slaveID byte, request ProtocolDataUnit) (Pro
 }
 
 // SendPdu send pdu request to the remote server
-func (this *RTUClientProvider) SendPdu(slaveID byte, pduRequest []byte) ([]byte, error) {
+func (sf *RTUClientProvider) SendPdu(slaveID byte, pduRequest []byte) ([]byte, error) {
 	if len(pduRequest) < pduMinSize || len(pduRequest) > pduMaxSize {
 		return nil, fmt.Errorf("modbus: pdu size '%v' must not be between '%v' and '%v'",
 			len(pduRequest), pduMinSize, pduMaxSize)
 	}
 
-	frame := this.pool.get()
-	defer this.pool.put(frame)
+	frame := sf.pool.get()
+	defer sf.pool.put(frame)
 
 	request := ProtocolDataUnit{pduRequest[0], pduRequest[1:]}
 	requestAdu, err := frame.encodeRTUFrame(slaveID, request)
@@ -106,7 +106,7 @@ func (this *RTUClientProvider) SendPdu(slaveID byte, pduRequest []byte) ([]byte,
 		return nil, err
 	}
 
-	aduResponse, err := this.SendRawFrame(requestAdu)
+	aduResponse, err := sf.SendRawFrame(requestAdu)
 	if err != nil {
 		return nil, err
 	}
@@ -123,32 +123,32 @@ func (this *RTUClientProvider) SendPdu(slaveID byte, pduRequest []byte) ([]byte,
 }
 
 // SendRawFrame send Adu frame
-func (this *RTUClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []byte, err error) {
-	this.mu.Lock()
-	defer this.mu.Unlock()
+func (sf *RTUClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []byte, err error) {
+	sf.mu.Lock()
+	defer sf.mu.Unlock()
 
 	// check  port is connected
-	if !this.isConnected() {
+	if !sf.isConnected() {
 		return nil, ErrClosedConnection
 	}
 
 	// Send the request
-	this.Debug("sending [% x]", aduRequest)
+	sf.Debug("sending [% x]", aduRequest)
 	var tryCnt byte
 	for {
-		_, err = this.port.Write(aduRequest)
+		_, err = sf.port.Write(aduRequest)
 		if err == nil { // success
 			break
 		}
-		if this.autoReconnect == 0 {
+		if sf.autoReconnect == 0 {
 			return
 		}
 		for {
-			err = this.connect()
+			err = sf.connect()
 			if err == nil {
 				break
 			}
-			if tryCnt++; tryCnt >= this.autoReconnect {
+			if tryCnt++; tryCnt >= sf.autoReconnect {
 				return
 			}
 		}
@@ -156,14 +156,14 @@ func (this *RTUClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []by
 	function := aduRequest[1]
 	functionFail := aduRequest[1] & 0x80
 	bytesToRead := calculateResponseLength(aduRequest)
-	time.Sleep(this.calculateDelay(len(aduRequest) + bytesToRead))
+	time.Sleep(sf.calculateDelay(len(aduRequest) + bytesToRead))
 
 	var n int
 	var n1 int
 	var data [rtuAduMaxSize]byte
 	//We first read the minimum length and then read either the full package
 	//or the error package, depending on the error status (byte 2 of the response)
-	n, err = io.ReadAtLeast(this.port, data[:], rtuAduMinSize)
+	n, err = io.ReadAtLeast(sf.port, data[:], rtuAduMinSize)
 	if err != nil {
 		return
 	}
@@ -175,7 +175,7 @@ func (this *RTUClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []by
 		if n < bytesToRead {
 			if bytesToRead > rtuAduMinSize && bytesToRead <= rtuAduMaxSize {
 				if bytesToRead > n {
-					n1, err = io.ReadFull(this.port, data[n:bytesToRead])
+					n1, err = io.ReadFull(sf.port, data[n:bytesToRead])
 					n += n1
 				}
 			}
@@ -183,7 +183,7 @@ func (this *RTUClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []by
 	case data[1] == functionFail:
 		//for error we need to read 5 bytes
 		if n < rtuExceptionSize {
-			n1, err = io.ReadFull(this.port, data[n:rtuExceptionSize])
+			n1, err = io.ReadFull(sf.port, data[n:rtuExceptionSize])
 		}
 		n += n1
 	default:
@@ -193,21 +193,21 @@ func (this *RTUClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []by
 		return
 	}
 	aduResponse = data[:n]
-	this.Debug("received [% x]", aduResponse)
+	sf.Debug("received [% x]", aduResponse)
 	return
 }
 
 // calculateDelay roughly calculates time needed for the next frame.
 // See MODBUS over Serial Line - Specification and Implementation Guide (page 13).
-func (this *RTUClientProvider) calculateDelay(chars int) time.Duration {
+func (sf *RTUClientProvider) calculateDelay(chars int) time.Duration {
 	var characterDelay, frameDelay int // us
 
-	if this.BaudRate <= 0 || this.BaudRate > 19200 {
+	if sf.BaudRate <= 0 || sf.BaudRate > 19200 {
 		characterDelay = 750
 		frameDelay = 1750
 	} else {
-		characterDelay = 15000000 / this.BaudRate
-		frameDelay = 35000000 / this.BaudRate
+		characterDelay = 15000000 / sf.BaudRate
+		frameDelay = 35000000 / sf.BaudRate
 	}
 	return time.Duration(characterDelay*chars+frameDelay) * time.Microsecond
 }

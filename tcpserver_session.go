@@ -21,15 +21,15 @@ type ServerSession struct {
 }
 
 // handler net conn
-func (this *ServerSession) running(ctx context.Context) {
+func (sf *ServerSession) running(ctx context.Context) {
 	var err error
 	var bytesRead int
 
-	this.Debug("client(%v) -> server(%v) connected", this.conn.RemoteAddr(), this.conn.LocalAddr())
+	sf.Debug("client(%v) -> server(%v) connected", sf.conn.RemoteAddr(), sf.conn.LocalAddr())
 	// get pool raw
 	defer func() {
-		this.conn.Close()
-		this.Debug("client(%v) -> server(%v) disconnected,cause by %v", this.conn.RemoteAddr(), this.conn.LocalAddr(), err)
+		sf.conn.Close()
+		sf.Debug("client(%v) -> server(%v) disconnected,cause by %v", sf.conn.RemoteAddr(), sf.conn.LocalAddr(), err)
 	}()
 
 	raw := make([]byte, tcpAduMaxSize)
@@ -43,11 +43,11 @@ func (this *ServerSession) running(ctx context.Context) {
 
 		adu := raw[:]
 		for length, rdCnt := tcpHeaderMbapSize, 0; rdCnt < length; {
-			err = this.conn.SetReadDeadline(time.Now().Add(this.readTimeout))
+			err = sf.conn.SetReadDeadline(time.Now().Add(sf.readTimeout))
 			if err != nil {
 				return
 			}
-			bytesRead, err = io.ReadFull(this.conn, adu[rdCnt:length])
+			bytesRead, err = io.ReadFull(sf.conn, adu[rdCnt:length])
 			if err != nil {
 				if err != io.EOF && err != io.ErrClosedPipe || strings.Contains(err.Error(), "use of closed network connection") {
 					return
@@ -72,7 +72,7 @@ func (this *ServerSession) running(ctx context.Context) {
 				}
 				length = int(binary.BigEndian.Uint16(adu[4:])) + tcpHeaderMbapSize - 1
 				if rdCnt == length {
-					if err = this.frameHandler(adu[:length]); err != nil {
+					if err = sf.frameHandler(adu[:length]); err != nil {
 						return
 					}
 				}
@@ -82,14 +82,14 @@ func (this *ServerSession) running(ctx context.Context) {
 }
 
 // modbus 包处理
-func (this *ServerSession) frameHandler(requestAdu []byte) error {
+func (sf *ServerSession) frameHandler(requestAdu []byte) error {
 	defer func() {
 		if err := recover(); err != nil {
-			this.Error("painc happen,%v", err)
+			sf.Error("painc happen,%v", err)
 		}
 	}()
 
-	this.Debug("RX Raw[% x]", requestAdu)
+	sf.Debug("RX Raw[% x]", requestAdu)
 	// got head from request adu
 	tcpHeader := protocolTCPHeader{
 		binary.BigEndian.Uint16(requestAdu[0:]),
@@ -100,12 +100,12 @@ func (this *ServerSession) frameHandler(requestAdu []byte) error {
 	funcCode := uint8(requestAdu[7])
 	pduData := requestAdu[8:]
 
-	node, err := this.GetNode(tcpHeader.slaveID)
+	node, err := sf.GetNode(tcpHeader.slaveID)
 	if err != nil { // slave id not exit, ignore it
 		return nil
 	}
 	var rspPduData []byte
-	if handle, ok := this.function[funcCode]; ok {
+	if handle, ok := sf.function[funcCode]; ok {
 		rspPduData, err = handle(node, pduData)
 	} else {
 		err = &ExceptionError{ExceptionCodeIllegalFunction}
@@ -124,15 +124,15 @@ func (this *ServerSession) frameHandler(requestAdu []byte) error {
 	responseAdu = append(responseAdu, funcCode)
 	responseAdu = append(responseAdu, rspPduData...)
 
-	this.Debug("TX Raw[% x]", responseAdu)
+	sf.Debug("TX Raw[% x]", responseAdu)
 	// write response
 	return func(b []byte) error {
 		for wrCnt := 0; len(b) > wrCnt; {
-			err = this.conn.SetWriteDeadline(time.Now().Add(this.writeTimeout))
+			err = sf.conn.SetWriteDeadline(time.Now().Add(sf.writeTimeout))
 			if err != nil {
 				return fmt.Errorf("set read deadline %v", err)
 			}
-			byteCount, err := this.conn.Write(b[wrCnt:])
+			byteCount, err := sf.conn.Write(b[wrCnt:])
 			if err != nil {
 				// See: https://github.com/golang/go/issues/4373
 				if err != io.EOF && err != io.ErrClosedPipe ||

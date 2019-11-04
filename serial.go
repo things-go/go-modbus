@@ -28,56 +28,56 @@ type serialPort struct {
 }
 
 // Connect try to connect the remote server
-func (this *serialPort) Connect() error {
-	this.mu.Lock()
-	err := this.connect()
-	this.mu.Unlock()
+func (sf *serialPort) Connect() error {
+	sf.mu.Lock()
+	err := sf.connect()
+	sf.mu.Unlock()
 	return err
 }
 
 // Caller must hold the mutex before calling this method.
-func (this *serialPort) connect() error {
-	port, err := serial.Open(&this.Config)
+func (sf *serialPort) connect() error {
+	port, err := serial.Open(&sf.Config)
 	if err != nil {
 		return err
 	}
-	this.port = port
+	sf.port = port
 	return nil
 }
 
 // IsConnected returns a bool signifying whether the client is connected or not.
-func (this *serialPort) IsConnected() bool {
-	this.mu.Lock()
-	b := this.isConnected()
-	this.mu.Unlock()
+func (sf *serialPort) IsConnected() bool {
+	sf.mu.Lock()
+	b := sf.isConnected()
+	sf.mu.Unlock()
 	return b
 }
 
 // Caller must hold the mutex before calling this method.
-func (this *serialPort) isConnected() bool {
-	return this.port != nil
+func (sf *serialPort) isConnected() bool {
+	return sf.port != nil
 }
 
 // SetAutoReconnect set auto reconnect count
 // if cnt == 0, disable auto reconnect
 // if cnt > 0 ,enable auto reconnect,but max 6
-func (this *serialPort) SetAutoReconnect(cnt byte) {
-	this.mu.Lock()
-	this.autoReconnect = cnt
-	if this.autoReconnect > 6 {
-		this.autoReconnect = 6
+func (sf *serialPort) SetAutoReconnect(cnt byte) {
+	sf.mu.Lock()
+	sf.autoReconnect = cnt
+	if sf.autoReconnect > 6 {
+		sf.autoReconnect = 6
 	}
-	this.mu.Unlock()
+	sf.mu.Unlock()
 }
 
 // Close close current connection.
-func (this *serialPort) Close() error {
+func (sf *serialPort) Close() error {
 	var err error
-	this.mu.Lock()
-	if this.port != nil {
-		err = this.port.Close()
-		this.port = nil
+	sf.mu.Lock()
+	if sf.port != nil {
+		err = sf.port.Close()
+		sf.port = nil
 	}
-	this.mu.Unlock()
+	sf.mu.Unlock()
 	return err
 }

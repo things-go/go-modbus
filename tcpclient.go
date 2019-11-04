@@ -63,7 +63,7 @@ func NewTCPClientProvider(address string) *TCPClientProvider {
 //  ---- data Unit ----
 //  Function code: 1 byte
 //  Data: n bytes
-func (this *protocolFrame) encodeTCPFrame(tid uint16, slaveID byte, pdu ProtocolDataUnit) (protocolTCPHeader, []byte, error) {
+func (sf *protocolFrame) encodeTCPFrame(tid uint16, slaveID byte, pdu ProtocolDataUnit) (protocolTCPHeader, []byte, error) {
 	length := tcpHeaderMbapSize + 1 + len(pdu.Data)
 	if length > tcpAduMaxSize {
 		return protocolTCPHeader{}, nil, fmt.Errorf("modbus: length of data '%v' must not be bigger than '%v'", length, tcpAduMaxSize)
@@ -77,7 +77,7 @@ func (this *protocolFrame) encodeTCPFrame(tid uint16, slaveID byte, pdu Protocol
 	}
 
 	// fill adu buffer
-	adu := this.adu[0:length]
+	adu := sf.adu[0:length]
 	binary.BigEndian.PutUint16(adu, head.transactionID)  // MBAP Transaction identifier
 	binary.BigEndian.PutUint16(adu[2:], head.protocolID) // MBAP Protocol identifier
 	binary.BigEndian.PutUint16(adu[4:], head.length)     // MBAP Length
@@ -144,19 +144,19 @@ func verifyTCPFrame(reqHead, rspHead protocolTCPHeader, reqPDU, rspPDU ProtocolD
 }
 
 // Send the request to tcp and get the response
-func (this *TCPClientProvider) Send(slaveID byte, request ProtocolDataUnit) (ProtocolDataUnit, error) {
+func (sf *TCPClientProvider) Send(slaveID byte, request ProtocolDataUnit) (ProtocolDataUnit, error) {
 	var response ProtocolDataUnit
 
-	frame := this.pool.get()
-	defer this.pool.put(frame)
+	frame := sf.pool.get()
+	defer sf.pool.put(frame)
 	// add transaction id
-	tid := uint16(atomic.AddUint32(&this.transactionID, 1))
+	tid := uint16(atomic.AddUint32(&sf.transactionID, 1))
 
 	head, aduRequest, err := frame.encodeTCPFrame(tid, slaveID, request)
 	if err != nil {
 		return response, err
 	}
-	aduResponse, err := this.SendRawFrame(aduRequest)
+	aduResponse, err := sf.SendRawFrame(aduRequest)
 	if err != nil {
 		return response, err
 	}
@@ -172,23 +172,23 @@ func (this *TCPClientProvider) Send(slaveID byte, request ProtocolDataUnit) (Pro
 }
 
 // SendPdu send pdu request to the remote server
-func (this *TCPClientProvider) SendPdu(slaveID byte, pduRequest []byte) ([]byte, error) {
+func (sf *TCPClientProvider) SendPdu(slaveID byte, pduRequest []byte) ([]byte, error) {
 	if len(pduRequest) < pduMinSize || len(pduRequest) > pduMaxSize {
 		return nil, fmt.Errorf("modbus: rspPdu size '%v' must not be between '%v' and '%v'",
 			len(pduRequest), pduMinSize, pduMaxSize)
 	}
 
-	frame := this.pool.get()
-	defer this.pool.put(frame)
+	frame := sf.pool.get()
+	defer sf.pool.put(frame)
 	// add transaction id
-	tid := uint16(atomic.AddUint32(&this.transactionID, 1))
+	tid := uint16(atomic.AddUint32(&sf.transactionID, 1))
 
 	request := ProtocolDataUnit{pduRequest[0], pduRequest[1:]}
 	head, aduRequest, err := frame.encodeTCPFrame(tid, slaveID, request)
 	if err != nil {
 		return nil, err
 	}
-	aduResponse, err := this.SendRawFrame(aduRequest)
+	aduResponse, err := sf.SendRawFrame(aduRequest)
 	if err != nil {
 		return nil, err
 	}
@@ -204,41 +204,41 @@ func (this *TCPClientProvider) SendPdu(slaveID byte, pduRequest []byte) ([]byte,
 }
 
 // SendRawFrame send raw adu request frame
-func (this *TCPClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []byte, err error) {
-	this.mu.Lock()
-	defer this.mu.Unlock()
+func (sf *TCPClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []byte, err error) {
+	sf.mu.Lock()
+	defer sf.mu.Unlock()
 
-	if !this.isConnected() {
+	if !sf.isConnected() {
 		return nil, ErrClosedConnection
 	}
 	// Send data
-	this.Debug("sending [% x]", aduRequest)
+	sf.Debug("sending [% x]", aduRequest)
 	// Set write and read timeout
 	var timeout time.Time
 	var tryCnt byte
 	for {
-		if this.Timeout > 0 {
-			timeout = time.Now().Add(this.Timeout)
+		if sf.Timeout > 0 {
+			timeout = time.Now().Add(sf.Timeout)
 		}
-		if err = this.conn.SetDeadline(timeout); err != nil {
+		if err = sf.conn.SetDeadline(timeout); err != nil {
 			return nil, err
 		}
 
-		_, err = this.conn.Write(aduRequest)
+		_, err = sf.conn.Write(aduRequest)
 		if err == nil { // success
 			break
 		}
 
-		if this.autoReconnect == 0 {
+		if sf.autoReconnect == 0 {
 			return
 		}
 
 		for {
-			err = this.connect()
+			err = sf.connect()
 			if err == nil {
 				break
 			}
-			if tryCnt++; tryCnt >= this.autoReconnect {
+			if tryCnt++; tryCnt >= sf.autoReconnect {
 				return
 			}
 		}
@@ -249,17 +249,17 @@ func (this *TCPClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []by
 	var cnt int
 	var mErr error
 	for {
-		if this.Timeout > 0 {
-			timeout = time.Now().Add(this.Timeout)
+		if sf.Timeout > 0 {
+			timeout = time.Now().Add(sf.Timeout)
 		}
-		if err = this.conn.SetDeadline(timeout); err != nil {
+		if err = sf.conn.SetDeadline(timeout); err != nil {
 			return nil, err
 		}
 
-		if cnt, err = io.ReadFull(this.conn, data[:tcpHeaderMbapSize]); err == nil {
+		if cnt, err = io.ReadFull(sf.conn, data[:tcpHeaderMbapSize]); err == nil {
 			break
 		}
-		if this.autoReconnect == 0 {
+		if sf.autoReconnect == 0 {
 			return
 		}
 		mErr = err
@@ -268,16 +268,16 @@ func (this *TCPClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []by
 			strings.Contains(err.Error(), "use of closed network connection") ||
 			cnt == 0 && err == io.EOF {
 			for {
-				err = this.connect()
+				err = sf.connect()
 				if err == nil {
 					break
 				}
-				if tryCnt++; tryCnt >= this.autoReconnect {
+				if tryCnt++; tryCnt >= sf.autoReconnect {
 					return
 				}
 			}
 		}
-		if tryCnt++; tryCnt >= this.autoReconnect {
+		if tryCnt++; tryCnt >= sf.autoReconnect {
 			err = mErr
 			return
 		}
@@ -286,96 +286,96 @@ func (this *TCPClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []by
 	length := int(binary.BigEndian.Uint16(data[4:]))
 	switch {
 	case length <= 0:
-		_ = this.flush(data[:])
+		_ = sf.flush(data[:])
 		err = fmt.Errorf("modbus: length in response header '%v' must not be zero", length)
 		return
 	case length > (tcpAduMaxSize - (tcpHeaderMbapSize - 1)):
-		_ = this.flush(data[:])
+		_ = sf.flush(data[:])
 		err = fmt.Errorf("modbus: length in response header '%v' must not greater than '%v'", length, tcpAduMaxSize-tcpHeaderMbapSize+1)
 		return
 	}
 
-	if this.Timeout > 0 {
-		timeout = time.Now().Add(this.Timeout)
+	if sf.Timeout > 0 {
+		timeout = time.Now().Add(sf.Timeout)
 	}
-	if err = this.conn.SetDeadline(timeout); err != nil {
+	if err = sf.conn.SetDeadline(timeout); err != nil {
 		return nil, err
 	}
 
 	// Skip unit id
 	length += tcpHeaderMbapSize - 1
-	if _, err = io.ReadFull(this.conn, data[tcpHeaderMbapSize:length]); err != nil {
+	if _, err = io.ReadFull(sf.conn, data[tcpHeaderMbapSize:length]); err != nil {
 		return
 	}
 	aduResponse = data[:length]
-	this.Debug("received [% x]", aduResponse)
+	sf.Debug("received [% x]", aduResponse)
 	return
 }
 
 // Connect establishes a new connection to the address in Address.
 // Connect and Close are exported so that multiple requests can be done with one session
-func (this *TCPClientProvider) Connect() error {
-	this.mu.Lock()
-	err := this.connect()
-	this.mu.Unlock()
+func (sf *TCPClientProvider) Connect() error {
+	sf.mu.Lock()
+	err := sf.connect()
+	sf.mu.Unlock()
 	return err
 }
 
 // Caller must hold the mutex before calling this method.
-func (this *TCPClientProvider) connect() error {
-	dialer := &net.Dialer{Timeout: this.Timeout}
-	conn, err := dialer.Dial("tcp", this.Address)
+func (sf *TCPClientProvider) connect() error {
+	dialer := &net.Dialer{Timeout: sf.Timeout}
+	conn, err := dialer.Dial("tcp", sf.Address)
 	if err != nil {
 		return err
 	}
-	this.conn = conn
+	sf.conn = conn
 	return nil
 }
 
 // IsConnected returns a bool signifying whether
 // the client is connected or not.
-func (this *TCPClientProvider) IsConnected() bool {
-	this.mu.Lock()
-	b := this.isConnected()
-	this.mu.Unlock()
+func (sf *TCPClientProvider) IsConnected() bool {
+	sf.mu.Lock()
+	b := sf.isConnected()
+	sf.mu.Unlock()
 	return b
 }
 
 // Caller must hold the mutex before calling this method.
-func (this *TCPClientProvider) isConnected() bool {
-	return this.conn != nil
+func (sf *TCPClientProvider) isConnected() bool {
+	return sf.conn != nil
 }
 
 // SetAutoReconnect set auto reconnect  retry count
-func (this *TCPClientProvider) SetAutoReconnect(cnt byte) {
-	this.mu.Lock()
-	this.autoReconnect = cnt
-	if this.autoReconnect > 6 {
-		this.autoReconnect = 6
+func (sf *TCPClientProvider) SetAutoReconnect(cnt byte) {
+	sf.mu.Lock()
+	sf.autoReconnect = cnt
+	if sf.autoReconnect > 6 {
+		sf.autoReconnect = 6
 	}
-	this.mu.Unlock()
+	sf.mu.Unlock()
 }
 
 // Close closes current connection.
-func (this *TCPClientProvider) Close() error {
+func (sf *TCPClientProvider) Close() error {
 	var err error
-	this.mu.Lock()
-	if this.conn != nil {
-		err = this.conn.Close()
-		this.conn = nil
+	sf.mu.Lock()
+	if sf.conn != nil {
+		err = sf.conn.Close()
+		sf.conn = nil
 	}
-	this.mu.Unlock()
+	sf.mu.Unlock()
 	return err
 }
 
 // flush flushes pending data in the connection,
 // returns io.EOF if connection is closed.
-func (this *TCPClientProvider) flush(b []byte) (err error) {
-	if err = this.conn.SetReadDeadline(time.Now()); err != nil {
+func (sf *TCPClientProvider) flush(b []byte) (err error) {
+	if err = sf.conn.SetReadDeadline(time.Now()); err != nil {
 		return
 	}
 	// Timeout setting will be reset when reading
-	if _, err = this.conn.Read(b); err != nil {
+	if _, err = sf.conn.Read(b); err != nil {
 		// Ignore timeout error
 		if netError, ok := err.(net.Error); ok && netError.Timeout() {
 			err = nil

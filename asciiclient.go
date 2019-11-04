@@ -47,7 +47,7 @@ func NewASCIIClientProvider() *ASCIIClientProvider {
 //  ---- checksum ----
 //  LRC             : 2 chars
 //  End             : 2 chars
-func (this *protocolFrame) encodeASCIIFrame(slaveID byte, pdu ProtocolDataUnit) ([]byte, error) {
+func (sf *protocolFrame) encodeASCIIFrame(slaveID byte, pdu ProtocolDataUnit) ([]byte, error) {
 	length := len(pdu.Data) + 3
 	if length > asciiAduMaxSize {
 		return nil, fmt.Errorf("modbus: length of data '%v' must not be bigger than '%v'", length, asciiAduMaxSize)
@@ -60,7 +60,7 @@ func (this *protocolFrame) encodeASCIIFrame(slaveID byte, pdu ProtocolDataUnit) 
 
 	// real ascii frame to send,
 	// including asciiStart + ( slaveID + functionCode + data + lrc ) + CRLF
-	frame := this.adu[: 0 : (len(pdu.Data)+3)*2+3]
+	frame := sf.adu[: 0 : (len(pdu.Data)+3)*2+3]
 	frame = append(frame, []byte(asciiStart)...) // the beginning colon characters
 	// the real adu
 	frame = append(frame, hexTable[slaveID>>4], hexTable[slaveID&0x0F])           // slave ID
@@ -109,17 +109,17 @@ func decodeASCIIFrame(adu []byte) (uint8, []byte, error) {
 }
 
 // Send request to the remote server,it implements on SendRawFrame
-func (this *ASCIIClientProvider) Send(slaveID byte, request ProtocolDataUnit) (ProtocolDataUnit, error) {
+func (sf *ASCIIClientProvider) Send(slaveID byte, request ProtocolDataUnit) (ProtocolDataUnit, error) {
 	var response ProtocolDataUnit
 
-	frame := this.pool.get()
-	defer this.pool.put(frame)
+	frame := sf.pool.get()
+	defer sf.pool.put(frame)
 
 	aduRequest, err := frame.encodeASCIIFrame(slaveID, request)
 	if err != nil {
 		return response, err
 	}
-	aduResponse, err := this.SendRawFrame(aduRequest)
+	aduResponse, err := sf.SendRawFrame(aduRequest)
 	if err != nil {
 		return response, err
 	}
@@ -136,21 +136,21 @@ func (this *ASCIIClientProvider) Send(slaveID byte, request ProtocolDataUnit) (P
 }
 
 // SendPdu send pdu request to the remote server
-func (this *ASCIIClientProvider) SendPdu(slaveID byte, pduRequest []byte) ([]byte, error) {
+func (sf *ASCIIClientProvider) SendPdu(slaveID byte, pduRequest []byte) ([]byte, error) {
 	if len(pduRequest) < pduMinSize || len(pduRequest) > pduMaxSize {
 		return nil, fmt.Errorf("modbus: pdu size '%v' must not be between '%v' and '%v'",
 			len(pduRequest), pduMinSize, pduMaxSize)
 	}
 
-	frame := this.pool.get()
-	defer this.pool.put(frame)
+	frame := sf.pool.get()
+	defer sf.pool.put(frame)
 
 	request := ProtocolDataUnit{pduRequest[0], pduRequest[1:]}
 	aduRequest, err := frame.encodeASCIIFrame(slaveID, request)
 	if err != nil {
 		return nil, err
 	}
-	aduResponse, err := this.SendRawFrame(aduRequest)
+	aduResponse, err := sf.SendRawFrame(aduRequest)
 	if err != nil {
 		return nil, err
 	}
@@ -166,32 +166,32 @@ func (this *ASCIIClientProvider) SendPdu(slaveID byte, pduRequest []byte) ([]byt
 }
 
 // SendRawFrame send Adu frame
-func (this *ASCIIClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []byte, err error) {
-	this.mu.Lock()
-	defer this.mu.Unlock()
+func (sf *ASCIIClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []byte, err error) {
+	sf.mu.Lock()
+	defer sf.mu.Unlock()
 
 	// check  port is connected
-	if !this.isConnected() {
+	if !sf.isConnected() {
 		return nil, ErrClosedConnection
 	}
 
 	// Send the request
-	this.Debug("sending [% x]", aduRequest)
+	sf.Debug("sending [% x]", aduRequest)
 	var tryCnt byte
 	for {
-		_, err = this.port.Write(aduRequest)
+		_, err = sf.port.Write(aduRequest)
 		if err == nil { // success
 			break
 		}
-		if this.autoReconnect == 0 {
+		if sf.autoReconnect == 0 {
 			return
 		}
 		for {
-			err = this.connect()
+			err = sf.connect()
 			if err == nil {
 				break
 			}
-			if tryCnt++; tryCnt >= this.autoReconnect {
+			if tryCnt++; tryCnt >= sf.autoReconnect {
 				return
 			}
 		}
@@ -202,7 +202,7 @@ func (this *ASCIIClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []
 	var data [asciiCharacterMaxSize]byte
 	length := 0
 	for {
-		if n, err = this.port.Read(data[length:]); err != nil {
+		if n, err = sf.port.Read(data[length:]); err != nil {
 			return
 		}
 		length += n
@@ -217,6 +217,6 @@ func (this *ASCIIClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []
 		}
 	}
 	aduResponse = data[:length]
-	this.Debug("received [% x]", aduResponse)
+	sf.Debug("received [% x]", aduResponse)
 	return
 }

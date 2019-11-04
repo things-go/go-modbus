@@ -18,12 +18,12 @@ func newPool(size int) *pool {
 	}
 }
 
-func (this *pool) get() *protocolFrame {
-	v := this.pl.Get().(*protocolFrame)
+func (sf *pool) get() *protocolFrame {
+	v := sf.pl.Get().(*protocolFrame)
 	v.adu = v.adu[:0]
 	return v
 }
 
-func (this *pool) put(buffer *protocolFrame) {
-	this.pl.Put(buffer)
+func (sf *pool) put(buffer *protocolFrame) {
+	sf.pl.Put(buffer)
 }

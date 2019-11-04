@@ -36,61 +36,61 @@ func NewTCPServer() *TCPServer {
 }
 
 // SetReadTimeout set read timeout
-func (this *TCPServer) SetReadTimeout(t time.Duration) {
-	this.readTimeout = t
+func (sf *TCPServer) SetReadTimeout(t time.Duration) {
+	sf.readTimeout = t
 }
 
 // SetWriteTimeout set write timeout
-func (this *TCPServer) SetWriteTimeout(t time.Duration) {
-	this.writeTimeout = t
+func (sf *TCPServer) SetWriteTimeout(t time.Duration) {
+	sf.writeTimeout = t
 }
 
 // Close close the server
-func (this *TCPServer) Close() error {
-	this.mu.Lock()
-	if this.listen != nil {
-		this.listen.Close()
-		this.cancel()
-		this.listen = nil
+func (sf *TCPServer) Close() error {
+	sf.mu.Lock()
+	if sf.listen != nil {
+		sf.listen.Close()
+		sf.cancel()
+		sf.listen = nil
 	}
-	this.mu.Unlock()
-	this.wg.Wait()
+	sf.mu.Unlock()
+	sf.wg.Wait()
 	return nil
 }
 
 // ListenAndServe 服务
-func (this *TCPServer) ListenAndServe(addr string) error {
+func (sf *TCPServer) ListenAndServe(addr string) error {
 	listen, err := net.Listen("tcp", addr)
 	if err != nil {
 		return err
 	}
 	ctx, cancel := context.WithCancel(context.Background())
-	this.mu.Lock()
-	this.listen = listen
-	this.cancel = cancel
-	this.mu.Unlock()
+	sf.mu.Lock()
+	sf.listen = listen
+	sf.cancel = cancel
+	sf.mu.Unlock()
 
 	defer func() {
-		this.Close()
-		this.Error("server stop")
+		sf.Close()
+		sf.Error("server stop")
 	}()
-	this.Debug("server running")
+	sf.Debug("server running")
 	for {
 		conn, err := listen.Accept()
 		if err != nil {
 			return err
 		}
-		this.wg.Add(1)
+		sf.wg.Add(1)
 		go func() {
 			sess := &ServerSession{
 				conn,
-				this.readTimeout,
-				this.writeTimeout,
-				this.serverCommon,
-				&this.clogs,
+				sf.readTimeout,
+				sf.writeTimeout,
+				sf.serverCommon,
+				&sf.clogs,
 			}
 			sess.running(ctx)
-			this.wg.Done()
+			sf.wg.Done()
 		}()
 	}
 }

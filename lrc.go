@@ -4,18 +4,18 @@ type lrc struct {
 	sum uint8
 }
 
-func (this *lrc) reset() *lrc {
-	this.sum = 0
-	return this
+func (sf *lrc) reset() *lrc {
+	sf.sum = 0
+	return sf
 }
 
-func (this *lrc) push(data ...byte) *lrc {
+func (sf *lrc) push(data ...byte) *lrc {
 	for _, b := range data {
-		this.sum += b
+		sf.sum += b
 	}
-	return this
+	return sf
 }
 
-func (this *lrc) value() byte {
-	return uint8(-int8(this.sum))
+func (sf *lrc) value() byte {
+	return uint8(-int8(sf.sum))
 }

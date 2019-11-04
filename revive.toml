@@ -41,5 +41,5 @@ warningCode = 0
 #[rule.flag-parameter]
 #  severity = "warning"
 
-# 忽略 接收者名字的检测
-# [rule.receiver-naming]
+# 接收者名字的检测
+[rule.receiver-naming]
