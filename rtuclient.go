@@ -49,7 +49,7 @@ func (sf *protocolFrame) encodeRTUFrame(slaveID byte, pdu ProtocolDataUnit) ([]b
 	return requestAdu, nil
 }
 
-// decode extracts slaveid and PDU from RTU frame and verify CRC.
+// decode extracts slaveID and PDU from RTU frame and verify CRC.
 func decodeRTUFrame(adu []byte) (uint8, []byte, error) {
 	if len(adu) < rtuAduMinSize { // Minimum size (including address, funcCode and CRC)
 		return 0, nil, fmt.Errorf("modbus: response length '%v' does not meet minimum '%v'", len(adu), rtuAduMinSize)

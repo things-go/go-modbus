@@ -28,7 +28,7 @@ type TCPClientProvider struct {
 	// Connect & Read timeout
 	Timeout time.Duration
 	// if > 0, when disconnect,it will try to reconnect the remote
-	// but if we active close self,it will not to reconncet
+	// but if we active close self,it will not to reconnect
 	// if == 0 auto reconnect not active
 	autoReconnect byte
 	// For synchronization between messages of server & client
