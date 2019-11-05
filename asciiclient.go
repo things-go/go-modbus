@@ -8,8 +8,7 @@ import (
 const (
 	asciiStart = ":"
 	asciiEnd   = "\r\n"
-
-	hexTable = "0123456789ABCDEF"
+	hexTable   = "0123456789ABCDEF"
 )
 
 // ASCIIClientProvider implements ClientProvider interface.
@@ -30,7 +29,7 @@ var asciiPool = newPool(asciiCharacterMaxSize)
 // it will use default /dev/ttyS0 19200 8 1 N and timeout 1000
 func NewASCIIClientProvider() *ASCIIClientProvider {
 	p := &ASCIIClientProvider{
-		clogs: clogs{newDefaultLogger("modbusASCIIMaster =>"), 0},
+		clogs: clogs{newDefaultLogger("modbusASCIIMaster => "), 0},
 		pool:  asciiPool,
 	}
 	p.Timeout = SerialDefaultTimeout

@@ -56,6 +56,7 @@ type logger struct {
 	*log.Logger
 }
 
+// check implement LogProvider interface
 var _ LogProvider = (*logger)(nil)
 
 func newDefaultLogger(prefix string) *logger {

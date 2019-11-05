@@ -10,14 +10,14 @@ type crc struct {
 	table []uint16
 }
 
-var crcs crc
+var crcTb crc
 
 func crc16(bs []byte) uint16 {
-	crcs.once.Do(crcs.initTable)
+	crcTb.once.Do(crcTb.initTable)
 
 	val := uint16(0xFFFF)
 	for _, v := range bs {
-		val = (val >> 8) ^ crcs.table[(val^uint16(v))&0x00FF]
+		val = (val >> 8) ^ crcTb.table[(val^uint16(v))&0x00FF]
 	}
 	return val
 }
@@ -29,7 +29,7 @@ func (c *crc) initTable() {
 
 	for i := uint16(0); i < 256; i++ {
 		crc := uint16(0)
-		b := uint16(i)
+		b := i
 
 		for j := uint16(0); j < 8; j++ {
 			if ((crc ^ b) & 0x0001) > 0 {

@@ -224,8 +224,7 @@ func (sf *TCPClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []byte
 			return nil, err
 		}
 
-		_, err = sf.conn.Write(aduRequest)
-		if err == nil { // success
+		if _, err = sf.conn.Write(aduRequest); err == nil { // success
 			break
 		}
 

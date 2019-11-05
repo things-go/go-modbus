@@ -34,7 +34,7 @@ func (sf *client) ReadCoils(slaveID byte, address, quantity uint16) ([]byte, err
 			slaveID, addressMin, addressMax)
 	}
 	if quantity < ReadBitsQuantityMin || quantity > ReadBitsQuantityMax {
-		return nil, fmt.Errorf("modbus: quantity '%v' must be between '%v' and '%v',",
+		return nil, fmt.Errorf("modbus: quantity '%v' must be between '%v' and '%v'",
 			quantity, ReadBitsQuantityMin, ReadBitsQuantityMax)
 
 	}
@@ -73,7 +73,7 @@ func (sf *client) ReadDiscreteInputs(slaveID byte, address, quantity uint16) ([]
 			slaveID, addressMin, addressMax)
 	}
 	if quantity < ReadBitsQuantityMin || quantity > ReadBitsQuantityMax {
-		return nil, fmt.Errorf("modbus: quantity '%v' must be between '%v' and '%v',",
+		return nil, fmt.Errorf("modbus: quantity '%v' must be between '%v' and '%v'",
 			quantity, ReadBitsQuantityMin, ReadBitsQuantityMax)
 	}
 	response, err := sf.Send(slaveID, ProtocolDataUnit{
@@ -109,7 +109,7 @@ func (sf *client) ReadHoldingRegistersBytes(slaveID byte, address, quantity uint
 			slaveID, addressMin, addressMax)
 	}
 	if quantity < ReadRegQuantityMin || quantity > ReadRegQuantityMax {
-		return nil, fmt.Errorf("modbus: quantity '%v' must be between '%v' and '%v',",
+		return nil, fmt.Errorf("modbus: quantity '%v' must be between '%v' and '%v'",
 			quantity, ReadRegQuantityMin, ReadRegQuantityMax)
 	}
 	response, err := sf.Send(slaveID, ProtocolDataUnit{
@@ -162,7 +162,7 @@ func (sf *client) ReadInputRegistersBytes(slaveID byte, address, quantity uint16
 			slaveID, addressMin, addressMax)
 	}
 	if quantity < ReadRegQuantityMin || quantity > ReadRegQuantityMax {
-		return nil, fmt.Errorf("modbus: quantity '%v' must be between '%v' and '%v',",
+		return nil, fmt.Errorf("modbus: quantity '%v' must be between '%v' and '%v'",
 			quantity, ReadRegQuantityMin, ReadRegQuantityMax)
 
 	}
@@ -299,7 +299,7 @@ func (sf *client) WriteMultipleCoils(slaveID byte, address, quantity uint16, val
 			slaveID, addressBroadCast, addressMax)
 	}
 	if quantity < WriteBitsQuantityMin || quantity > WriteBitsQuantityMax {
-		return fmt.Errorf("modbus: quantity '%v' must be between '%v' and '%v',",
+		return fmt.Errorf("modbus: quantity '%v' must be between '%v' and '%v'",
 			quantity, WriteBitsQuantityMin, WriteBitsQuantityMax)
 	}
 	response, err := sf.Send(slaveID, ProtocolDataUnit{
@@ -341,7 +341,7 @@ func (sf *client) WriteMultipleRegisters(slaveID byte, address, quantity uint16,
 			slaveID, addressBroadCast, addressMax)
 	}
 	if quantity < WriteRegQuantityMin || quantity > WriteRegQuantityMax {
-		return fmt.Errorf("modbus: quantity '%v' must be between '%v' and '%v',",
+		return fmt.Errorf("modbus: quantity '%v' must be between '%v' and '%v'",
 			quantity, WriteRegQuantityMin, WriteRegQuantityMax)
 	}
 
@@ -428,11 +428,11 @@ func (sf *client) ReadWriteMultipleRegistersBytes(slaveID byte, readAddress, rea
 			slaveID, addressMin, addressMax)
 	}
 	if readQuantity < ReadWriteOnReadRegQuantityMin || readQuantity > ReadWriteOnReadRegQuantityMax {
-		return nil, fmt.Errorf("modbus: quantity to read '%v' must be between '%v' and '%v',",
+		return nil, fmt.Errorf("modbus: quantity to read '%v' must be between '%v' and '%v'",
 			readQuantity, ReadWriteOnReadRegQuantityMin, ReadWriteOnReadRegQuantityMax)
 	}
 	if writeQuantity < ReadWriteOnWriteRegQuantityMin || writeQuantity > ReadWriteOnWriteRegQuantityMax {
-		return nil, fmt.Errorf("modbus: quantity to write '%v' must be between '%v' and '%v',",
+		return nil, fmt.Errorf("modbus: quantity to write '%v' must be between '%v' and '%v'",
 			writeQuantity, ReadWriteOnWriteRegQuantityMin, ReadWriteOnWriteRegQuantityMax)
 	}
 

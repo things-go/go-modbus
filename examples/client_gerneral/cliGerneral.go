@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	p := modbus.NewTCPClientProvider("192.168.199.188:502")
+	p := modbus.NewTCPClientProvider("127.0.0.1:502")
 	// p.Address = "COM5"
 	// p.BaudRate = 115200
 	// p.DataBits = 8
