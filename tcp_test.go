@@ -3,6 +3,7 @@ package modbus
 import (
 	"reflect"
 	"testing"
+	"time"
 )
 
 const (
@@ -40,7 +41,7 @@ func Test_TCPClientWithServer(t *testing.T) {
 		}
 
 		go mbSrv.ListenAndServe("localhost:48091")
-
+		time.Sleep(time.Second) // 让服务器完全启动
 		mbPro := NewTCPClientProvider("localhost:48091")
 		mbCli := NewClient(mbPro)
 		err = mbCli.Connect()
