@@ -45,7 +45,7 @@ func (sf *TCPServer) SetWriteTimeout(t time.Duration) {
 	sf.writeTimeout = t
 }
 
-// Close close the server
+// Close close the server until all server close then return
 func (sf *TCPServer) Close() error {
 	sf.mu.Lock()
 	if sf.listen != nil {
@@ -70,11 +70,12 @@ func (sf *TCPServer) ListenAndServe(addr string) error {
 	sf.cancel = cancel
 	sf.mu.Unlock()
 
+	sf.Debug("server started,and listen address: %s", addr)
 	defer func() {
 		sf.Close()
-		sf.Error("server stop")
+		sf.Debug("server stopped")
 	}()
-	sf.Debug("server running")
+
 	for {
 		conn, err := listen.Accept()
 		if err != nil {

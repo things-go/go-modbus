@@ -26,7 +26,6 @@ func (sf *ServerSession) running(ctx context.Context) {
 	var bytesRead int
 
 	sf.Debug("client(%v) -> server(%v) connected", sf.conn.RemoteAddr(), sf.conn.LocalAddr())
-	// get pool raw
 	defer func() {
 		sf.conn.Close()
 		sf.Debug("client(%v) -> server(%v) disconnected,cause by %v", sf.conn.RemoteAddr(), sf.conn.LocalAddr(), err)
@@ -42,7 +41,7 @@ func (sf *ServerSession) running(ctx context.Context) {
 		}
 
 		adu := raw[:]
-		for length, rdCnt := tcpHeaderMbapSize, 0; rdCnt < length; {
+		for rdCnt, length := 0, tcpHeaderMbapSize; rdCnt < length; {
 			err = sf.conn.SetReadDeadline(time.Now().Add(sf.readTimeout))
 			if err != nil {
 				return
@@ -68,7 +67,8 @@ func (sf *ServerSession) running(ctx context.Context) {
 			if rdCnt >= length {
 				// check head ProtocolIdentifier
 				if binary.BigEndian.Uint16(adu[2:]) != tcpProtocolIdentifier {
-					break
+					rdCnt, length = 0, tcpHeaderMbapSize
+					continue
 				}
 				length = int(binary.BigEndian.Uint16(adu[4:])) + tcpHeaderMbapSize - 1
 				if rdCnt == length {
@@ -95,9 +95,9 @@ func (sf *ServerSession) frameHandler(requestAdu []byte) error {
 		binary.BigEndian.Uint16(requestAdu[0:]),
 		binary.BigEndian.Uint16(requestAdu[2:]),
 		binary.BigEndian.Uint16(requestAdu[4:]),
-		uint8(requestAdu[6]),
+		requestAdu[6],
 	}
-	funcCode := uint8(requestAdu[7])
+	funcCode := requestAdu[7]
 	pduData := requestAdu[8:]
 
 	node, err := sf.GetNode(tcpHeader.slaveID)

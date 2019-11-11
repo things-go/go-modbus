@@ -203,7 +203,7 @@ func (sf *TCPServerSpecial) run() {
 			continue
 		}
 
-		keepAlive := make(chan struct{})
+		stopKeepAlive := make(chan struct{})
 		if sf.enableKeepAlive {
 			go func() {
 				tick := time.NewTicker(sf.keepAliveInterval)
@@ -212,7 +212,7 @@ func (sf *TCPServerSpecial) run() {
 					select {
 					case <-ctx.Done():
 						return
-					case <-keepAlive:
+					case <-stopKeepAlive:
 						return
 					case <-tick.C:
 						sf.onKeepAlive(sf)
@@ -224,7 +224,7 @@ func (sf *TCPServerSpecial) run() {
 		sf.running(ctx)
 		sf.setConnectStatus(disconnected)
 		sf.onConnectionLost(sf)
-		close(keepAlive)
+		close(stopKeepAlive)
 		select {
 		case <-ctx.Done():
 			return
