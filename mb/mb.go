@@ -3,7 +3,6 @@ package mb
 import (
 	"context"
 	"errors"
-	"log"
 	"math/rand"
 	"time"
 
@@ -218,7 +217,7 @@ func (sf *Client) procRequest(req *Request) {
 	}
 	if err != nil && req.Retry > 0 {
 		if req.retryCnt++; req.retryCnt < req.Retry {
-			timing.Start(req.tm, time.Duration(rand.Intn(sf.randValue))*time.Millisecond) //rand.Intn(10)
+			timing.Start(req.tm, time.Duration(rand.Intn(sf.randValue))*time.Millisecond)
 		} else if req.ScanRate > 0 {
 			timing.Start(req.tm)
 		}
@@ -244,7 +243,7 @@ func (nopProc) ProcReadDiscretes(byte, uint16, uint16, []byte)        {}
 func (nopProc) ProcReadHoldingRegisters(byte, uint16, uint16, []byte) {}
 func (nopProc) ProcReadInputRegisters(byte, uint16, uint16, []byte)   {}
 func (nopProc) ProcResult(_ error, result *Result) {
-	log.Printf("Tx=%d,Err=%d,SlaveID=%d,FC=%d,Address=%d,Quantity=%d,SR=%dms",
-		result.TxCnt, result.ErrCnt, result.SlaveID, result.FuncCode,
-		result.Address, result.Quantity, result.ScanRate/time.Millisecond)
+	//log.Printf("Tx=%d,Err=%d,SlaveID=%d,FC=%d,Address=%d,Quantity=%d,SR=%dms",
+	//	result.TxCnt, result.ErrCnt, result.SlaveID, result.FuncCode,
+	//	result.Address, result.Quantity, result.ScanRate/time.Millisecond)
 }
