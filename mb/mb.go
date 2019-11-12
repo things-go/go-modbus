@@ -72,6 +72,7 @@ func NewClient(p modbus.ClientProvider, opts ...Option) *Client {
 	ctx, cancel := context.WithCancel(context.Background())
 	c := &Client{
 		Client:      modbus.NewClient(p),
+		randValue:   DefaultRandValue,
 		readyLength: DefaultReadyQueuesLength,
 		handler:     &nopProc{},
 		panicHandle: func(interface{}) {},
