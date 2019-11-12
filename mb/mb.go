@@ -13,10 +13,10 @@ import (
 
 // Handler 处理函数
 type Handler interface {
-	ProcReadCoils(address, quality uint16, valBuf []byte)
-	ProcReadDiscretes(address, quality uint16, valBuf []byte)
-	ProcReadHoldingRegisters(address, quality uint16, valBuf []byte)
-	ProcReadInputRegisters(address, quality uint16, valBuf []byte)
+	ProcReadCoils(slaveID byte, address, quality uint16, valBuf []byte)
+	ProcReadDiscretes(slaveID byte, address, quality uint16, valBuf []byte)
+	ProcReadHoldingRegisters(slaveID byte, address, quality uint16, valBuf []byte)
+	ProcReadInputRegisters(slaveID byte, address, quality uint16, valBuf []byte)
 	ProcResult(err error, result *Result)
 }
 
@@ -163,7 +163,7 @@ func (sf *Client) readPoll() {
 	}
 }
 
-func (sf *Client) procRequest(curReq *Request) {
+func (sf *Client) procRequest(req *Request) {
 	var err error
 	var result []byte
 
@@ -173,75 +173,75 @@ func (sf *Client) procRequest(curReq *Request) {
 		}
 	}()
 
-	curReq.txCnt++
-	switch curReq.FuncCode {
+	req.txCnt++
+	switch req.FuncCode {
 	// Bit access read
 	case modbus.FuncCodeReadCoils:
-		result, err = sf.ReadCoils(curReq.SlaveID, curReq.Address, curReq.Quantity)
+		result, err = sf.ReadCoils(req.SlaveID, req.Address, req.Quantity)
 		if err != nil {
-			curReq.errCnt++
+			req.errCnt++
 		} else {
-			sf.handler.ProcReadCoils(curReq.Address, curReq.Quantity, result)
+			sf.handler.ProcReadCoils(req.SlaveID, req.Address, req.Quantity, result)
 		}
 	case modbus.FuncCodeReadDiscreteInputs:
-		result, err = sf.ReadDiscreteInputs(curReq.SlaveID, curReq.Address, curReq.Quantity)
+		result, err = sf.ReadDiscreteInputs(req.SlaveID, req.Address, req.Quantity)
 		if err != nil {
-			curReq.errCnt++
+			req.errCnt++
 		} else {
-			sf.handler.ProcReadDiscretes(curReq.Address, curReq.Quantity, result)
+			sf.handler.ProcReadDiscretes(req.SlaveID, req.Address, req.Quantity, result)
 		}
 
 	// 16-bit access read
 	case modbus.FuncCodeReadHoldingRegisters:
-		result, err = sf.ReadHoldingRegistersBytes(curReq.SlaveID, curReq.Address, curReq.Quantity)
+		result, err = sf.ReadHoldingRegistersBytes(req.SlaveID, req.Address, req.Quantity)
 		if err != nil {
-			curReq.errCnt++
+			req.errCnt++
 		} else {
-			sf.handler.ProcReadHoldingRegisters(curReq.Address, curReq.Quantity, result)
+			sf.handler.ProcReadHoldingRegisters(req.SlaveID, req.Address, req.Quantity, result)
 		}
 
 	case modbus.FuncCodeReadInputRegisters:
-		result, err = sf.ReadInputRegistersBytes(curReq.SlaveID, curReq.Address, curReq.Quantity)
+		result, err = sf.ReadInputRegistersBytes(req.SlaveID, req.Address, req.Quantity)
 		if err != nil {
-			curReq.errCnt++
+			req.errCnt++
 		} else {
-			sf.handler.ProcReadInputRegisters(curReq.Address, curReq.Quantity, result)
+			sf.handler.ProcReadInputRegisters(req.SlaveID, req.Address, req.Quantity, result)
 		}
 
 		// FIFO read
 		//case modbus.FuncCodeReadFIFOQueue:
-		//	_, err = sf.ReadFIFOQueue(curReq.SlaveID, curReq.Address)
+		//	_, err = sf.ReadFIFOQueue(req.SlaveID, req.Address)
 		//	if err != nil {
-		//		curReq.errCnt++
+		//		req.errCnt++
 		//	}
 	}
-	if err != nil && curReq.Retry > 0 {
-		if curReq.retryCnt++; curReq.retryCnt < curReq.Retry {
-			timing.Start(curReq.tm, time.Duration(rand.Intn(sf.randValue))*time.Millisecond) //rand.Intn(10)
-		} else if curReq.ScanRate > 0 {
-			timing.Start(curReq.tm)
+	if err != nil && req.Retry > 0 {
+		if req.retryCnt++; req.retryCnt < req.Retry {
+			timing.Start(req.tm, time.Duration(rand.Intn(sf.randValue))*time.Millisecond) //rand.Intn(10)
+		} else if req.ScanRate > 0 {
+			timing.Start(req.tm)
 		}
-	} else if curReq.ScanRate > 0 {
-		timing.Start(curReq.tm)
+	} else if req.ScanRate > 0 {
+		timing.Start(req.tm)
 	}
 
 	sf.handler.ProcResult(err, &Result{
-		curReq.SlaveID,
-		curReq.FuncCode,
-		curReq.Address,
-		curReq.Quantity,
-		curReq.ScanRate,
-		curReq.txCnt,
-		curReq.errCnt,
+		req.SlaveID,
+		req.FuncCode,
+		req.Address,
+		req.Quantity,
+		req.ScanRate,
+		req.txCnt,
+		req.errCnt,
 	})
 }
 
 type nopProc struct{}
 
-func (nopProc) ProcReadCoils(uint16, uint16, []byte)            {}
-func (nopProc) ProcReadDiscretes(uint16, uint16, []byte)        {}
-func (nopProc) ProcReadHoldingRegisters(uint16, uint16, []byte) {}
-func (nopProc) ProcReadInputRegisters(uint16, uint16, []byte)   {}
+func (nopProc) ProcReadCoils(byte, uint16, uint16, []byte)            {}
+func (nopProc) ProcReadDiscretes(byte, uint16, uint16, []byte)        {}
+func (nopProc) ProcReadHoldingRegisters(byte, uint16, uint16, []byte) {}
+func (nopProc) ProcReadInputRegisters(byte, uint16, uint16, []byte)   {}
 func (nopProc) ProcResult(_ error, result *Result) {
 	log.Printf("Tx=%d,Err=%d,SlaveID=%d,FC=%d,Address=%d,Quantity=%d,SR=%dms",
 		result.TxCnt, result.ErrCnt, result.SlaveID, result.FuncCode,
