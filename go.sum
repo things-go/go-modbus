@@ -1,6 +1,6 @@
 github.com/goburrow/serial v0.1.0 h1:v2T1SQa/dlUqQiYIT8+Cu7YolfqAi3K96UmhwYyuSrA=
 github.com/goburrow/serial v0.1.0/go.mod h1:sAiqG0nRVswsm1C97xsttiYCzSLBmUZ/VSlVLZJ8haA=
-github.com/thinkgos/list v0.0.7 h1:R2DuCWZduIntQOBISVlOY1//iGoWTw4twiZT6IBKoPI=
-github.com/thinkgos/list v0.0.7/go.mod h1:fXCZ52VQhsJCOO7tiT0mv+gTuaGsa0WHJCGyuWMnc8Y=
-github.com/thinkgos/timing v0.3.2 h1:mMavlbjWR/jcAznaxQqnWzf5yw+6kWvSTGRm46mUDMY=
-github.com/thinkgos/timing v0.3.2/go.mod h1:sDJR38n3+JBYGcdYODY6VYUz6fo+6INPk+1ijRvfGpM=
+github.com/thinkgos/list v0.0.8 h1:R960UlgeyoBYT0B7kQUXr87t3n6X1nUciKDGavVmGGM=
+github.com/thinkgos/list v0.0.8/go.mod h1:fXCZ52VQhsJCOO7tiT0mv+gTuaGsa0WHJCGyuWMnc8Y=
+github.com/thinkgos/timing v0.3.3 h1:I+yHMW8KLB/c89TwXpWFCKBXSvHXJUU5Md6fUu0q8Hs=
+github.com/thinkgos/timing v0.3.3/go.mod h1:L6N7RG1SnJS5JoaQ4ft71fgKEH/gChxzMSh/CrB96N8=

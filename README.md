@@ -7,11 +7,13 @@
 
 
 ### go modbus Supported formats
+
 - modbus TCP Client
 - modbus Serial(RTU,ASCII) Client
 - modbus TCP Server
 
 ### 特性
+
 - 临时对象缓冲池,减少内存分配
 - 快速编码,解码
 - interface设计,提供扩展性
@@ -21,7 +23,8 @@
 
 ### Supported functions
 
--------------------
+---
+
 Bit access:
 *   Read Discrete Inputs
 *   Read Coils
@@ -38,8 +41,10 @@ Bit access:
 *   Read FIFO Queue
 
 ### Example
-----------
-```
+
+---
+
+```golang
 	p := modbus.NewTCPClientProvider("192.168.199.188:502")
 	client := modbus.NewClient(p)
 	client.LogMode(true)
@@ -62,7 +67,7 @@ Bit access:
 	}
 ```
 
-```
+```golang
     // modbus RTU/ASCII Client
     p := modbus.NewTCPClientProvider(")
     p.Address = "COM5"
@@ -90,7 +95,8 @@ Bit access:
 		time.Sleep(time.Second * 5)
 	}
 ```
-```
+
+```golang
     // modbus TCP Server
 	srv := modbus.NewTCPServer(":502")
 	srv.Logger = log.New(os.Stdout, "modbus", log.Ltime)
@@ -107,6 +113,9 @@ Bit access:
 		panic(err)
 	}
 ```
+
 ### References
-----------
+
+---
+
 -   [Modbus Specifications and Implementation Guides](http://www.modbus.org/specs.php)
