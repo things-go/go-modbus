@@ -9,12 +9,13 @@ import (
 
 func main() {
 	p := modbus.NewRTUClientProvider()
-	p.Address = "/dev/ttyUSB1"
+	p.Address = "/dev/ttyUSB0"
 	p.BaudRate = 115200
 	p.DataBits = 8
 	p.Parity = "N"
 	p.StopBits = 1
 	client := mb.NewClient(p)
+	client.LogMode(true)
 	err := client.Start()
 	if err != nil {
 		panic(err)
@@ -30,5 +31,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
 	select {}
 }

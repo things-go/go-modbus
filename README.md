@@ -69,7 +69,7 @@ Bit access:
 
 ```golang
     // modbus RTU/ASCII Client
-    p := modbus.NewTCPClientProvider(")
+    p := modbus.NewRTUClientProvider("")
     p.Address = "COM5"
     p.BaudRate = 115200
 	p.DataBits = 8
@@ -86,7 +86,7 @@ Bit access:
 	defer client.Close()
     fmt.Println("starting")
 	for {
-		_, err := client.ReadCoils(1, 0, 10)
+		results, err := client.ReadCoils(1, 0, 10)
 		if err != nil {
 			fmt.Println(err.Error())
 		} else {
