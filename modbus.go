@@ -54,10 +54,15 @@ import (
 
 // proto address limit
 const (
-	addressBroadCast = 0
-	addressMin       = 1
+	AddressBroadCast = 0
+	AddressMin       = 1
 	addressMax       = 247
 )
+
+// AddressMax proto address max limit
+// you can change with SetSpecialAddressMax,
+// when your device have address upon addressMax
+var AddressMax byte = addressMax
 
 const (
 	pduMinSize = 1   // funcCode(1)
@@ -215,4 +220,8 @@ type ClientProvider interface {
 type LogProvider interface {
 	Error(format string, v ...interface{})
 	Debug(format string, v ...interface{})
+}
+
+func SetSpecialAddressMax(addr byte) {
+	AddressMax = addr
 }

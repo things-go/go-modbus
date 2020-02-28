@@ -3,10 +3,10 @@ package mb
 // Option 可选项
 type Option func(client *Client)
 
-// WithReadyQueueLength 就绪队列长度
-func WithReadyQueueLength(len int) Option {
+// WithReadyQueueSize 就绪队列长度
+func WithReadyQueueSize(size int) Option {
 	return func(client *Client) {
-		client.readyLength = len
+		client.readyQueueSize = size
 	}
 }
 

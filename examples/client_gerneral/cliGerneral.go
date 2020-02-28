@@ -8,12 +8,12 @@ import (
 )
 
 func main() {
-	p := modbus.NewTCPClientProvider("127.0.0.1:502")
-	// p.Address = "COM5"
-	// p.BaudRate = 115200
-	// p.DataBits = 8
-	// p.Parity = "N"
-	// p.StopBits = 1
+	p := modbus.NewRTUClientProvider()
+	p.Address = "/dev/ttyUSB0"
+	p.BaudRate = 115200
+	p.DataBits = 8
+	p.Parity = "N"
+	p.StopBits = 1
 
 	client := modbus.NewClient(p)
 	client.LogMode(true)

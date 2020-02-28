@@ -32,13 +32,13 @@ const (
 // Client 客户端
 type Client struct {
 	modbus.Client
-	randValue   int
-	readyLength int
-	ready       chan *Request
-	handler     Handler
-	panicHandle func(err interface{})
-	ctx         context.Context
-	cancel      context.CancelFunc
+	randValue      int
+	readyQueueSize int
+	ready          chan *Request
+	handler        Handler
+	panicHandle    func(err interface{})
+	ctx            context.Context
+	cancel         context.CancelFunc
 }
 
 // Result 某个请求的结果与参数
@@ -63,26 +63,26 @@ type Request struct {
 	retryCnt byte          // 重试计数
 	txCnt    uint64        // 发送计数
 	errCnt   uint64        // 发送错误计数
-	tm       timing.Timer  // 时间句柄
+	tm       *timing.Entry // 时间句柄
 }
 
 // NewClient 创建新的client
 func NewClient(p modbus.ClientProvider, opts ...Option) *Client {
 	ctx, cancel := context.WithCancel(context.Background())
 	c := &Client{
-		Client:      modbus.NewClient(p),
-		randValue:   DefaultRandValue,
-		readyLength: DefaultReadyQueuesLength,
-		handler:     &nopProc{},
-		panicHandle: func(interface{}) {},
-		ctx:         ctx,
-		cancel:      cancel,
+		Client:         modbus.NewClient(p),
+		randValue:      DefaultRandValue,
+		readyQueueSize: DefaultReadyQueuesLength,
+		handler:        &nopProc{},
+		panicHandle:    func(interface{}) {},
+		ctx:            ctx,
+		cancel:         cancel,
 	}
 
 	for _, f := range opts {
 		f(c)
 	}
-	c.ready = make(chan *Request, c.readyLength)
+	c.ready = make(chan *Request, c.readyQueueSize)
 	return c
 }
 
@@ -109,6 +109,10 @@ func (sf *Client) AddGatherJob(r Request) error {
 		return err
 	}
 
+	//if r.SlaveID
+	//return nil, fmt.Errorf("modbus: slaveID '%v' must be between '%v' and '%v'",
+	//	slaveID, addressMin, addressMax)
+
 	switch r.FuncCode {
 	case modbus.FuncCodeReadCoils, modbus.FuncCodeReadDiscreteInputs:
 		quantityMax = modbus.ReadBitsQuantityMax
@@ -133,7 +137,8 @@ func (sf *Client) AddGatherJob(r Request) error {
 			Quantity: uint16(count),
 			ScanRate: r.ScanRate,
 		}
-		req.tm = timing.AddOneShotJobFunc(func() {
+
+		req.tm = timing.NewOneShotFuncEntry(func() {
 			select {
 			case <-sf.ctx.Done():
 				return
@@ -142,6 +147,7 @@ func (sf *Client) AddGatherJob(r Request) error {
 				timing.Start(req.tm, time.Duration(rand.Intn(sf.randValue))*time.Millisecond)
 			}
 		}, req.ScanRate)
+		timing.Start(req.tm)
 
 		address += uint16(count)
 		remain -= count

@@ -28,6 +28,7 @@ func main() {
 		Quantity: 300,
 		ScanRate: time.Second,
 	})
+
 	if err != nil {
 		panic(err)
 	}
