@@ -3,6 +3,7 @@ package mb
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math/rand"
 	"time"
 
@@ -109,9 +110,10 @@ func (sf *Client) AddGatherJob(r Request) error {
 		return err
 	}
 
-	//if r.SlaveID
-	//return nil, fmt.Errorf("modbus: slaveID '%v' must be between '%v' and '%v'",
-	//	slaveID, addressMin, addressMax)
+	if r.SlaveID < modbus.AddressMin || r.SlaveID > modbus.AddressMax {
+		return fmt.Errorf("modbus: slaveID '%v' must be between '%v' and '%v'",
+			r.SlaveID, modbus.AddressMin, modbus.AddressMax)
+	}
 
 	switch r.FuncCode {
 	case modbus.FuncCodeReadCoils, modbus.FuncCodeReadDiscreteInputs:
