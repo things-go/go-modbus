@@ -17,7 +17,7 @@ type ServerSession struct {
 	readTimeout  time.Duration
 	writeTimeout time.Duration
 	*serverCommon
-	*clogs
+	logger
 }
 
 // handler net conn

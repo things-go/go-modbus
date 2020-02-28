@@ -20,7 +20,7 @@ const (
 
 // TCPClientProvider implements ClientProvider interface.
 type TCPClientProvider struct {
-	clogs
+	logger
 	Address string
 	mu      sync.Mutex
 	// TCP connection
@@ -50,7 +50,7 @@ func NewTCPClientProvider(address string) *TCPClientProvider {
 		Timeout:       TCPDefaultTimeout,
 		autoReconnect: TCPDefaultAutoReconnect,
 		pool:          tcpPool,
-		clogs:         clogs{newDefaultLogger("modbusTCPMaster =>"), 0},
+		logger:        newLogger("modbusTCPMaster =>"),
 	}
 }
 

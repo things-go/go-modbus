@@ -14,7 +14,7 @@ const (
 // ASCIIClientProvider implements ClientProvider interface.
 type ASCIIClientProvider struct {
 	serialPort
-	clogs
+	logger
 	// 请求池,所有ascii客户端共用一个请求池
 	*pool
 }
@@ -29,8 +29,8 @@ var asciiPool = newPool(asciiCharacterMaxSize)
 // it will use default /dev/ttyS0 19200 8 1 N and timeout 1000
 func NewASCIIClientProvider() *ASCIIClientProvider {
 	p := &ASCIIClientProvider{
-		clogs: clogs{newDefaultLogger("modbusASCIIMaster => "), 0},
-		pool:  asciiPool,
+		logger: newLogger("modbusASCIIMaster => "),
+		pool:   asciiPool,
 	}
 	p.Timeout = SerialDefaultTimeout
 	p.autoReconnect = SerialDefaultAutoReconnect

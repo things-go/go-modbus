@@ -14,7 +14,7 @@ const (
 // RTUClientProvider implements ClientProvider interface.
 type RTUClientProvider struct {
 	serialPort
-	clogs
+	logger
 	*pool // 请求池,所有RTU客户端共用一个请求池
 }
 
@@ -28,8 +28,8 @@ var rtuPool = newPool(rtuAduMaxSize)
 // it will use default /dev/ttyS0 19200 8 1 N and timeout 1000
 func NewRTUClientProvider() *RTUClientProvider {
 	p := &RTUClientProvider{
-		clogs: clogs{newDefaultLogger("modbusRTUMaster =>"), 0},
-		pool:  rtuPool,
+		logger: newLogger("modbusRTUMaster =>"),
+		pool:   rtuPool,
 	}
 	p.Timeout = SerialDefaultTimeout
 	p.autoReconnect = SerialDefaultAutoReconnect

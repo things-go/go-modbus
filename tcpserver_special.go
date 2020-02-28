@@ -60,7 +60,7 @@ func NewTCPServerSpecial() *TCPServerSpecial {
 			readTimeout:  TCPDefaultReadTimeout,
 			writeTimeout: TCPDefaultWriteTimeout,
 			serverCommon: newServerCommon(),
-			clogs:        newClogWithPrefix("modbusTCPServerSpec =>"),
+			logger:       newLogger("modbusTCPServerSpec =>"),
 		},
 		connectTimeout:    DefaultConnectTimeout,
 		autoReconnect:     true,

@@ -22,7 +22,7 @@ type TCPServer struct {
 	readTimeout  time.Duration
 	writeTimeout time.Duration
 	*serverCommon
-	clogs
+	logger
 }
 
 // NewTCPServer the modbus server listening on "address:port".
@@ -31,7 +31,7 @@ func NewTCPServer() *TCPServer {
 		readTimeout:  TCPDefaultReadTimeout,
 		writeTimeout: TCPDefaultWriteTimeout,
 		serverCommon: newServerCommon(),
-		clogs:        clogs{newDefaultLogger("modbusTCPServer =>"), 0},
+		logger:       newLogger("modbusTCPServer =>"),
 	}
 }
 
@@ -88,7 +88,7 @@ func (sf *TCPServer) ListenAndServe(addr string) error {
 				sf.readTimeout,
 				sf.writeTimeout,
 				sf.serverCommon,
-				&sf.clogs,
+				sf.logger,
 			}
 			sess.running(ctx)
 			sf.wg.Done()
