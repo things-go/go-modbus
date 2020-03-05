@@ -144,12 +144,10 @@ Bit access:
         select {}
     }
     
-    type handler struct{}
-    
-    func (handler) ProcReadCoils(byte, uint16, uint16, []byte)            {}
-    func (handler) ProcReadDiscretes(byte, uint16, uint16, []byte)        {}
-    func (handler) ProcReadHoldingRegisters(byte, uint16, uint16, []byte) {}
-    func (handler) ProcReadInputRegisters(byte, uint16, uint16, []byte)   {}
+    type handler struct {
+	    mb.NopProc
+    }
+
     func (handler) ProcResult(_ error, result *mb.Result) {
         log.Printf("Tx=%d,Err=%d,SlaveID=%d,FC=%d,Address=%d,Quantity=%d,SR=%dms",
             result.TxCnt, result.ErrCnt, result.SlaveID, result.FuncCode,
