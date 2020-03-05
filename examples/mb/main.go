@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"time"
 
 	modbus "github.com/thinkgos/gomodbus"
@@ -14,7 +15,7 @@ func main() {
 	p.DataBits = 8
 	p.Parity = "N"
 	p.StopBits = 1
-	client := mb.NewClient(p)
+	client := mb.NewClient(p, mb.WitchHandler(&handler{}))
 	client.LogMode(true)
 	err := client.Start()
 	if err != nil {
@@ -34,4 +35,16 @@ func main() {
 	}
 
 	select {}
+}
+
+type handler struct{}
+
+func (handler) ProcReadCoils(byte, uint16, uint16, []byte)            {}
+func (handler) ProcReadDiscretes(byte, uint16, uint16, []byte)        {}
+func (handler) ProcReadHoldingRegisters(byte, uint16, uint16, []byte) {}
+func (handler) ProcReadInputRegisters(byte, uint16, uint16, []byte)   {}
+func (handler) ProcResult(_ error, result *mb.Result) {
+	log.Printf("Tx=%d,Err=%d,SlaveID=%d,FC=%d,Address=%d,Quantity=%d,SR=%dms",
+		result.TxCnt, result.ErrCnt, result.SlaveID, result.FuncCode,
+		result.Address, result.Quantity, result.ScanRate/time.Millisecond)
 }

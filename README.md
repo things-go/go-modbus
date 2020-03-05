@@ -44,7 +44,7 @@ Bit access:
 
 ---
 
-```golang
+```go
 	p := modbus.NewTCPClientProvider("192.168.199.188:502")
 	client := modbus.NewClient(p)
 	client.LogMode(true)
@@ -57,7 +57,7 @@ Bit access:
 	defer client.Close()
     fmt.Println("starting")
 	for {
-		_, err := client.ReadCoils(1, 0, 10)
+		results, err := client.ReadCoils(1, 0, 10)
 		if err != nil {
 			fmt.Println(err.Error())
 		} else {
@@ -67,7 +67,7 @@ Bit access:
 	}
 ```
 
-```golang
+```go
     // modbus RTU/ASCII Client
     p := modbus.NewRTUClientProvider("")
     p.Address = "COM5"
@@ -96,22 +96,65 @@ Bit access:
 	}
 ```
 
-```golang
+```go
     // modbus TCP Server
 	srv := modbus.NewTCPServer(":502")
 	srv.Logger = log.New(os.Stdout, "modbus", log.Ltime)
 	srv.LogMode(true)
+
 	srv.AddNode(modbus.NewNodeRegister(
 		1,
-		0, 10, []byte{0xfa, 0xa0},
-		0, 10, []byte{0xa5, 0x0a},
-		0, []uint16{0x1234, 0x4567, 0x1234, 0x4567, 0x1234, 0x4567, 0x4567, 0x1234, 0x4567, 0x1234},
-		0, []uint16{0x4567, 0x1234, 0x4567, 0x1234, 0x4567, 0x1234, 0x4567, 0x1234, 0x4567, 0x1234},
+		0, 10, 0, 10, 
+		0, 10, 0, 10,
 	))
 	err := srv.ListenAndServe(":502")
 	if err != nil {
 		panic(err)
 	}
+```
+
+```go
+    // mb simple example
+    func main() {
+        p := modbus.NewRTUClientProvider()
+        p.Address = "/dev/ttyUSB0"
+        p.BaudRate = 115200
+        p.DataBits = 8
+        p.Parity = "N"
+        p.StopBits = 1
+        client := mb.NewClient(p, mb.WitchHandler(&handler{}))
+        client.LogMode(true)
+        err := client.Start()
+        if err != nil {
+            panic(err)
+        }
+    
+        err = client.AddGatherJob(mb.Request{
+            SlaveID:  1,
+            FuncCode: modbus.FuncCodeReadHoldingRegisters,
+            Address:  0,
+            Quantity: 300,
+            ScanRate: time.Second,
+        })
+    
+        if err != nil {
+            panic(err)
+        }
+    
+        select {}
+    }
+    
+    type handler struct{}
+    
+    func (handler) ProcReadCoils(byte, uint16, uint16, []byte)            {}
+    func (handler) ProcReadDiscretes(byte, uint16, uint16, []byte)        {}
+    func (handler) ProcReadHoldingRegisters(byte, uint16, uint16, []byte) {}
+    func (handler) ProcReadInputRegisters(byte, uint16, uint16, []byte)   {}
+    func (handler) ProcResult(_ error, result *mb.Result) {
+        log.Printf("Tx=%d,Err=%d,SlaveID=%d,FC=%d,Address=%d,Quantity=%d,SR=%dms",
+            result.TxCnt, result.ErrCnt, result.SlaveID, result.FuncCode,
+            result.Address, result.Quantity, result.ScanRate/time.Millisecond)
+    }
 ```
 
 ### References
