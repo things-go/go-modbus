@@ -11,15 +11,6 @@ import (
 	"github.com/thinkgos/timing"
 )
 
-// Handler 处理函数
-type Handler interface {
-	ProcReadCoils(slaveID byte, address, quality uint16, valBuf []byte)
-	ProcReadDiscretes(slaveID byte, address, quality uint16, valBuf []byte)
-	ProcReadHoldingRegisters(slaveID byte, address, quality uint16, valBuf []byte)
-	ProcReadInputRegisters(slaveID byte, address, quality uint16, valBuf []byte)
-	ProcResult(err error, result *Result)
-}
-
 const (
 	// DefaultRandValue 单位ms
 	// 默认随机值上限,它影响当超时请求入ready队列时,
@@ -74,7 +65,7 @@ func NewClient(p modbus.ClientProvider, opts ...Option) *Client {
 		Client:         modbus.NewClient(p),
 		randValue:      DefaultRandValue,
 		readyQueueSize: DefaultReadyQueuesLength,
-		handler:        &nopProc{},
+		handler:        &NopProc{},
 		panicHandle:    func(interface{}) {},
 		ctx:            ctx,
 		cancel:         cancel,
@@ -242,16 +233,4 @@ func (sf *Client) procRequest(req *Request) {
 		req.txCnt,
 		req.errCnt,
 	})
-}
-
-type nopProc struct{}
-
-func (nopProc) ProcReadCoils(byte, uint16, uint16, []byte)            {}
-func (nopProc) ProcReadDiscretes(byte, uint16, uint16, []byte)        {}
-func (nopProc) ProcReadHoldingRegisters(byte, uint16, uint16, []byte) {}
-func (nopProc) ProcReadInputRegisters(byte, uint16, uint16, []byte)   {}
-func (nopProc) ProcResult(_ error, result *Result) {
-	//log.Printf("Tx=%d,Err=%d,SlaveID=%d,FC=%d,Address=%d,Quantity=%d,SR=%dms",
-	//	result.TxCnt, result.ErrCnt, result.SlaveID, result.FuncCode,
-	//	result.Address, result.Quantity, result.ScanRate/time.Millisecond)
 }
