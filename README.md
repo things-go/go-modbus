@@ -1,3 +1,4 @@
+# go modbus
 [![GoDoc](https://godoc.org/github.com/thinkgos/gomodbus?status.svg)](https://godoc.org/github.com/thinkgos/gomodbus)
 [![Build Status](https://www.travis-ci.org/thinkgos/gomodbus.svg?branch=master)](https://www.travis-ci.org/thinkgos/gomodbus)
 [![codecov](https://codecov.io/gh/thinkgos/gomodbus/branch/master/graph/badge.svg)](https://codecov.io/gh/thinkgos/gomodbus)
@@ -6,20 +7,18 @@
 [![Licence](https://img.shields.io/github/license/thinkgos/gomodbus)](https://raw.githubusercontent.com/thinkgos/gomodbus/master/LICENSE)
 
 
-### go modbus Supported formats
+### Supported formats
 
-- modbus TCP Client
 - modbus Serial(RTU,ASCII) Client
+- modbus TCP Client
 - modbus TCP Server
 
-### 特性
+### Features
 
-- 临时对象缓冲池,减少内存分配
-- 快速编码,解码
-- interface设计,提供扩展性
-- 简单的丰富的API
-
-大量参考了!为了用于生产环境[goburrow](https://github.com/goburrow/modbus)
+- object pool design,reduce memory allocation
+- fast encode and decode
+- interface design
+- simple API and support raw data api
 
 ### Supported functions
 
@@ -159,4 +158,5 @@ Bit access:
 
 ---
 
--   [Modbus Specifications and Implementation Guides](http://www.modbus.org/specs.php)
+- [Modbus Specifications and Implementation Guides](http://www.modbus.org/specs.php)
+- [goburrow](https://github.com/goburrow/modbus)
