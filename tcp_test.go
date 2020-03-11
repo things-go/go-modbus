@@ -40,8 +40,11 @@ func Test_TCPClientWithServer(t *testing.T) {
 			return
 		}
 
-		go mbSrv.ListenAndServe("localhost:48091")
-		time.Sleep(time.Second) // 让服务器完全启动
+		go func() {
+			err := mbSrv.ListenAndServe("localhost:48091")
+			panic(err)
+		}()
+		time.Sleep(time.Second) // wait for server start
 		mbPro := NewTCPClientProvider("localhost:48091")
 		mbCli := NewClient(mbPro)
 		err = mbCli.Connect()

@@ -15,14 +15,13 @@ const (
 type ASCIIClientProvider struct {
 	serialPort
 	logger
-	// 请求池,所有ascii客户端共用一个请求池
 	*pool
 }
 
-// check ASCIIClientProvider implements underlying method
+// check ASCIIClientProvider implements the interface ClientProvider underlying method
 var _ ClientProvider = (*ASCIIClientProvider)(nil)
 
-// 请求池,所有ascii客户端共用一个请求池
+// request pool, all ASCII client use this pool
 var asciiPool = newPool(asciiCharacterMaxSize)
 
 // NewASCIIClientProvider allocates and initializes a ASCIIClientProvider.
@@ -49,25 +48,28 @@ func NewASCIIClientProvider() *ASCIIClientProvider {
 func (sf *protocolFrame) encodeASCIIFrame(slaveID byte, pdu ProtocolDataUnit) ([]byte, error) {
 	length := len(pdu.Data) + 3
 	if length > asciiAduMaxSize {
-		return nil, fmt.Errorf("modbus: length of data '%v' must not be bigger than '%v'", length, asciiAduMaxSize)
+		return nil, fmt.Errorf("modbus: length of data '%v' must not be bigger than '%v'",
+			length, asciiAduMaxSize)
 	}
 
 	// Exclude the beginning colon and terminating CRLF pair characters
-	var lrc lrc
-	lrc.reset().push(slaveID).push(pdu.FuncCode).push(pdu.Data...)
-	lrcVal := lrc.value()
+	lrcVal := new(lrc).reset().
+		push(slaveID).
+		push(pdu.FuncCode).
+		push(pdu.Data...).
+		value()
 
 	// real ascii frame to send,
 	// including asciiStart + ( slaveID + functionCode + data + lrc ) + CRLF
-	frame := sf.adu[: 0 : (len(pdu.Data)+3)*2+3]
+	frame := sf.adu[: 0 : length*2+3]
 	frame = append(frame, []byte(asciiStart)...) // the beginning colon characters
 	// the real adu
-	frame = append(frame, hexTable[slaveID>>4], hexTable[slaveID&0x0F])           // slave ID
-	frame = append(frame, hexTable[pdu.FuncCode>>4], hexTable[pdu.FuncCode&0x0F]) // pdu funcCode
+	frame = append(frame, hexTable[slaveID>>4], hexTable[slaveID&0x0f])           // slave ID
+	frame = append(frame, hexTable[pdu.FuncCode>>4], hexTable[pdu.FuncCode&0x0f]) // pdu funcCode
 	for _, v := range pdu.Data {
-		frame = append(frame, hexTable[v>>4], hexTable[v&0x0F]) // pdu data
+		frame = append(frame, hexTable[v>>4], hexTable[v&0x0f]) // pdu data
 	}
-	frame = append(frame, hexTable[lrcVal>>4], hexTable[lrcVal&0x0F]) // lrc
+	frame = append(frame, hexTable[lrcVal>>4], hexTable[lrcVal&0x0f]) // lrc value
 	// terminating CRLF characters
 	return append(frame, []byte(asciiEnd)...), nil
 }
@@ -75,18 +77,17 @@ func (sf *protocolFrame) encodeASCIIFrame(slaveID byte, pdu ProtocolDataUnit) ([
 // decode extracts slaveID & PDU from ASCII frame and verify LRC.
 func decodeASCIIFrame(adu []byte) (uint8, []byte, error) {
 	if len(adu) < asciiAduMinSize+6 { // Minimum size (including address, function and LRC)
-		return 0, nil, fmt.Errorf("modbus: response length '%v' does not meet minimum '%v'", len(adu), 9)
+		return 0, nil, fmt.Errorf("modbus: response length '%v' does not meet minimum '%v'",
+			len(adu), 9)
 	}
 	switch {
-	case len(adu)%2 != 1:
-		// Length excluding colon must be an even number
-		return 0, nil, fmt.Errorf("modbus: response length '%v' is not an even number", len(adu)-1)
-	case string(adu[0:len(asciiStart)]) != asciiStart:
-		// First char must be a colons
+	case len(adu)%2 != 1: // Length excluding colon must be an even number
+		return 0, nil, fmt.Errorf("modbus: response length '%v' is not an even number",
+			len(adu)-1)
+	case string(adu[0:len(asciiStart)]) != asciiStart: // First char must be a colons
 		return 0, nil, fmt.Errorf("modbus: response frame '%x'... is not started with '%x'",
 			string(adu[0:len(asciiStart)]), asciiStart)
-	case string(adu[len(adu)-len(asciiEnd):]) != asciiEnd:
-		// 2 last chars must be \r\n
+	case string(adu[len(adu)-len(asciiEnd):]) != asciiEnd: // 2 last chars must be \r\n
 		return 0, nil, fmt.Errorf("modbus: response frame ...'%x' is not ended with '%x'",
 			string(adu[len(adu)-len(asciiEnd):]), asciiEnd)
 	}
@@ -99,10 +100,10 @@ func decodeASCIIFrame(adu []byte) (uint8, []byte, error) {
 		return 0, nil, err
 	}
 	// Calculate checksum
-	var lrc lrc
-	sum := lrc.reset().push(buf[:length-1]...).value()
-	if buf[length-1] != sum { // LRC
-		return 0, nil, fmt.Errorf("modbus: response lrc '%x' does not match expected '%x'", buf[length-1], sum)
+	lrcVal := new(lrc).reset().push(buf[:length-1]...).value()
+	if buf[length-1] != lrcVal { // LRC
+		return 0, nil, fmt.Errorf("modbus: response lrc '%x' does not match expected '%x'",
+			buf[length-1], lrcVal)
 	}
 	return buf[0], buf[1 : length-1], nil
 }

@@ -15,20 +15,20 @@ const (
 type RTUClientProvider struct {
 	serialPort
 	logger
-	*pool // 请求池,所有RTU客户端共用一个请求池
+	*pool
 }
 
-// check RTUClientProvider implements underlying method
+// check RTUClientProvider implements the interface ClientProvider underlying method
 var _ ClientProvider = (*RTUClientProvider)(nil)
 
-// 请求池,所有RTU客户端共用一个请求池
+// request pool, all RTU client use this pool
 var rtuPool = newPool(rtuAduMaxSize)
 
 // NewRTUClientProvider allocates and initializes a RTUClientProvider.
 // it will use default /dev/ttyS0 19200 8 1 N and timeout 1000
 func NewRTUClientProvider() *RTUClientProvider {
 	p := &RTUClientProvider{
-		logger: newLogger("modbusRTUMaster =>"),
+		logger: newLogger("modbusRTUMaster => "),
 		pool:   rtuPool,
 	}
 	p.Timeout = SerialDefaultTimeout
@@ -39,7 +39,8 @@ func NewRTUClientProvider() *RTUClientProvider {
 func (sf *protocolFrame) encodeRTUFrame(slaveID byte, pdu ProtocolDataUnit) ([]byte, error) {
 	length := len(pdu.Data) + 4
 	if length > rtuAduMaxSize {
-		return nil, fmt.Errorf("modbus: length of data '%v' must not be bigger than '%v'", length, rtuAduMaxSize)
+		return nil, fmt.Errorf("modbus: length of data '%v' must not be bigger than '%v'",
+			length, rtuAduMaxSize)
 	}
 	requestAdu := sf.adu[:0:length]
 	requestAdu = append(requestAdu, slaveID, pdu.FuncCode)
@@ -52,19 +53,21 @@ func (sf *protocolFrame) encodeRTUFrame(slaveID byte, pdu ProtocolDataUnit) ([]b
 // decode extracts slaveID and PDU from RTU frame and verify CRC.
 func decodeRTUFrame(adu []byte) (uint8, []byte, error) {
 	if len(adu) < rtuAduMinSize { // Minimum size (including address, funcCode and CRC)
-		return 0, nil, fmt.Errorf("modbus: response length '%v' does not meet minimum '%v'", len(adu), rtuAduMinSize)
+		return 0, nil, fmt.Errorf("modbus: response length '%v' does not meet minimum '%v'",
+			len(adu), rtuAduMinSize)
 	}
 	// Calculate checksum
 	crc := crc16(adu[0 : len(adu)-2])
 	expect := binary.LittleEndian.Uint16(adu[len(adu)-2:])
 	if crc != expect {
-		return 0, nil, fmt.Errorf("modbus: response crc '%x' does not match expected '%x'", expect, crc)
+		return 0, nil, fmt.Errorf("modbus: response crc '%x' does not match expected '%x'",
+			expect, crc)
 	}
 	// slaveID & PDU but pass crc
 	return adu[0], adu[1 : len(adu)-2], nil
 }
 
-// Send request to the remote server,it implements on SendRawFrame
+// Send request to the remote server, it implements on SendRawFrame
 func (sf *RTUClientProvider) Send(slaveID byte, request ProtocolDataUnit) (ProtocolDataUnit, error) {
 	var response ProtocolDataUnit
 
@@ -84,10 +87,7 @@ func (sf *RTUClientProvider) Send(slaveID byte, request ProtocolDataUnit) (Proto
 		return response, err
 	}
 	response = ProtocolDataUnit{pdu[0], pdu[1:]}
-	if err = verify(slaveID, rspSlaveID, request, response); err != nil {
-		return response, err
-	}
-	return response, nil
+	return response, verify(slaveID, rspSlaveID, request, response)
 }
 
 // SendPdu send pdu request to the remote server
@@ -105,7 +105,6 @@ func (sf *RTUClientProvider) SendPdu(slaveID byte, pduRequest []byte) ([]byte, e
 	if err != nil {
 		return nil, err
 	}
-
 	aduResponse, err := sf.SendRawFrame(requestAdu)
 	if err != nil {
 		return nil, err
@@ -114,12 +113,12 @@ func (sf *RTUClientProvider) SendPdu(slaveID byte, pduRequest []byte) ([]byte, e
 	if err != nil {
 		return nil, err
 	}
-	response := ProtocolDataUnit{pdu[0], pdu[1:]}
-	if err = verify(slaveID, rspSlaveID, request, response); err != nil {
-		return nil, err
-	}
 	//  PDU pass slaveID & crc
-	return pdu, nil
+	return pdu, verify(slaveID, rspSlaveID, request,
+		ProtocolDataUnit{
+			pdu[0],
+			pdu[1:],
+		})
 }
 
 // SendRawFrame send Adu frame
@@ -246,14 +245,14 @@ func calculateResponseLength(adu []byte) int {
 // verify confirms vaild data(including slaveID,funcCode,response data)
 func verify(reqSlaveID, rspSlaveID uint8, reqPDU, rspPDU ProtocolDataUnit) error {
 	switch {
-	case reqSlaveID != rspSlaveID:
-		// Check slaveid same
-		return fmt.Errorf("modbus: response slave id '%v' does not match request '%v'", rspSlaveID, reqSlaveID)
-	case rspPDU.FuncCode != reqPDU.FuncCode:
-		// Check correct function code returned (exception)
+	case reqSlaveID != rspSlaveID: // Check slaveID same
+		return fmt.Errorf("modbus: response slave id '%v' does not match request '%v'",
+			rspSlaveID, reqSlaveID)
+
+	case rspPDU.FuncCode != reqPDU.FuncCode: // Check correct function code returned (exception)
 		return responseError(rspPDU)
-	case rspPDU.Data == nil || len(rspPDU.Data) == 0:
-		// check Empty response
+
+	case rspPDU.Data == nil || len(rspPDU.Data) == 0: // check Empty response
 		return fmt.Errorf("modbus: response data is empty")
 	}
 	return nil

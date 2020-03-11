@@ -33,14 +33,14 @@ type TCPClientProvider struct {
 	autoReconnect byte
 	// For synchronization between messages of server & client
 	transactionID uint32
-	// 请求池,所有tcp客户端共用一个请求池
+	// request
 	*pool
 }
 
-// check TCPClientProvider implements underlying method
+// check TCPClientProvider implements the interface ClientProvider underlying method
 var _ ClientProvider = (*TCPClientProvider)(nil)
 
-// 请求池,所有TCP客户端共用一个请求池
+// request pool, all TCP client use this pool
 var tcpPool = newPool(tcpAduMaxSize)
 
 // NewTCPClientProvider allocates a new TCPClientProvider.
@@ -66,7 +66,8 @@ func NewTCPClientProvider(address string) *TCPClientProvider {
 func (sf *protocolFrame) encodeTCPFrame(tid uint16, slaveID byte, pdu ProtocolDataUnit) (protocolTCPHeader, []byte, error) {
 	length := tcpHeaderMbapSize + 1 + len(pdu.Data)
 	if length > tcpAduMaxSize {
-		return protocolTCPHeader{}, nil, fmt.Errorf("modbus: length of data '%v' must not be bigger than '%v'", length, tcpAduMaxSize)
+		return protocolTCPHeader{}, nil, fmt.Errorf("modbus: length of data '%v' must not be bigger than '%v'",
+			length, tcpAduMaxSize)
 	}
 
 	head := protocolTCPHeader{
@@ -98,7 +99,8 @@ func (sf *protocolFrame) encodeTCPFrame(tid uint16, slaveID byte, pdu ProtocolDa
 //  Data            : 0 up to 252 bytes
 func decodeTCPFrame(adu []byte) (protocolTCPHeader, []byte, error) {
 	if len(adu) < tcpAduMinSize { // Minimum size (including MBAP, funcCode)
-		return protocolTCPHeader{}, nil, fmt.Errorf("modbus: response length '%v' does not meet minimum '%v'", len(adu), tcpAduMinSize)
+		return protocolTCPHeader{}, nil, fmt.Errorf("modbus: response length '%v' does not meet minimum '%v'",
+			len(adu), tcpAduMinSize)
 	}
 	// Read length value in the header
 	head := protocolTCPHeader{
@@ -121,25 +123,25 @@ func decodeTCPFrame(adu []byte) (protocolTCPHeader, []byte, error) {
 // verify confirms valid data
 func verifyTCPFrame(reqHead, rspHead protocolTCPHeader, reqPDU, rspPDU ProtocolDataUnit) error {
 	switch {
-	case rspHead.transactionID != reqHead.transactionID:
-		// Check transaction ID
+	case rspHead.transactionID != reqHead.transactionID: // Check transaction ID
 		return fmt.Errorf("modbus: response transaction id '%v' does not match request '%v'",
 			rspHead.transactionID, reqHead.transactionID)
-	case rspHead.protocolID != reqHead.protocolID:
-		// Check protocol ID
+
+	case rspHead.protocolID != reqHead.protocolID: // Check protocol ID
 		return fmt.Errorf("modbus: response protocol id '%v' does not match request '%v'",
 			rspHead.protocolID, reqHead.protocolID)
-	case rspHead.slaveID != reqHead.slaveID:
-		// Check slaveID same
+
+	case rspHead.slaveID != reqHead.slaveID: // Check slaveID same
 		return fmt.Errorf("modbus: response unit id '%v' does not match request '%v'",
 			rspHead.slaveID, reqHead.slaveID)
-	case rspPDU.FuncCode != reqPDU.FuncCode:
-		// Check correct function code returned (exception)
+
+	case rspPDU.FuncCode != reqPDU.FuncCode: // Check correct function code returned (exception)
 		return responseError(rspPDU)
-	case rspPDU.Data == nil || len(rspPDU.Data) == 0:
-		// check Empty response
+
+	case rspPDU.Data == nil || len(rspPDU.Data) == 0: // check Empty response
 		return fmt.Errorf("modbus: response data is empty")
 	}
+
 	return nil
 }
 
@@ -165,10 +167,7 @@ func (sf *TCPClientProvider) Send(slaveID byte, request ProtocolDataUnit) (Proto
 		return response, err
 	}
 	response = ProtocolDataUnit{pdu[0], pdu[1:]}
-	if err = verifyTCPFrame(head, rspHead, request, response); err != nil {
-		return response, err
-	}
-	return response, nil
+	return response, verifyTCPFrame(head, rspHead, request, response)
 }
 
 // SendPdu send pdu request to the remote server
@@ -196,11 +195,12 @@ func (sf *TCPClientProvider) SendPdu(slaveID byte, pduRequest []byte) ([]byte, e
 	if err != nil {
 		return nil, err
 	}
-	if err = verifyTCPFrame(head, rspHead, request, ProtocolDataUnit{rspPdu[0], rspPdu[1:]}); err != nil {
-		return nil, err
-	}
 	// rspPdu pass tcpMBAP head
-	return rspPdu, nil
+	return rspPdu, verifyTCPFrame(head, rspHead, request,
+		ProtocolDataUnit{
+			rspPdu[0],
+			rspPdu[1:],
+		})
 }
 
 // SendRawFrame send raw adu request frame

@@ -9,13 +9,23 @@ type Handler interface {
 	ProcResult(err error, result *Result)
 }
 
+// NopProc implement interface Handler
 type NopProc struct{}
 
-func (NopProc) ProcReadCoils(byte, uint16, uint16, []byte)            {}
-func (NopProc) ProcReadDiscretes(byte, uint16, uint16, []byte)        {}
+// ProcReadCoils implement interface Handler
+func (NopProc) ProcReadCoils(byte, uint16, uint16, []byte) {}
+
+// ProcReadDiscretes implement interface Handler
+func (NopProc) ProcReadDiscretes(byte, uint16, uint16, []byte) {}
+
+// ProcReadHoldingRegisters implement interface Handler
 func (NopProc) ProcReadHoldingRegisters(byte, uint16, uint16, []byte) {}
-func (NopProc) ProcReadInputRegisters(byte, uint16, uint16, []byte)   {}
-func (NopProc) ProcResult(_ error, result *Result) {
+
+// ProcReadInputRegisters implement interface Handler
+func (NopProc) ProcReadInputRegisters(byte, uint16, uint16, []byte) {}
+
+// ProcResult implement interface Handler
+func (NopProc) ProcResult(error, *Result) {
 	//log.Printf("Tx=%d,Err=%d,SlaveID=%d,FC=%d,Address=%d,Quantity=%d,SR=%dms",
 	//	result.TxCnt, result.ErrCnt, result.SlaveID, result.FuncCode,
 	//	result.Address, result.Quantity, result.ScanRate/time.Millisecond)

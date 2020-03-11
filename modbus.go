@@ -222,6 +222,7 @@ type LogProvider interface {
 	Debug(format string, v ...interface{})
 }
 
+// SetSpecialAddressMax set special slaveID limit
 func SetSpecialAddressMax(addr byte) {
 	AddressMax = addr
 }

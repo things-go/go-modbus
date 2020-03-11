@@ -34,7 +34,9 @@ func main() {
 		panic(err)
 	}
 
-	select {}
+	for {
+		time.Sleep(time.Second * 10)
+	}
 }
 
 type handler struct {
