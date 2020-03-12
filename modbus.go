@@ -50,6 +50,9 @@ package modbus
 
 import (
 	"fmt"
+	"time"
+
+	"github.com/goburrow/serial"
 )
 
 // proto address limit
@@ -204,8 +207,6 @@ type ClientProvider interface {
 	SetAutoReconnect(cnt byte)
 	// LogMode set enable or diable log output when you has set logger
 	LogMode(enable bool)
-	// SetLogProvider set logger provider
-	SetLogProvider(p LogProvider)
 	// Close disconnect the remote server
 	Close() error
 	// Send request to the remote server,it implements on SendRawFrame
@@ -214,6 +215,13 @@ type ClientProvider interface {
 	SendPdu(slaveID byte, pduRequest []byte) (pduResponse []byte, err error)
 	// SendRawFrame send raw frame to the remote server
 	SendRawFrame(aduRequest []byte) (aduResponse []byte, err error)
+	// private interface
+	// setLogProvider set logger provider
+	setLogProvider(p LogProvider)
+	// setSerialConfig set serial config
+	setSerialConfig(config serial.Config)
+	// setTCPTimeout set tcp connect & read timeouot
+	setTCPTimeout(t time.Duration)
 }
 
 // LogProvider RFC5424 log message levels only Debug and Error

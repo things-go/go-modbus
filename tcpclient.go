@@ -9,6 +9,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/goburrow/serial"
 )
 
 const (
@@ -21,12 +23,12 @@ const (
 // TCPClientProvider implements ClientProvider interface.
 type TCPClientProvider struct {
 	logger
-	Address string
+	address string
 	mu      sync.Mutex
 	// TCP connection
 	conn net.Conn
 	// Connect & Read timeout
-	Timeout time.Duration
+	timeout time.Duration
 	// if > 0, when disconnect,it will try to reconnect the remote
 	// but if we active close self,it will not to reconnect
 	// if == 0 auto reconnect not active
@@ -44,14 +46,18 @@ var _ ClientProvider = (*TCPClientProvider)(nil)
 var tcpPool = newPool(tcpAduMaxSize)
 
 // NewTCPClientProvider allocates a new TCPClientProvider.
-func NewTCPClientProvider(address string) *TCPClientProvider {
-	return &TCPClientProvider{
-		Address:       address,
-		Timeout:       TCPDefaultTimeout,
+func NewTCPClientProvider(address string, opts ...ClientProviderOption) *TCPClientProvider {
+	p := &TCPClientProvider{
+		address:       address,
+		timeout:       TCPDefaultTimeout,
 		autoReconnect: TCPDefaultAutoReconnect,
 		pool:          tcpPool,
 		logger:        newLogger("modbusTCPMaster =>"),
 	}
+	for _, opt := range opts {
+		opt(p)
+	}
+	return p
 }
 
 // encode modbus application protocol header & pdu to TCP frame,return adu
@@ -217,8 +223,8 @@ func (sf *TCPClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []byte
 	var timeout time.Time
 	var tryCnt byte
 	for {
-		if sf.Timeout > 0 {
-			timeout = time.Now().Add(sf.Timeout)
+		if sf.timeout > 0 {
+			timeout = time.Now().Add(sf.timeout)
 		}
 		if err = sf.conn.SetDeadline(timeout); err != nil {
 			return nil, err
@@ -248,8 +254,8 @@ func (sf *TCPClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []byte
 	var cnt int
 	var mErr error
 	for {
-		if sf.Timeout > 0 {
-			timeout = time.Now().Add(sf.Timeout)
+		if sf.timeout > 0 {
+			timeout = time.Now().Add(sf.timeout)
 		}
 		if err = sf.conn.SetDeadline(timeout); err != nil {
 			return nil, err
@@ -294,8 +300,8 @@ func (sf *TCPClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []byte
 		return
 	}
 
-	if sf.Timeout > 0 {
-		timeout = time.Now().Add(sf.Timeout)
+	if sf.timeout > 0 {
+		timeout = time.Now().Add(sf.timeout)
 	}
 	if err = sf.conn.SetDeadline(timeout); err != nil {
 		return nil, err
@@ -322,8 +328,8 @@ func (sf *TCPClientProvider) Connect() error {
 
 // Caller must hold the mutex before calling this method.
 func (sf *TCPClientProvider) connect() error {
-	dialer := &net.Dialer{Timeout: sf.Timeout}
-	conn, err := dialer.Dial("tcp", sf.Address)
+	dialer := &net.Dialer{Timeout: sf.timeout}
+	conn, err := dialer.Dial("tcp", sf.address)
 	if err != nil {
 		return err
 	}
@@ -367,13 +373,19 @@ func (sf *TCPClientProvider) Close() error {
 	return err
 }
 
+func (sf *TCPClientProvider) setSerialConfig(serial.Config) {}
+
+func (sf *TCPClientProvider) setTCPTimeout(t time.Duration) {
+	sf.timeout = t
+}
+
 // flush flushes pending data in the connection,
 // returns io.EOF if connection is closed.
 func (sf *TCPClientProvider) flush(b []byte) (err error) {
 	if err = sf.conn.SetReadDeadline(time.Now()); err != nil {
 		return
 	}
-	// Timeout setting will be reset when reading
+	// timeout setting will be reset when reading
 	if _, err = sf.conn.Read(b); err != nil {
 		// Ignore timeout error
 		if netError, ok := err.(net.Error); ok && netError.Timeout() {

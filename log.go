@@ -33,8 +33,8 @@ func (sf *logger) LogMode(enable bool) {
 	}
 }
 
-// SetLogProvider overwrite log provider
-func (sf *logger) SetLogProvider(p LogProvider) {
+// setLogProvider overwrite log provider
+func (sf *logger) setLogProvider(p LogProvider) {
 	if p != nil {
 		sf.provider = p
 	}

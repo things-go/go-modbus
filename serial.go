@@ -70,6 +70,13 @@ func (sf *serialPort) SetAutoReconnect(cnt byte) {
 	sf.mu.Unlock()
 }
 
+// setSerialConfig set serial config
+func (sf *serialPort) setSerialConfig(config serial.Config) {
+	sf.Config = config
+}
+
+func (sf *serialPort) setTCPTimeout(time.Duration) {}
+
 // Close close current connection.
 func (sf *serialPort) Close() error {
 	var err error

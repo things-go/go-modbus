@@ -26,13 +26,16 @@ var asciiPool = newPool(asciiCharacterMaxSize)
 
 // NewASCIIClientProvider allocates and initializes a ASCIIClientProvider.
 // it will use default /dev/ttyS0 19200 8 1 N and timeout 1000
-func NewASCIIClientProvider() *ASCIIClientProvider {
+func NewASCIIClientProvider(opts ...ClientProviderOption) *ASCIIClientProvider {
 	p := &ASCIIClientProvider{
 		logger: newLogger("modbusASCIIMaster => "),
 		pool:   asciiPool,
 	}
 	p.Timeout = SerialDefaultTimeout
 	p.autoReconnect = SerialDefaultAutoReconnect
+	for _, opt := range opts {
+		opt(p)
+	}
 	return p
 }
 

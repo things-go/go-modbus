@@ -4,6 +4,9 @@ import (
 	"errors"
 	"reflect"
 	"testing"
+	"time"
+
+	"github.com/goburrow/serial"
 )
 
 // check implements ClientProvider interface
@@ -14,12 +17,11 @@ type provider struct {
 	err  error
 }
 
-func (*provider) Connect() error             { return nil }
-func (*provider) IsConnected() bool          { return true }
-func (*provider) SetAutoReconnect(byte)      {}
-func (*provider) LogMode(bool)               {}
-func (*provider) SetLogProvider(LogProvider) {}
-func (*provider) Close() error               { return nil }
+func (*provider) Connect() error        { return nil }
+func (*provider) IsConnected() bool     { return true }
+func (*provider) SetAutoReconnect(byte) {}
+func (*provider) LogMode(bool)          {}
+func (*provider) Close() error          { return nil }
 func (r *provider) Send(_ byte, _ ProtocolDataUnit) (ProtocolDataUnit, error) {
 	return ProtocolDataUnit{Data: r.data}, r.err
 }
@@ -29,6 +31,9 @@ func (*provider) SendPdu(byte, []byte) (pduResponse []byte, err error) {
 func (*provider) SendRawFrame([]byte) (aduResponse []byte, err error) {
 	return nil, nil
 }
+func (*provider) setLogProvider(LogProvider)           {}
+func (*provider) setSerialConfig(config serial.Config) {}
+func (*provider) setTCPTimeout(t time.Duration)        {}
 
 func Test_client_ReadCoils(t *testing.T) {
 	type args struct {

@@ -4,19 +4,23 @@ import (
 	"log"
 	"time"
 
+	"github.com/goburrow/serial"
 	modbus "github.com/thinkgos/gomodbus"
 	"github.com/thinkgos/gomodbus/mb"
 )
 
 func main() {
-	p := modbus.NewRTUClientProvider()
-	p.Address = "/dev/ttyUSB0"
-	p.BaudRate = 115200
-	p.DataBits = 8
-	p.Parity = "N"
-	p.StopBits = 1
+	p := modbus.NewRTUClientProvider(modbus.WithEnableLogger(),
+		modbus.WithSerialConfig(serial.Config{
+			Address:  "/dev/ttyUSB0",
+			BaudRate: 115200,
+			DataBits: 8,
+			StopBits: 1,
+			Parity:   "N",
+			Timeout:  modbus.SerialDefaultTimeout,
+		}))
+
 	client := mb.NewClient(p, mb.WitchHandler(&handler{}))
-	client.LogMode(true)
 	err := client.Start()
 	if err != nil {
 		panic(err)
