@@ -31,9 +31,9 @@ func (*provider) SendPdu(byte, []byte) (pduResponse []byte, err error) {
 func (*provider) SendRawFrame([]byte) (aduResponse []byte, err error) {
 	return nil, nil
 }
-func (*provider) setLogProvider(LogProvider)           {}
-func (*provider) setSerialConfig(config serial.Config) {}
-func (*provider) setTCPTimeout(t time.Duration)        {}
+func (*provider) setLogProvider(LogProvider)    {}
+func (*provider) setSerialConfig(serial.Config) {}
+func (*provider) setTCPTimeout(time.Duration)   {}
 
 func Test_client_ReadCoils(t *testing.T) {
 	type args struct {

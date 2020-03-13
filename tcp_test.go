@@ -41,7 +41,7 @@ func Test_TCPClientWithServer(t *testing.T) {
 		}
 
 		go func() {
-			mbSrv.ListenAndServe("localhost:48091")
+			_ = mbSrv.ListenAndServe("localhost:48091")
 		}()
 		time.Sleep(time.Second) // wait for server start
 		mbPro := NewTCPClientProvider("localhost:48091")
