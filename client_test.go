@@ -604,18 +604,55 @@ func Test_client_ReadWriteMultipleRegistersBytes(t *testing.T) {
 		want    []byte
 		wantErr bool
 	}{
-		{"slaveid不在范围1-247", &provider{},
-			args{slaveID: 248}, nil, true},
-		{"读数量不在范围1-125", &provider{},
-			args{slaveID: 1, readQuantity: 126}, nil, true},
-		{"读数量不在范围1-123", &provider{},
-			args{slaveID: 1, readQuantity: 1, writeQuantity: 124}, nil, true},
-		{"返回error", &provider{err: errors.New("error")},
-			args{slaveID: 1, readQuantity: 1, writeQuantity: 1}, nil, true},
-		{"返回数据长度不符", &provider{data: []byte{0x01, 0x00, 0x00}},
-			args{slaveID: 1, readQuantity: 1, writeQuantity: 1}, nil, true},
-		{"正确", &provider{data: []byte{0x02, 0x00, 0x03}},
-			args{slaveID: 1, readQuantity: 1, writeQuantity: 1}, []byte{0x00, 0x03}, false},
+		{
+			"slaveid不在范围1-247",
+			&provider{},
+			args{slaveID: 248},
+			nil,
+			true,
+		},
+		{
+			"读数量不在范围1-125",
+			&provider{},
+			args{slaveID: 1, readQuantity: 126},
+			nil,
+			true,
+		},
+		{
+			"读数量不在范围1-123",
+			&provider{},
+			args{slaveID: 1, readQuantity: 1, writeQuantity: 124},
+			nil,
+			true,
+		},
+		{
+			"返回error",
+			&provider{err: errors.New("error")},
+			args{slaveID: 1, readQuantity: 1, writeQuantity: 1, value: []byte{0x01, 0x02}},
+			nil,
+			true,
+		},
+		{
+			"value长度*2不等于数量的",
+			&provider{err: errors.New("error")},
+			args{slaveID: 1, readQuantity: 1, writeQuantity: 2, value: []byte{0x01, 0x02}},
+			nil,
+			true,
+		},
+		{
+			"返回数据长度不符",
+			&provider{data: []byte{0x01, 0x00, 0x00}},
+			args{slaveID: 1, readQuantity: 1, writeQuantity: 1, value: []byte{0x01, 0x02}},
+			nil,
+			true,
+		},
+		{
+			"正确",
+			&provider{data: []byte{0x02, 0x00, 0x03}},
+			args{slaveID: 1, readQuantity: 1, writeQuantity: 1, value: []byte{0x01, 0x02}},
+			[]byte{0x00, 0x03},
+			false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -650,19 +687,55 @@ func Test_client_ReadWriteMultipleRegisters(t *testing.T) {
 		want    []uint16
 		wantErr bool
 	}{
-		{"slaveid不在范围1-247", &provider{},
-			args{slaveID: 248}, nil, true},
-		{"读数量不在范围1-125", &provider{},
-			args{slaveID: 1, readQuantity: 126}, nil, true},
-		{"写数量不在范围1-123", &provider{},
-			args{slaveID: 1, readQuantity: 1, writeQuantity: 124}, nil, true},
-		{"返回error", &provider{err: errors.New("error")},
-			args{slaveID: 1, readQuantity: 1, writeQuantity: 124}, nil, true},
-		{"返回数据长度不符", &provider{data: []byte{0x01, 0x00, 0x00}},
-			args{slaveID: 1, readQuantity: 1, writeQuantity: 1}, nil, true},
-		{"正确", &provider{data: []byte{0x02, 0x00, 0x03}},
-			args{slaveID: 1, readQuantity: 1, writeQuantity: 1}, []uint16{0x0003}, false},
-	}
+		{
+			"slaveid不在范围1-247",
+			&provider{},
+			args{slaveID: 248},
+			nil,
+			true,
+		},
+		{
+			"读数量不在范围1-125",
+			&provider{},
+			args{slaveID: 1, readQuantity: 126},
+			nil,
+			true,
+		},
+		{
+			"读数量不在范围1-123",
+			&provider{},
+			args{slaveID: 1, readQuantity: 1, writeQuantity: 124},
+			nil,
+			true,
+		},
+		{
+			"返回error",
+			&provider{err: errors.New("error")},
+			args{slaveID: 1, readQuantity: 1, writeQuantity: 1, value: []byte{0x01, 0x02}},
+			nil,
+			true,
+		},
+		{
+			"value长度*2不等于数量的",
+			&provider{err: errors.New("error")},
+			args{slaveID: 1, readQuantity: 1, writeQuantity: 2, value: []byte{0x01, 0x02}},
+			nil,
+			true,
+		},
+		{
+			"返回数据长度不符",
+			&provider{data: []byte{0x01, 0x00, 0x00}},
+			args{slaveID: 1, readQuantity: 1, writeQuantity: 1, value: []byte{0x01, 0x02}},
+			nil,
+			true,
+		},
+		{
+			"正确",
+			&provider{data: []byte{0x02, 0x00, 0x03}},
+			args{slaveID: 1, readQuantity: 1, writeQuantity: 1, value: []byte{0x01, 0x02}},
+			[]uint16{0x0003},
+			false,
+		}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			this := &client{

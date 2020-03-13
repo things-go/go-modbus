@@ -459,6 +459,11 @@ func (sf *client) ReadWriteMultipleRegistersBytes(slaveID byte, readAddress, rea
 			writeQuantity, ReadWriteOnWriteRegQuantityMin, ReadWriteOnWriteRegQuantityMax)
 	}
 
+	if len(value) != int(writeQuantity*2) {
+		return nil, fmt.Errorf("modbus: value length '%v' does not twice as write quantity '%v'",
+			len(value), writeQuantity)
+	}
+
 	response, err := sf.Send(slaveID, ProtocolDataUnit{
 		FuncCode: FuncCodeReadWriteMultipleRegisters,
 		Data:     pduDataBlockSuffix(value, readAddress, readQuantity, writeAddress, writeQuantity),

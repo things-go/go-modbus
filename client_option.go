@@ -39,7 +39,7 @@ func WithSerialConfig(config serial.Config) ClientProviderOption {
 	}
 }
 
-// WithTCPTimeout set tcp Connect & Read timeout, only valid on serial
+// WithTCPTimeout set tcp Connect & Read timeout, only valid on TCP
 func WithTCPTimeout(t time.Duration) ClientProviderOption {
 	return func(p ClientProvider) {
 		p.setTCPTimeout(t)
