@@ -44,9 +44,9 @@ Bit access:
 ---
 
 ```go
-	p := modbus.NewTCPClientProvider("192.168.199.188:502")
+	p := modbus.NewTCPClientProvider("192.168.199.188:502",
+		modbus.WithEnableLogger())
 	client := modbus.NewClient(p)
-	client.LogMode(true)
 	err := client.Connect()
 	if err != nil {
 		fmt.Println("connect failed, ", err)
@@ -68,14 +68,16 @@ Bit access:
 
 ```go
     // modbus RTU/ASCII Client
-    p := modbus.NewRTUClientProvider("")
-    p.Address = "COM5"
-    p.BaudRate = 115200
-	p.DataBits = 8
-	p.Parity = "N"
-	p.StopBits = 1
+	p := modbus.NewRTUClientProvider(modbus.WithEnableLogger(),
+		modbus.WithSerialConfig(serial.Config{
+			Address:  "COM5",
+			BaudRate: 115200,
+			DataBits: 8,
+			StopBits: 1,
+			Parity:   "N",
+			Timeout:  modbus.SerialDefaultTimeout,
+		}))
 	client := modbus.NewClient(p)
-	client.LogMode(true)
 	err := client.Connect()
 	if err != nil {
 		fmt.Println("connect failed, ", err)
@@ -115,14 +117,16 @@ Bit access:
 ```go
     // mb simple example
     func main() {
-        p := modbus.NewRTUClientProvider()
-        p.Address = "/dev/ttyUSB0"
-        p.BaudRate = 115200
-        p.DataBits = 8
-        p.Parity = "N"
-        p.StopBits = 1
+        p := modbus.NewRTUClientProvider(modbus.WithEnableLogger(),
+            modbus.WithSerialConfig(serial.Config{
+                Address:  "/dev/ttyUSB0",
+                BaudRate: 115200,
+                DataBits: 8,
+                StopBits: 1,
+                Parity:   "N",
+                Timeout:  modbus.SerialDefaultTimeout,
+            }))
         client := mb.NewClient(p, mb.WitchHandler(&handler{}))
-        client.LogMode(true)
         err := client.Start()
         if err != nil {
             panic(err)
