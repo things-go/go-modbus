@@ -119,6 +119,117 @@ func Test_client_ReadDiscreteInputs(t *testing.T) {
 	}
 }
 
+func Test_client_WriteSingleCoil(t *testing.T) {
+	type args struct {
+		slaveID byte
+		address uint16
+		isOn    bool
+	}
+	tests := []struct {
+		name    string
+		provide ClientProvider
+		args    args
+		wantErr bool
+	}{
+		{"slaveid不在范围0-247", &provider{},
+			args{slaveID: 248}, true},
+		{"返回error", &provider{err: errors.New("error")},
+			args{slaveID: 1}, true},
+		{"返回数据长度不符", &provider{data: []byte{0x01, 0x00, 0x00}},
+			args{slaveID: 1}, true},
+		{"返回字节不符合", &provider{data: []byte{0x01, 0x00}},
+			args{slaveID: 1}, true},
+		{"返回地址不符合", &provider{data: []byte{0x00, 0x01, 0xff, 0x00}},
+			args{slaveID: 1}, true},
+		{"返回值不符合", &provider{data: []byte{0x00, 0x00, 0xff, 0x00}},
+			args{slaveID: 1}, true},
+		{"正确", &provider{data: []byte{0x00, 0x00, 0xff, 0x00}},
+			args{slaveID: 1, isOn: true}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			this := &client{
+				ClientProvider: tt.provide,
+			}
+			if err := this.WriteSingleCoil(tt.args.slaveID, tt.args.address, tt.args.isOn); (err != nil) != tt.wantErr {
+				t.Errorf("client.WriteSingleCoil() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func Test_client_WriteMultipleCoils(t *testing.T) {
+	type args struct {
+		slaveID  byte
+		address  uint16
+		quantity uint16
+		value    []byte
+	}
+	tests := []struct {
+		name    string
+		provide ClientProvider
+		args    args
+		wantErr bool
+	}{
+		{
+			"slaveid不在范围0-247",
+			&provider{},
+			args{slaveID: 248},
+			true,
+		},
+		{
+			"quantity不在范围1-1968",
+			&provider{},
+			args{quantity: 1969},
+			true,
+		},
+		{
+			"返回error",
+			&provider{err: errors.New("error")},
+			args{quantity: 1, value: []byte{1}},
+			true,
+		},
+		{
+			"value * 8 位数小于数量",
+			&provider{data: []byte{0x00, 0x00, 0x00}},
+			args{quantity: 9, value: []byte{1}},
+			true,
+		},
+		{
+			"返回数据长度不符",
+			&provider{data: []byte{0x00, 0x00, 0x00}},
+			args{quantity: 1, value: []byte{1}},
+			true,
+		},
+		{
+			"返回地址与请求一致",
+			&provider{data: []byte{0x00, 0x01, 0x00, 0x01}},
+			args{quantity: 1, value: []byte{1}}, true},
+		{
+			"返回数量与请求不一致",
+			&provider{data: []byte{0x00, 0x00, 0x00, 0x02}},
+			args{quantity: 1, value: []byte{1}},
+			true,
+		},
+		{
+			"正确",
+			&provider{data: []byte{0x00, 0x00, 0x00, 0x01}},
+			args{quantity: 1, value: []byte{1}},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			this := &client{
+				ClientProvider: tt.provide,
+			}
+			if err := this.WriteMultipleCoils(tt.args.slaveID, tt.args.address, tt.args.quantity, tt.args.value); (err != nil) != tt.wantErr {
+				t.Errorf("client.WriteMultipleCoils() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
 func Test_client_ReadHoldingRegistersBytes(t *testing.T) {
 	type args struct {
 		slaveID  byte
@@ -291,45 +402,6 @@ func Test_client_ReadInputRegisters(t *testing.T) {
 	}
 }
 
-func Test_client_WriteSingleCoil(t *testing.T) {
-	type args struct {
-		slaveID byte
-		address uint16
-		isOn    bool
-	}
-	tests := []struct {
-		name    string
-		provide ClientProvider
-		args    args
-		wantErr bool
-	}{
-		{"slaveid不在范围0-247", &provider{},
-			args{slaveID: 248}, true},
-		{"返回error", &provider{err: errors.New("error")},
-			args{slaveID: 1}, true},
-		{"返回数据长度不符", &provider{data: []byte{0x01, 0x00, 0x00}},
-			args{slaveID: 1}, true},
-		{"返回字节不符合", &provider{data: []byte{0x01, 0x00}},
-			args{slaveID: 1}, true},
-		{"返回地址不符合", &provider{data: []byte{0x00, 0x01, 0xff, 0x00}},
-			args{slaveID: 1}, true},
-		{"返回值不符合", &provider{data: []byte{0x00, 0x00, 0xff, 0x00}},
-			args{slaveID: 1}, true},
-		{"正确", &provider{data: []byte{0x00, 0x00, 0xff, 0x00}},
-			args{slaveID: 1, isOn: true}, false},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			this := &client{
-				ClientProvider: tt.provide,
-			}
-			if err := this.WriteSingleCoil(tt.args.slaveID, tt.args.address, tt.args.isOn); (err != nil) != tt.wantErr {
-				t.Errorf("client.WriteSingleCoil() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
-}
-
 func Test_client_WriteSingleRegister(t *testing.T) {
 	type args struct {
 		slaveID byte
@@ -369,7 +441,7 @@ func Test_client_WriteSingleRegister(t *testing.T) {
 	}
 }
 
-func Test_client_WriteMultipleCoils(t *testing.T) {
+func Test_client_WriteMultipleRegistersBytes(t *testing.T) {
 	type args struct {
 		slaveID  byte
 		address  uint16
@@ -382,28 +454,63 @@ func Test_client_WriteMultipleCoils(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		{"slaveid不在范围0-247", &provider{},
-			args{slaveID: 248}, true},
-		{"quantity不在范围1-1968", &provider{},
-			args{quantity: 1969}, true},
-		{"返回error", &provider{err: errors.New("error")},
-			args{quantity: 1}, true},
-		{"返回数据长度不符", &provider{data: []byte{0x00, 0x00, 0x00}},
-			args{quantity: 1}, true},
-		{"返回地址与请求一致", &provider{data: []byte{0x00, 0x01, 0x00, 0x01}},
-			args{quantity: 1}, true},
-		{"返回数量与请求不一致", &provider{data: []byte{0x00, 0x00, 0x00, 0x02}},
-			args{quantity: 1}, true},
-		{"正确", &provider{data: []byte{0x00, 0x00, 0x00, 0x01}},
-			args{quantity: 1}, false},
+		{
+			"slaveid不在范围0-247",
+			&provider{},
+			args{slaveID: 248},
+			true,
+		},
+		{
+			"quantity不在范围1-123",
+			&provider{},
+			args{quantity: 124},
+			true,
+		},
+		{
+			"返回error",
+			&provider{err: errors.New("error")},
+			args{quantity: 1, value: []byte{0x01, 0x02}},
+			true,
+		},
+		{
+			"value数据长度*2与数量不一致",
+			&provider{data: []byte{0x00, 0x00, 0x00}},
+			args{quantity: 2, value: []byte{0x01, 0x02}},
+			true,
+		},
+		{
+			"返回数据长度不符",
+			&provider{data: []byte{0x00, 0x00, 0x00}},
+			args{quantity: 1, value: []byte{0x01, 0x02}},
+			true,
+		},
+		{
+			"返回地址与请求一致",
+			&provider{data: []byte{0x00, 0x01, 0x00, 0x01}},
+			args{quantity: 1,
+				value: []byte{0x01, 0x02}},
+			true,
+		},
+		{
+			"返回数量与请求不一致",
+			&provider{data: []byte{0x00, 0x00, 0x00, 0x02}},
+			args{quantity: 1, value: []byte{0x01, 0x02}},
+			true,
+		},
+		{
+			"正确",
+			&provider{data: []byte{0x00, 0x00, 0x00, 0x01}},
+			args{quantity: 1, value: []byte{0x01, 0x02}},
+			false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			this := &client{
 				ClientProvider: tt.provide,
 			}
-			if err := this.WriteMultipleCoils(tt.args.slaveID, tt.args.address, tt.args.quantity, tt.args.value); (err != nil) != tt.wantErr {
-				t.Errorf("client.WriteMultipleCoils() error = %v, wantErr %v", err, tt.wantErr)
+			if err := this.WriteMultipleRegistersBytes(tt.args.slaveID, tt.args.address, tt.args.quantity, tt.args.value); (err != nil) != tt.wantErr {
+				t.Errorf("client.WriteMultipleRegisters() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -414,7 +521,7 @@ func Test_client_WriteMultipleRegisters(t *testing.T) {
 		slaveID  byte
 		address  uint16
 		quantity uint16
-		value    []byte
+		value    []uint16
 	}
 	tests := []struct {
 		name    string
@@ -422,28 +529,20 @@ func Test_client_WriteMultipleRegisters(t *testing.T) {
 		args    args
 		wantErr bool
 	}{
-		{"slaveid不在范围0-247", &provider{},
-			args{slaveID: 248}, true},
-		{"quantity不在范围1-123", &provider{},
-			args{quantity: 124}, true},
-		{"返回error", &provider{err: errors.New("error")},
-			args{quantity: 1}, true},
-		{"返回数据长度不符", &provider{data: []byte{0x00, 0x00, 0x00}},
-			args{quantity: 1}, true},
-		{"返回地址与请求一致", &provider{data: []byte{0x00, 0x01, 0x00, 0x01}},
-			args{quantity: 1}, true},
-		{"返回数量与请求不一致", &provider{data: []byte{0x00, 0x00, 0x00, 0x02}},
-			args{quantity: 1}, true},
-		{"正确", &provider{data: []byte{0x00, 0x00, 0x00, 0x01}},
-			args{quantity: 1}, false},
+		{
+			"正确",
+			&provider{data: []byte{0x00, 0x00, 0x00, 0x01}},
+			args{quantity: 1, value: []uint16{0x0102}},
+			false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			this := &client{
+			sf := &client{
 				ClientProvider: tt.provide,
 			}
-			if err := this.WriteMultipleRegisters(tt.args.slaveID, tt.args.address, tt.args.quantity, tt.args.value); (err != nil) != tt.wantErr {
-				t.Errorf("client.WriteMultipleRegisters() error = %v, wantErr %v", err, tt.wantErr)
+			if err := sf.WriteMultipleRegisters(tt.args.slaveID, tt.args.address, tt.args.quantity, tt.args.value); (err != nil) != tt.wantErr {
+				t.Errorf("WriteMultipleRegisters() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -623,7 +722,7 @@ func Test_client_ReadFIFOQueue(t *testing.T) {
 	}
 }
 
-func Test_pduDataBlock(t *testing.T) {
+func Test_uint162Bytes(t *testing.T) {
 	type args struct {
 		value []uint16
 	}
@@ -636,8 +735,8 @@ func Test_pduDataBlock(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := pduDataBlock(tt.args.value...); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("pduDataBlock() = %v, want %v", got, tt.want)
+			if got := uint162Bytes(tt.args.value...); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("uint162Bytes() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -687,7 +786,7 @@ func Test_bytes2Uint16(t *testing.T) {
 func Benchmark_dataBlock(b *testing.B) {
 	data := []uint16{0x01, 0x10, 0x8A, 0x00, 0x00, 0x03, 0xAA, 0x10}
 	for i := 0; i < b.N; i++ {
-		pduDataBlock(data...)
+		uint162Bytes(data...)
 	}
 }
 

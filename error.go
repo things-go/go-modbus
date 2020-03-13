@@ -4,5 +4,5 @@ import (
 	"errors"
 )
 
-// ErrClosedConnection 连接已关闭
+// ErrClosedConnection connection has closed
 var ErrClosedConnection = errors.New("use of closed connection")

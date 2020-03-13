@@ -189,7 +189,7 @@ type ProtocolDataUnit struct {
 	Data     []byte
 }
 
-// protocolRTUFrame 帧结构用于底层对象缓冲池rtu
+// protocolFrame protocol frame in pool
 type protocolFrame struct {
 	adu []byte
 }
@@ -215,6 +215,7 @@ type ClientProvider interface {
 	SendPdu(slaveID byte, pduRequest []byte) (pduResponse []byte, err error)
 	// SendRawFrame send raw frame to the remote server
 	SendRawFrame(aduRequest []byte) (aduResponse []byte, err error)
+
 	// private interface
 	// setLogProvider set logger provider
 	setLogProvider(p LogProvider)

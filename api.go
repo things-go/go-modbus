@@ -21,7 +21,7 @@ type Client interface {
 
 	// 16-bits
 
-	// ReadInputRegisters reads from 1 to 125 contiguous input registers in
+	// ReadInputRegistersBytes reads from 1 to 125 contiguous input registers in
 	// a remote device and returns input registers.
 	ReadInputRegistersBytes(slaveID byte, address, quantity uint16) (results []byte, err error)
 	// ReadInputRegisters reads from 1 to 125 contiguous input registers in
@@ -38,11 +38,14 @@ type Client interface {
 	// WriteSingleRegister writes a single holding register in a remote
 	// device and returns success or failed.
 	WriteSingleRegister(slaveID byte, address, value uint16) error
+	// WriteMultipleRegistersBytes writes a block of contiguous registers
+	// (1 to 123 registers) in a remote device and returns success or failed.
+	WriteMultipleRegistersBytes(slaveID byte, address, quantity uint16, value []byte) error
 	// WriteMultipleRegisters writes a block of contiguous registers
 	// (1 to 123 registers) in a remote device and returns success or failed.
-	WriteMultipleRegisters(slaveID byte, address, quantity uint16, value []byte) error
+	WriteMultipleRegisters(slaveID byte, address, quantity uint16, value []uint16) error
 
-	// ReadWriteMultipleRegisters performs a combination of one read
+	// ReadWriteMultipleRegistersBytes performs a combination of one read
 	// operation and one write operation. It returns read registers value.
 	ReadWriteMultipleRegistersBytes(slaveID byte, readAddress, readQuantity,
 		writeAddress, writeQuantity uint16, value []byte) (results []byte, err error)

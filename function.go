@@ -6,7 +6,7 @@ import (
 	"sync"
 )
 
-// pdu数据域 各功能码要求的最小长度
+// handle pdu data filed limit size
 const (
 	FuncReadMinSize       = 4 // 读操作 最小数据域个数
 	FuncWriteMinSize      = 4 // 写操作 最小数据域个数
@@ -133,7 +133,7 @@ func funcReadDiscreteInputs(reg *NodeRegister, data []byte) ([]byte, error) {
 	return readBits(reg, data, false)
 }
 
-// funcReadCoils 读线圈
+// funcReadCoils read multi coils
 // data:
 //  Starting address      : 2 byte
 //  Quantity              : 2 byte
@@ -144,7 +144,7 @@ func funcReadCoils(reg *NodeRegister, data []byte) ([]byte, error) {
 	return readBits(reg, data, true)
 }
 
-// funcWriteSingleCoil 写单个线圈
+// funcWriteSingleCoil write single coil
 // data:
 //  Address      		  : 2 byte
 //  Value                 : 2 byte  0xff00 or 0x0000s
@@ -170,7 +170,7 @@ func funcWriteSingleCoil(reg *NodeRegister, data []byte) ([]byte, error) {
 	return data, err
 }
 
-// funcWriteMultiCoils 写多个线圈
+// funcWriteMultiCoils write multi coils
 // data:
 //  Starting address      : 2 byte
 //  Quantity              : 2 byte
@@ -195,7 +195,7 @@ func funcWriteMultiCoils(reg *NodeRegister, data []byte) ([]byte, error) {
 	return data[:4], err
 }
 
-// readRegisters 读继寄器
+// readRegisters read multi registers
 func readRegisters(reg *NodeRegister, data []byte, isHolding bool) ([]byte, error) {
 	var err error
 	var value []byte
