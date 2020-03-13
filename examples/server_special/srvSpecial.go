@@ -11,7 +11,7 @@ import (
 
 func main() {
 	srv := modbus.NewTCPServerSpecial()
-	if err := srv.AddRemoteServer("192.168.199.148:2404"); err != nil {
+	if err := srv.AddRemoteServer("127.0.0.1:3001"); err != nil {
 		panic(err)
 	}
 	srv.LogMode(true)

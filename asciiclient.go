@@ -31,7 +31,6 @@ func NewASCIIClientProvider(opts ...ClientProviderOption) *ASCIIClientProvider {
 		logger: newLogger("modbusASCIIMaster => "),
 		pool:   asciiPool,
 	}
-	p.Timeout = SerialDefaultTimeout
 	p.autoReconnect = SerialDefaultAutoReconnect
 	for _, opt := range opts {
 		opt(p)

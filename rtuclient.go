@@ -31,7 +31,6 @@ func NewRTUClientProvider(opts ...ClientProviderOption) *RTUClientProvider {
 		logger: newLogger("modbusRTUMaster => "),
 		pool:   rtuPool,
 	}
-	p.Timeout = SerialDefaultTimeout
 	p.autoReconnect = SerialDefaultAutoReconnect
 	for _, opt := range opts {
 		opt(p)
