@@ -60,7 +60,7 @@ func (sf *TCPServer) Close() error {
 	return nil
 }
 
-// ListenAndServe 服务
+// ListenAndServe listen and server
 func (sf *TCPServer) ListenAndServe(addr string) error {
 	listen, err := net.Listen("tcp", addr)
 	if err != nil {
