@@ -55,11 +55,11 @@ func (sf *protocolFrame) encodeASCIIFrame(slaveID byte, pdu ProtocolDataUnit) ([
 	}
 
 	// Exclude the beginning colon and terminating CRLF pair characters
-	lrcVal := new(lrc).reset().
-		push(slaveID).
-		push(pdu.FuncCode).
-		push(pdu.Data...).
-		value()
+	lrcVal := new(LRC).Reset().
+		Push(slaveID).
+		Push(pdu.FuncCode).
+		Push(pdu.Data...).
+		Value()
 
 	// real ascii frame to send,
 	// including asciiStart + ( slaveID + functionCode + data + lrc ) + CRLF
@@ -102,7 +102,7 @@ func decodeASCIIFrame(adu []byte) (uint8, []byte, error) {
 		return 0, nil, err
 	}
 	// Calculate checksum
-	lrcVal := new(lrc).reset().push(buf[:length-1]...).value()
+	lrcVal := new(LRC).Reset().Push(buf[:length-1]...).Value()
 	if buf[length-1] != lrcVal { // LRC
 		return 0, nil, fmt.Errorf("modbus: response lrc '%x' does not match expected '%x'",
 			buf[length-1], lrcVal)

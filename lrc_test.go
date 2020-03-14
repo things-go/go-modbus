@@ -4,8 +4,8 @@ import (
 	"testing"
 )
 
-func Test_lrc(t *testing.T) {
-	var lrc lrc
+func Test_LRC(t *testing.T) {
+	var lrc LRC
 	type args struct {
 		bs []byte
 	}
@@ -18,16 +18,16 @@ func Test_lrc(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := lrc.reset().push(tt.args.bs...).value(); got != tt.want {
+			if got := lrc.Reset().Push(tt.args.bs...).Value(); got != tt.want {
 				t.Errorf("lrc() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func Benchmark_lrc(b *testing.B) {
-	var lrc lrc
+func Benchmark_LRC(b *testing.B) {
+	var lrc LRC
 	for i := 0; i < b.N; i++ {
-		lrc.reset().push([]byte{0x02, 0x07, 0x01, 0x03, 0x01, 0x0a}...).value()
+		lrc.Reset().Push([]byte{0x02, 0x07, 0x01, 0x03, 0x01, 0x0a}...).Value()
 	}
 }

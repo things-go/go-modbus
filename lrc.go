@@ -1,21 +1,25 @@
 package modbus
 
-type lrc struct {
+// LRC lrc sum
+type LRC struct {
 	sum uint8
 }
 
-func (sf *lrc) reset() *lrc {
+// Reset rest lrc sum
+func (sf *LRC) Reset() *LRC {
 	sf.sum = 0
 	return sf
 }
 
-func (sf *lrc) push(data ...byte) *lrc {
+// Push push data in sum
+func (sf *LRC) Push(data ...byte) *LRC {
 	for _, b := range data {
 		sf.sum += b
 	}
 	return sf
 }
 
-func (sf *lrc) value() byte {
+// Value got lrc value
+func (sf *LRC) Value() byte {
 	return uint8(-int8(sf.sum))
 }

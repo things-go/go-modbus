@@ -47,7 +47,7 @@ func (sf *protocolFrame) encodeRTUFrame(slaveID byte, pdu ProtocolDataUnit) ([]b
 	requestAdu := sf.adu[:0:length]
 	requestAdu = append(requestAdu, slaveID, pdu.FuncCode)
 	requestAdu = append(requestAdu, pdu.Data...)
-	checksum := crc16(requestAdu)
+	checksum := CRC16(requestAdu)
 	requestAdu = append(requestAdu, byte(checksum), byte(checksum>>8))
 	return requestAdu, nil
 }
@@ -59,7 +59,7 @@ func decodeRTUFrame(adu []byte) (uint8, []byte, error) {
 			len(adu), rtuAduMinSize)
 	}
 	// Calculate checksum
-	crc := crc16(adu[0 : len(adu)-2])
+	crc := CRC16(adu[0 : len(adu)-2])
 	expect := binary.LittleEndian.Uint16(adu[len(adu)-2:])
 	if crc != expect {
 		return 0, nil, fmt.Errorf("modbus: response crc '%x' does not match expected '%x'",
@@ -244,7 +244,7 @@ func calculateResponseLength(adu []byte) int {
 
 // helper
 
-// verify confirms vaild data(including slaveID,funcCode,response data)
+// verify confirms valid data(including slaveID,funcCode,response data)
 func verify(reqSlaveID, rspSlaveID uint8, reqPDU, rspPDU ProtocolDataUnit) error {
 	switch {
 	case reqSlaveID != rspSlaveID: // Check slaveID same

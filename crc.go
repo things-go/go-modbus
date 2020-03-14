@@ -12,7 +12,8 @@ type crc struct {
 
 var crcTb crc
 
-func crc16(bs []byte) uint16 {
+// CRC16 Calculate Cyclical Redundancy Checking
+func CRC16(bs []byte) uint16 {
 	crcTb.once.Do(crcTb.initTable)
 
 	val := uint16(0xFFFF)
