@@ -7,7 +7,7 @@ import (
 	"math/rand"
 	"time"
 
-	modbus "github.com/thinkgos/gomodbus"
+	modbus "github.com/thinkgos/gomodbus/v2"
 	"github.com/thinkgos/timing"
 )
 
