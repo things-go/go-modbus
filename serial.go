@@ -28,11 +28,11 @@ type serialPort struct {
 }
 
 // Connect try to connect the remote server
-func (sf *serialPort) Connect() error {
+func (sf *serialPort) Connect() (err error) {
 	sf.mu.Lock()
-	err := sf.connect()
+	err = sf.connect()
 	sf.mu.Unlock()
-	return err
+	return
 }
 
 // Caller must hold the mutex before calling this method.
@@ -46,9 +46,9 @@ func (sf *serialPort) connect() error {
 }
 
 // IsConnected returns a bool signifying whether the client is connected or not.
-func (sf *serialPort) IsConnected() bool {
+func (sf *serialPort) IsConnected() (b bool) {
 	sf.mu.Lock()
-	b := sf.isConnected()
+	b = sf.isConnected()
 	sf.mu.Unlock()
 	return b
 }
@@ -78,13 +78,12 @@ func (sf *serialPort) setSerialConfig(config serial.Config) {
 func (sf *serialPort) setTCPTimeout(time.Duration) {}
 
 // Close close current connection.
-func (sf *serialPort) Close() error {
-	var err error
+func (sf *serialPort) Close() (err error) {
 	sf.mu.Lock()
 	if sf.port != nil {
 		err = sf.port.Close()
 		sf.port = nil
 	}
 	sf.mu.Unlock()
-	return err
+	return
 }

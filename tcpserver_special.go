@@ -53,14 +53,14 @@ type TCPServerSpecial struct {
 	cancel            context.CancelFunc      // cancel
 }
 
-// NewTCPServerSpecial new tcp server special
+// NewTCPServerSpecial new tcp server special, default enable auto reconnect
 func NewTCPServerSpecial() *TCPServerSpecial {
 	return &TCPServerSpecial{
 		ServerSession: ServerSession{
 			readTimeout:  TCPDefaultReadTimeout,
 			writeTimeout: TCPDefaultWriteTimeout,
 			serverCommon: newServerCommon(),
-			logger:       newLogger("modbusTCPServerSpec =>"),
+			logger:       newLogger("modbusTCPServerSpec => "),
 		},
 		connectTimeout:    DefaultConnectTimeout,
 		autoReconnect:     true,
@@ -79,58 +79,67 @@ func (sf *TCPServerSpecial) UnderlyingConn() net.Conn {
 }
 
 // SetConnectTimeout set tcp connect the host timeout
-func (sf *TCPServerSpecial) SetConnectTimeout(t time.Duration) {
+func (sf *TCPServerSpecial) SetConnectTimeout(t time.Duration) *TCPServerSpecial {
 	sf.connectTimeout = t
+	return sf
 }
 
 // SetReconnectInterval set tcp  reconnect the host interval when connect failed after try
-func (sf *TCPServerSpecial) SetReconnectInterval(t time.Duration) {
+func (sf *TCPServerSpecial) SetReconnectInterval(t time.Duration) *TCPServerSpecial {
 	sf.reconnectInterval = t
+	return sf
 }
 
 // EnableAutoReconnect enable auto reconnect
-func (sf *TCPServerSpecial) EnableAutoReconnect(b bool) {
+func (sf *TCPServerSpecial) EnableAutoReconnect(b bool) *TCPServerSpecial {
 	sf.autoReconnect = b
+	return sf
 }
 
 // SetTLSConfig set tls config
-func (sf *TCPServerSpecial) SetTLSConfig(t *tls.Config) {
+func (sf *TCPServerSpecial) SetTLSConfig(t *tls.Config) *TCPServerSpecial {
 	sf.TLSConfig = t
+	return sf
 }
 
 // SetReadTimeout set read timeout
-func (sf *ServerSession) SetReadTimeout(t time.Duration) {
+func (sf *TCPServerSpecial) SetReadTimeout(t time.Duration) *TCPServerSpecial {
 	sf.readTimeout = t
+	return sf
 }
 
 // SetWriteTimeout set write timeout
-func (sf *ServerSession) SetWriteTimeout(t time.Duration) {
+func (sf *TCPServerSpecial) SetWriteTimeout(t time.Duration) *TCPServerSpecial {
 	sf.writeTimeout = t
+	return sf
 }
 
 // SetOnConnectHandler set on connect handler
-func (sf *TCPServerSpecial) SetOnConnectHandler(f OnConnectHandler) {
+func (sf *TCPServerSpecial) SetOnConnectHandler(f OnConnectHandler) *TCPServerSpecial {
 	if f != nil {
 		sf.onConnect = f
 	}
+	return sf
 }
 
 // SetConnectionLostHandler set connection lost handler
-func (sf *TCPServerSpecial) SetConnectionLostHandler(f OnConnectionLostHandler) {
+func (sf *TCPServerSpecial) SetConnectionLostHandler(f OnConnectionLostHandler) *TCPServerSpecial {
 	if f != nil {
 		sf.onConnectionLost = f
 	}
+	return sf
 }
 
 // SetKeepAlive set keep alive enable, alive time and handler
-func (sf *TCPServerSpecial) SetKeepAlive(b bool, t time.Duration, f OnKeepAliveHandler) {
-	sf.enableKeepAlive = b
+func (sf *TCPServerSpecial) SetKeepAlive(enable bool, t time.Duration, f OnKeepAliveHandler) *TCPServerSpecial {
+	sf.enableKeepAlive = enable
 	if t > 0 {
 		sf.keepAliveInterval = t
 	}
 	if f != nil {
 		sf.onKeepAlive = f
 	}
+	return sf
 }
 
 // AddRemoteServer adds a broker URI to the list of brokers to be used.
@@ -155,9 +164,8 @@ func (sf *TCPServerSpecial) AddRemoteServer(server string) error {
 // Start start the server,and return quickly,if it nil,the server will connecting background,other failed
 func (sf *TCPServerSpecial) Start() error {
 	if sf.server == nil {
-		return errors.New("empty remote server")
+		return errors.New("empty remote server address,add it first")
 	}
-
 	go sf.run()
 	return nil
 }

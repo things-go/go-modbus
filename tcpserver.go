@@ -31,18 +31,20 @@ func NewTCPServer() *TCPServer {
 		readTimeout:  TCPDefaultReadTimeout,
 		writeTimeout: TCPDefaultWriteTimeout,
 		serverCommon: newServerCommon(),
-		logger:       newLogger("modbusTCPServer =>"),
+		logger:       newLogger("modbusTCPServer => "),
 	}
 }
 
 // SetReadTimeout set read timeout
-func (sf *TCPServer) SetReadTimeout(t time.Duration) {
+func (sf *TCPServer) SetReadTimeout(t time.Duration) *TCPServer {
 	sf.readTimeout = t
+	return sf
 }
 
 // SetWriteTimeout set write timeout
-func (sf *TCPServer) SetWriteTimeout(t time.Duration) {
+func (sf *TCPServer) SetWriteTimeout(t time.Duration) *TCPServer {
 	sf.writeTimeout = t
+	return sf
 }
 
 // Close close the server until all server close then return

@@ -10,7 +10,17 @@ import (
 )
 
 func main() {
-	srv := modbus.NewTCPServerSpecial()
+	srv := modbus.NewTCPServerSpecial().
+		SetOnConnectHandler(func(c *modbus.TCPServerSpecial) error {
+			_, err := c.UnderlyingConn().Write([]byte("hello world"))
+			return err
+		}).
+		SetConnectionLostHandler(func(c *modbus.TCPServerSpecial) {
+			log.Println("connect lost")
+		}).
+		SetKeepAlive(true, time.Second*20, func(c *modbus.TCPServerSpecial) {
+			_, _ = c.UnderlyingConn().Write([]byte("keep alive"))
+		})
 	if err := srv.AddRemoteServer("127.0.0.1:3001"); err != nil {
 		panic(err)
 	}
@@ -27,20 +37,8 @@ func main() {
 		modbus.NewNodeRegister(
 			3,
 			0, 10, 0, 10,
-			0, 10, 0, 10))
-
-	srv.SetOnConnectHandler(func(c *modbus.TCPServerSpecial) error {
-		_, err := c.UnderlyingConn().Write([]byte("hello world"))
-		return err
-	})
-
-	srv.SetConnectionLostHandler(func(c *modbus.TCPServerSpecial) {
-		log.Println("connect lost")
-	})
-
-	srv.SetKeepAlive(true, time.Second*20, func(c *modbus.TCPServerSpecial) {
-		c.UnderlyingConn().Write([]byte("keep alive"))
-	})
+			0, 10, 0, 10),
+	)
 
 	if err := srv.Start(); err != nil {
 		panic(err)

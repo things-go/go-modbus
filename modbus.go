@@ -232,6 +232,6 @@ type LogProvider interface {
 }
 
 // SetSpecialAddressMax set special slaveID limit
-func SetSpecialAddressMax(addr byte) {
-	AddressMax = addr
+func SetSpecialAddressMax(slaveID byte) {
+	AddressMax = slaveID
 }

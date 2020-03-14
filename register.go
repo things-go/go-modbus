@@ -57,10 +57,11 @@ func (sf *NodeRegister) SlaveID() byte {
 }
 
 // SetSlaveID 更改从站地址
-func (sf *NodeRegister) SetSlaveID(id byte) {
+func (sf *NodeRegister) SetSlaveID(id byte) *NodeRegister {
 	sf.rw.Lock()
 	sf.slaveID = id
 	sf.rw.Unlock()
+	return sf
 }
 
 // getBits 读取切片的位的值, nBits <= 8, nBits + start <= len(buf)*8
