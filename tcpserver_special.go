@@ -145,7 +145,7 @@ func (sf *TCPServerSpecial) SetKeepAlive(enable bool, t time.Duration, f OnKeepA
 // AddRemoteServer adds a broker URI to the list of brokers to be used.
 // The format should be scheme://host:port
 // Default values for hostname is "127.0.0.1", for schema is "tcp://".
-// An example broker URI would look like: tcp://foobar.com:1204
+// An example broker URI would look like: tcp://foobar.com:502
 func (sf *TCPServerSpecial) AddRemoteServer(server string) error {
 	if len(server) > 0 && server[0] == ':' {
 		server = "127.0.0.1" + server
