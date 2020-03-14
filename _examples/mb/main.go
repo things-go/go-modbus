@@ -20,7 +20,7 @@ func main() {
 			Timeout:  modbus.SerialDefaultTimeout,
 		}))
 
-	client := mb.NewClient(p, mb.WitchHandler(&handler{}))
+	client := mb.New(p, mb.WitchHandler(&handler{}))
 	err := client.Start()
 	if err != nil {
 		panic(err)

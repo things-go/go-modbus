@@ -58,8 +58,8 @@ type Request struct {
 	tm       *timing.Entry // 时间句柄
 }
 
-// NewClient 创建新的client
-func NewClient(p modbus.ClientProvider, opts ...Option) *Client {
+// New 创建新的client
+func New(p modbus.ClientProvider, opts ...Option) *Client {
 	ctx, cancel := context.WithCancel(context.Background())
 	c := &Client{
 		Client:         modbus.NewClient(p),
