@@ -3,7 +3,7 @@ package main
 import (
 	"net/http"
 
-	modbus "github.com/thinkgos/gomodbus"
+	modbus "github.com/thinkgos/gomodbus/v2"
 
 	_ "net/http/pprof"
 )

@@ -19,6 +19,17 @@
 - fast encode and decode
 - interface design
 - simple API and support raw data api
+### Installation
+
+Use go get.
+```bash
+    go get github.com/thinkgos/gomodbus/v2
+```
+
+Then import the modbus package into your own code.
+```bash
+    import modbus "github.com/thinkgos/gomodbus/v2"
+```
 
 ### Supported functions
 

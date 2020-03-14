@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/goburrow/serial"
-	modbus "github.com/thinkgos/gomodbus"
-	"github.com/thinkgos/gomodbus/mb"
+	modbus "github.com/thinkgos/gomodbus/v2"
+	"github.com/thinkgos/gomodbus/v2/mb"
 )
 
 func main() {
