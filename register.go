@@ -64,6 +64,26 @@ func (sf *NodeRegister) SetSlaveID(id byte) *NodeRegister {
 	return sf
 }
 
+// CoilsAddrParam 读coil起始地址与数量
+func (sf *NodeRegister) CoilsAddrParam() (start uint16, quantity uint16) {
+	return sf.coilsAddrStart, sf.coilsQuantity
+}
+
+// DiscreteParam  读discrete起始地址与数量
+func (sf *NodeRegister) DiscreteParam() (start uint16, quantity uint16) {
+	return sf.discreteAddrStart, sf.discreteQuantity
+}
+
+// InputAddrParam  读input起始地址与数量
+func (sf *NodeRegister) InputAddrParam() (start uint16, quantity uint16) {
+	return sf.inputAddrStart, uint16(len(sf.input))
+}
+
+// HoldingAddrParam  读holding起始地址与数量
+func (sf *NodeRegister) HoldingAddrParam() (start uint16, quantity uint16) {
+	return sf.holdingAddrStart, uint16(len(sf.holding))
+}
+
 // getBits 读取切片的位的值, nBits <= 8, nBits + start <= len(buf)*8
 func getBits(buf []byte, start, nBits uint16) uint8 {
 	byteOffset := start / 8         // 计算字节偏移量
