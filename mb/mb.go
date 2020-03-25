@@ -8,7 +8,7 @@ import (
 	"time"
 
 	modbus "github.com/thinkgos/gomodbus/v2"
-	"github.com/thinkgos/timing"
+	"github.com/thinkgos/timing/v2"
 )
 
 const (

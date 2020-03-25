@@ -19,6 +19,7 @@
 - fast encode and decode
 - interface design
 - simple API and support raw data api
+
 ### Installation
 
 Use go get.
