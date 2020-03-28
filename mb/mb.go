@@ -8,7 +8,7 @@ import (
 	"time"
 
 	modbus "github.com/thinkgos/gomodbus/v2"
-	"github.com/thinkgos/timing/v2"
+	"github.com/thinkgos/timing/v3"
 )
 
 const (
@@ -46,16 +46,14 @@ type Result struct {
 
 // Request 请求
 type Request struct {
-	SlaveID  byte          // 从机地址
-	FuncCode byte          // 功能码
-	Address  uint16        // 请求数据用实际地址
-	Quantity uint16        // 请求数量
-	ScanRate time.Duration // 扫描速率scan rate
-	Retry    byte          // 失败重试次数
-	retryCnt byte          // 重试计数
-	txCnt    uint64        // 发送计数
-	errCnt   uint64        // 发送错误计数
-	tm       *timing.Entry // 时间句柄
+	SlaveID   byte          // 从机地址
+	FuncCode  byte          // 功能码
+	Address   uint16        // 请求数据用实际地址
+	Quantity  uint16        // 请求数量
+	ScanRate  time.Duration // 扫描速率scan rate
+	txCnt     uint64        // 发送计数
+	errCnt    uint64        // 发送错误计数
+	tmHandler func()
 }
 
 // New 创建新的client
@@ -71,8 +69,8 @@ func New(p modbus.ClientProvider, opts ...Option) *Client {
 		cancel:         cancel,
 	}
 
-	for _, f := range opts {
-		f(c)
+	for _, opt := range opts {
+		opt(c)
 	}
 	c.ready = make(chan *Request, c.readyQueueSize)
 	return c
@@ -131,16 +129,16 @@ func (sf *Client) AddGatherJob(r Request) error {
 			ScanRate: r.ScanRate,
 		}
 
-		req.tm = timing.NewOneShotFuncEntry(func() {
+		req.tmHandler = func() {
 			select {
 			case <-sf.ctx.Done():
 				return
 			case sf.ready <- req:
 			default:
-				timing.Start(req.tm, time.Duration(rand.Intn(sf.randValue))*time.Millisecond)
+				timing.AddJobFunc(req.tmHandler, time.Duration(rand.Intn(sf.randValue))*time.Millisecond)
 			}
-		}, req.ScanRate)
-		timing.Start(req.tm)
+		}
+		timing.AddJobFunc(req.tmHandler, req.ScanRate)
 
 		address += uint16(count)
 		remain -= count
@@ -177,33 +175,25 @@ func (sf *Client) procRequest(req *Request) {
 	// Bit access read
 	case modbus.FuncCodeReadCoils:
 		result, err = sf.ReadCoils(req.SlaveID, req.Address, req.Quantity)
-		if err != nil {
-			req.errCnt++
-		} else {
+		if err == nil {
 			sf.handler.ProcReadCoils(req.SlaveID, req.Address, req.Quantity, result)
 		}
 	case modbus.FuncCodeReadDiscreteInputs:
 		result, err = sf.ReadDiscreteInputs(req.SlaveID, req.Address, req.Quantity)
-		if err != nil {
-			req.errCnt++
-		} else {
+		if err == nil {
 			sf.handler.ProcReadDiscretes(req.SlaveID, req.Address, req.Quantity, result)
 		}
 
 	// 16-bit access read
 	case modbus.FuncCodeReadHoldingRegisters:
 		result, err = sf.ReadHoldingRegistersBytes(req.SlaveID, req.Address, req.Quantity)
-		if err != nil {
-			req.errCnt++
-		} else {
+		if err == nil {
 			sf.handler.ProcReadHoldingRegisters(req.SlaveID, req.Address, req.Quantity, result)
 		}
 
 	case modbus.FuncCodeReadInputRegisters:
 		result, err = sf.ReadInputRegistersBytes(req.SlaveID, req.Address, req.Quantity)
-		if err != nil {
-			req.errCnt++
-		} else {
+		if err == nil {
 			sf.handler.ProcReadInputRegisters(req.SlaveID, req.Address, req.Quantity, result)
 		}
 
@@ -214,16 +204,13 @@ func (sf *Client) procRequest(req *Request) {
 		//		req.errCnt++
 		//	}
 	}
-	if err != nil && req.Retry > 0 {
-		if req.retryCnt++; req.retryCnt < req.Retry {
-			timing.Start(req.tm, time.Duration(rand.Intn(sf.randValue))*time.Millisecond)
-		} else if req.ScanRate > 0 {
-			timing.Start(req.tm)
-		}
-	} else if req.ScanRate > 0 {
-		timing.Start(req.tm)
+	if err != nil {
+		req.errCnt++
 	}
 
+	if req.ScanRate > 0 {
+		timing.AddJobFunc(req.tmHandler, req.ScanRate)
+	}
 	sf.handler.ProcResult(err, &Result{
 		req.SlaveID,
 		req.FuncCode,
