@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"math/rand"
 	"time"
 
@@ -18,7 +19,7 @@ const (
 	// 用于需要重试的延迟重试时间
 	DefaultRandValue = 50
 	// DefaultReadyQueuesLength 默认就绪列表长度
-	DefaultReadyQueuesLength = 128
+	DefaultReadyQueuesLength = 256
 )
 
 // Client 客户端
@@ -128,7 +129,6 @@ func (sf *Client) AddGatherJob(r Request) error {
 			Quantity: uint16(count),
 			ScanRate: r.ScanRate,
 		}
-
 		req.tmHandler = func() {
 			select {
 			case <-sf.ctx.Done():
@@ -153,6 +153,7 @@ func (sf *Client) readPoll() {
 	for {
 		select {
 		case <-sf.ctx.Done():
+			log.Println("read pool exit!")
 			return
 		case req = <-sf.ready: // 查看是否有准备好的请求
 			sf.procRequest(req)
