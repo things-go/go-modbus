@@ -11,19 +11,16 @@ type pool struct {
 func newPool(size int) *pool {
 	return &pool{
 		&sync.Pool{
-			New: func() interface{} {
-				return &protocolFrame{make([]byte, 0, size)}
-			},
+			New: func() interface{} { return &protocolFrame{make([]byte, 0, size)} },
 		},
 	}
 }
 
 func (sf *pool) get() *protocolFrame {
-	v := sf.pl.Get().(*protocolFrame)
-	v.adu = v.adu[:0]
-	return v
+	return sf.pl.Get().(*protocolFrame)
 }
 
 func (sf *pool) put(buffer *protocolFrame) {
+	buffer.adu = buffer.adu[:0]
 	sf.pl.Put(buffer)
 }
