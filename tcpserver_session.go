@@ -25,12 +25,10 @@ func (sf *ServerSession) running(ctx context.Context) {
 	var err error
 	var bytesRead int
 
-	sf.Debug("client(%v) -> server(%v) connected",
-		sf.conn.RemoteAddr(), sf.conn.LocalAddr())
+	sf.Debug("client(%v) -> server(%v) connected", sf.conn.RemoteAddr(), sf.conn.LocalAddr())
 	defer func() {
 		sf.conn.Close()
-		sf.Debug("client(%v) -> server(%v) disconnected,cause by %v",
-			sf.conn.RemoteAddr(), sf.conn.LocalAddr(), err)
+		sf.Debug("client(%v) -> server(%v) disconnected,cause by %v", sf.conn.RemoteAddr(), sf.conn.LocalAddr(), err)
 	}()
 
 	raw := make([]byte, tcpAduMaxSize)

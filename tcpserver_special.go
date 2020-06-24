@@ -42,10 +42,10 @@ type TCPServerSpecial struct {
 	rwMux     sync.RWMutex
 	status    uint32 // 状态
 
-	connectTimeout    time.Duration           // 连接超时时间
 	autoReconnect     bool                    // 是否启动重连
-	reconnectInterval time.Duration           // 重连间隔时间
 	enableKeepAlive   bool                    // 是否使能心跳包
+	connectTimeout    time.Duration           // 连接超时时间
+	reconnectInterval time.Duration           // 重连间隔时间
 	keepAliveInterval time.Duration           // 心跳包间隔
 	onConnect         OnConnectHandler        // 连接回调
 	onConnectionLost  OnConnectionLostHandler // 失连回调
@@ -62,10 +62,10 @@ func NewTCPServerSpecial() *TCPServerSpecial {
 			serverCommon: newServerCommon(),
 			logger:       newLogger("modbusTCPServerSpec => "),
 		},
-		connectTimeout:    DefaultConnectTimeout,
 		autoReconnect:     true,
-		reconnectInterval: DefaultReconnectInterval,
 		enableKeepAlive:   false,
+		connectTimeout:    DefaultConnectTimeout,
+		reconnectInterval: DefaultReconnectInterval,
 		keepAliveInterval: DefaultKeepAliveInterval,
 		onKeepAlive:       func(*TCPServerSpecial) {},
 		onConnect:         func(*TCPServerSpecial) error { return nil },
