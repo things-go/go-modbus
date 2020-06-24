@@ -120,7 +120,6 @@ func decodeTCPFrame(adu []byte) (protocolTCPHeader, []byte, error) {
 	if pduLength != int(head.length-1) {
 		return head, nil, fmt.Errorf("modbus: length in response '%v' does not match pdu data length '%v'",
 			head.length-1, pduLength)
-
 	}
 	// The first byte after header is function code
 	return head, adu[tcpHeaderMbapSize:], nil
@@ -147,7 +146,6 @@ func verifyTCPFrame(reqHead, rspHead protocolTCPHeader, reqPDU, rspPDU ProtocolD
 	case rspPDU.Data == nil || len(rspPDU.Data) == 0: // check Empty response
 		return fmt.Errorf("modbus: response data is empty")
 	}
-
 	return nil
 }
 
@@ -173,7 +171,8 @@ func (sf *TCPClientProvider) Send(slaveID byte, request ProtocolDataUnit) (Proto
 		return response, err
 	}
 	response = ProtocolDataUnit{pdu[0], pdu[1:]}
-	return response, verifyTCPFrame(head, rspHead, request, response)
+	err = verifyTCPFrame(head, rspHead, request, response)
+	return response, err
 }
 
 // SendPdu send pdu request to the remote server
@@ -201,12 +200,12 @@ func (sf *TCPClientProvider) SendPdu(slaveID byte, pduRequest []byte) ([]byte, e
 	if err != nil {
 		return nil, err
 	}
+	response := ProtocolDataUnit{rspPdu[0], rspPdu[1:]}
+	if err = verifyTCPFrame(head, rspHead, request, response); err != nil {
+		return nil, err
+	}
 	// rspPdu pass tcpMBAP head
-	return rspPdu, verifyTCPFrame(head, rspHead, request,
-		ProtocolDataUnit{
-			rspPdu[0],
-			rspPdu[1:],
-		})
+	return rspPdu, nil
 }
 
 // SendRawFrame send raw adu request frame
@@ -362,15 +361,14 @@ func (sf *TCPClientProvider) SetAutoReconnect(cnt byte) {
 }
 
 // Close closes current connection.
-func (sf *TCPClientProvider) Close() error {
-	var err error
+func (sf *TCPClientProvider) Close() (err error) {
 	sf.mu.Lock()
 	if sf.conn != nil {
 		err = sf.conn.Close()
 		sf.conn = nil
 	}
 	sf.mu.Unlock()
-	return err
+	return
 }
 
 func (sf *TCPClientProvider) setSerialConfig(serial.Config) {}

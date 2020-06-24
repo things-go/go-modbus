@@ -5,6 +5,7 @@ import (
 	"fmt"
 )
 
+// protocol frame: asciiStart + ( slaveID + functionCode + data + lrc ) + CR + LF
 const (
 	asciiStart = ":"
 	asciiEnd   = "\r\n"
@@ -50,15 +51,13 @@ func NewASCIIClientProvider(opts ...ClientProviderOption) *ASCIIClientProvider {
 func (sf *protocolFrame) encodeASCIIFrame(slaveID byte, pdu ProtocolDataUnit) ([]byte, error) {
 	length := len(pdu.Data) + 3
 	if length > asciiAduMaxSize {
-		return nil, fmt.Errorf("modbus: length of data '%v' must not be bigger than '%v'",
-			length, asciiAduMaxSize)
+		return nil, fmt.Errorf("modbus: length of data '%v' must not be bigger than '%v'", length, asciiAduMaxSize)
 	}
 
 	// Exclude the beginning colon and terminating CRLF pair characters
-	lrcVal := new(LRC).Reset().
-		Push(slaveID).
-		Push(pdu.FuncCode).
-		Push(pdu.Data...).
+	lrcVal := new(LRC).
+		Reset().
+		Push(slaveID).Push(pdu.FuncCode).Push(pdu.Data...).
 		Value()
 
 	// real ascii frame to send,
@@ -79,13 +78,11 @@ func (sf *protocolFrame) encodeASCIIFrame(slaveID byte, pdu ProtocolDataUnit) ([
 // decode extracts slaveID & PDU from ASCII frame and verify LRC.
 func decodeASCIIFrame(adu []byte) (uint8, []byte, error) {
 	if len(adu) < asciiAduMinSize+6 { // Minimum size (including address, function and LRC)
-		return 0, nil, fmt.Errorf("modbus: response length '%v' does not meet minimum '%v'",
-			len(adu), 9)
+		return 0, nil, fmt.Errorf("modbus: response length '%v' does not meet minimum '%v'", len(adu), 9)
 	}
 	switch {
 	case len(adu)%2 != 1: // Length excluding colon must be an even number
-		return 0, nil, fmt.Errorf("modbus: response length '%v' is not an even number",
-			len(adu)-1)
+		return 0, nil, fmt.Errorf("modbus: response length '%v' is not an even number", len(adu)-1)
 	case string(adu[0:len(asciiStart)]) != asciiStart: // First char must be a colons
 		return 0, nil, fmt.Errorf("modbus: response frame '%x'... is not started with '%x'",
 			string(adu[0:len(asciiStart)]), asciiStart)
@@ -104,8 +101,7 @@ func decodeASCIIFrame(adu []byte) (uint8, []byte, error) {
 	// Calculate checksum
 	lrcVal := new(LRC).Reset().Push(buf[:length-1]...).Value()
 	if buf[length-1] != lrcVal { // LRC
-		return 0, nil, fmt.Errorf("modbus: response lrc '%x' does not match expected '%x'",
-			buf[length-1], lrcVal)
+		return 0, nil, fmt.Errorf("modbus: response lrc '%x' does not match expected '%x'", buf[length-1], lrcVal)
 	}
 	return buf[0], buf[1 : length-1], nil
 }

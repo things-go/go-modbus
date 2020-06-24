@@ -11,7 +11,7 @@ import (
 const (
 	// SerialDefaultTimeout Serial Default timeout
 	SerialDefaultTimeout = 1 * time.Second
-	// SerialDefaultAutoReconnect Serial Default auto reconnect count
+	// SerialDefaultAutoReconnect Serial Default auto reconnect count, zero means not active.
 	SerialDefaultAutoReconnect = 0
 )
 

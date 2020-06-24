@@ -41,8 +41,7 @@ func NewRTUClientProvider(opts ...ClientProviderOption) *RTUClientProvider {
 func (sf *protocolFrame) encodeRTUFrame(slaveID byte, pdu ProtocolDataUnit) ([]byte, error) {
 	length := len(pdu.Data) + 4
 	if length > rtuAduMaxSize {
-		return nil, fmt.Errorf("modbus: length of data '%v' must not be bigger than '%v'",
-			length, rtuAduMaxSize)
+		return nil, fmt.Errorf("modbus: length of data '%v' must not be bigger than '%v'", length, rtuAduMaxSize)
 	}
 	requestAdu := sf.adu[:0:length]
 	requestAdu = append(requestAdu, slaveID, pdu.FuncCode)
@@ -55,15 +54,12 @@ func (sf *protocolFrame) encodeRTUFrame(slaveID byte, pdu ProtocolDataUnit) ([]b
 // decode extracts slaveID and PDU from RTU frame and verify CRC.
 func decodeRTUFrame(adu []byte) (uint8, []byte, error) {
 	if len(adu) < rtuAduMinSize { // Minimum size (including address, funcCode and CRC)
-		return 0, nil, fmt.Errorf("modbus: response length '%v' does not meet minimum '%v'",
-			len(adu), rtuAduMinSize)
+		return 0, nil, fmt.Errorf("modbus: response length '%v' does not meet minimum '%v'", len(adu), rtuAduMinSize)
 	}
 	// Calculate checksum
-	crc := CRC16(adu[0 : len(adu)-2])
-	expect := binary.LittleEndian.Uint16(adu[len(adu)-2:])
+	crc, expect := CRC16(adu[0:len(adu)-2]), binary.LittleEndian.Uint16(adu[len(adu)-2:])
 	if crc != expect {
-		return 0, nil, fmt.Errorf("modbus: response crc '%x' does not match expected '%x'",
-			expect, crc)
+		return 0, nil, fmt.Errorf("modbus: response crc '%x' does not match expected '%x'", expect, crc)
 	}
 	// slaveID & PDU but pass crc
 	return adu[0], adu[1 : len(adu)-2], nil
@@ -89,7 +85,8 @@ func (sf *RTUClientProvider) Send(slaveID byte, request ProtocolDataUnit) (Proto
 		return response, err
 	}
 	response = ProtocolDataUnit{pdu[0], pdu[1:]}
-	return response, verify(slaveID, rspSlaveID, request, response)
+	err = verify(slaveID, rspSlaveID, request, response)
+	return response, err
 }
 
 // SendPdu send pdu request to the remote server
@@ -115,12 +112,12 @@ func (sf *RTUClientProvider) SendPdu(slaveID byte, pduRequest []byte) ([]byte, e
 	if err != nil {
 		return nil, err
 	}
+	response := ProtocolDataUnit{pdu[0], pdu[1:]}
+	if err = verify(slaveID, rspSlaveID, request, response); err != nil {
+		return nil, err
+	}
 	//  PDU pass slaveID & crc
-	return pdu, verify(slaveID, rspSlaveID, request,
-		ProtocolDataUnit{
-			pdu[0],
-			pdu[1:],
-		})
+	return pdu, nil
 }
 
 // SendRawFrame send Adu frame
@@ -248,8 +245,7 @@ func calculateResponseLength(adu []byte) int {
 func verify(reqSlaveID, rspSlaveID uint8, reqPDU, rspPDU ProtocolDataUnit) error {
 	switch {
 	case reqSlaveID != rspSlaveID: // Check slaveID same
-		return fmt.Errorf("modbus: response slave id '%v' does not match request '%v'",
-			rspSlaveID, reqSlaveID)
+		return fmt.Errorf("modbus: response slave id '%v' does not match request '%v'", rspSlaveID, reqSlaveID)
 
 	case rspPDU.FuncCode != reqPDU.FuncCode: // Check correct function code returned (exception)
 		return responseError(rspPDU)
