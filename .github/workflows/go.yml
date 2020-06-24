@@ -1,7 +1,6 @@
 name: Go
 on: [push]
 jobs:
-
   build:
     name: Build on GO ${{matrix.go-version}}
     runs-on: ubuntu-latest
