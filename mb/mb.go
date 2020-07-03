@@ -9,7 +9,7 @@ import (
 	"time"
 
 	modbus "github.com/thinkgos/gomodbus/v2"
-	"github.com/thinkgos/timing/v3"
+	"github.com/thinkgos/timing/v4"
 )
 
 const (
@@ -47,14 +47,14 @@ type Result struct {
 
 // Request 请求
 type Request struct {
-	SlaveID   byte          // 从机地址
-	FuncCode  byte          // 功能码
-	Address   uint16        // 请求数据用实际地址
-	Quantity  uint16        // 请求数量
-	ScanRate  time.Duration // 扫描速率scan rate
-	txCnt     uint64        // 发送计数
-	errCnt    uint64        // 发送错误计数
-	tmHandler func()
+	SlaveID  byte          // 从机地址
+	FuncCode byte          // 功能码
+	Address  uint16        // 请求数据用实际地址
+	Quantity uint16        // 请求数量
+	ScanRate time.Duration // 扫描速率scan rate
+	txCnt    uint64        // 发送计数
+	errCnt   uint64        // 发送错误计数
+	tm       *timing.Timer
 }
 
 // New 创建新的client
@@ -128,17 +128,18 @@ func (sf *Client) AddGatherJob(r Request) error {
 			Address:  address,
 			Quantity: uint16(count),
 			ScanRate: r.ScanRate,
+			tm:       timing.NewTimer(),
 		}
-		req.tmHandler = func() {
+		req.tm.WithJobFunc(func() {
 			select {
 			case <-sf.ctx.Done():
 				return
 			case sf.ready <- req:
 			default:
-				timing.AddJobFunc(req.tmHandler, time.Duration(rand.Intn(sf.randValue))*time.Millisecond)
+				timing.Add(req.tm, time.Duration(rand.Intn(sf.randValue))*time.Millisecond)
 			}
-		}
-		timing.AddJobFunc(req.tmHandler, req.ScanRate)
+		})
+		timing.Add(req.tm, req.ScanRate)
 
 		address += uint16(count)
 		remain -= count
@@ -210,7 +211,7 @@ func (sf *Client) procRequest(req *Request) {
 	}
 
 	if req.ScanRate > 0 {
-		timing.AddJobFunc(req.tmHandler, req.ScanRate)
+		timing.Add(req.tm, req.ScanRate)
 	}
 	sf.handler.ProcResult(err, &Result{
 		req.SlaveID,

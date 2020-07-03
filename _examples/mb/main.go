@@ -7,7 +7,7 @@ import (
 	"github.com/goburrow/serial"
 	modbus "github.com/thinkgos/gomodbus/v2"
 	"github.com/thinkgos/gomodbus/v2/mb"
-	"github.com/thinkgos/timing/v3"
+	"github.com/thinkgos/timing/v4"
 )
 
 func main() {
@@ -43,7 +43,7 @@ func main() {
 		client.Close()
 	}()
 	for {
-		log.Println(timing.Count())
+		log.Println(timing.Len())
 		time.Sleep(time.Second * 10)
 	}
 }
