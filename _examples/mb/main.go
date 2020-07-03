@@ -38,10 +38,10 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	go func() {
-		time.Sleep(10 * time.Second)
-		client.Close()
-	}()
+	// go func() {
+	// 	time.Sleep(10 * time.Second)
+	// 	client.Close()
+	// }()
 	for {
 		log.Println(timing.Len())
 		time.Sleep(time.Second * 10)
