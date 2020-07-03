@@ -1,8 +1,5 @@
 module github.com/thinkgos/gomodbus/v2
 
-go 1.12
+go 1.14
 
-require (
-	github.com/goburrow/serial v0.1.0
-	github.com/thinkgos/timing/v4 v4.1.0
-)
+require github.com/goburrow/serial v0.1.0
