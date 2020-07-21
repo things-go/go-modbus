@@ -3,11 +3,14 @@
 **NOTE: mb package move to [mb](github.com/thinkgos/mb)**
 
 [![GoDoc](https://godoc.org/github.com/thinkgos/gomodbus?status.svg)](https://godoc.org/github.com/thinkgos/gomodbus)
+[![Go.Dev reference](https://img.shields.io/badge/go.dev-reference-blue?logo=go&logoColor=white)](https://pkg.go.dev/github.com/thinkgos/gomodbus/v2?tab=doc)
 [![Build Status](https://www.travis-ci.org/thinkgos/gomodbus.svg?branch=master)](https://www.travis-ci.org/thinkgos/gomodbus)
 [![codecov](https://codecov.io/gh/thinkgos/gomodbus/branch/master/graph/badge.svg)](https://codecov.io/gh/thinkgos/gomodbus)
 ![Action Status](https://github.com/thinkgos/gomodbus/workflows/Go/badge.svg)
 [![Go Report Card](https://goreportcard.com/badge/github.com/thinkgos/gomodbus)](https://goreportcard.com/report/github.com/thinkgos/gomodbus)
 [![Licence](https://img.shields.io/github/license/thinkgos/gomodbus)](https://raw.githubusercontent.com/thinkgos/gomodbus/master/LICENSE)
+[![Tag](https://img.shields.io/github/v/tag/thinkgos/gomodbus)](https://github.com/thinkgos/gomodbus/tags)
+[![Sourcegraph](https://sourcegraph.com/github.com/thinkgos/gomodbus/-/badge.svg)](https://sourcegraph.com/github.com/thinkgos/gomodbus?badge)
 
 
 ### Supported formats
