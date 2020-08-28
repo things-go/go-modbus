@@ -77,10 +77,23 @@ func (sf *TCPServer) ListenAndServe(addr string) error {
 		sf.Close()
 		sf.Debug("server stopped")
 	}()
+	var tempDelay time.Duration // how long to sleep on accept failure
 
 	for {
 		conn, err := listen.Accept()
 		if err != nil {
+			if ne, ok := err.(net.Error); ok && ne.Temporary() {
+				if tempDelay == 0 {
+					tempDelay = 5 * time.Millisecond
+				} else {
+					tempDelay *= 2
+				}
+				if max := 1 * time.Second; tempDelay > max {
+					tempDelay = max
+				}
+				time.Sleep(tempDelay)
+				continue
+			}
 			return err
 		}
 		sf.wg.Add(1)
