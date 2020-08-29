@@ -55,7 +55,7 @@ import (
 	"github.com/goburrow/serial"
 )
 
-// proto address limit
+// proto address limit.
 const (
 	AddressBroadCast = 0
 	AddressMin       = 1

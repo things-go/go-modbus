@@ -1,17 +1,17 @@
 package modbus
 
-// LRC lrc sum
+// LRC lrc sum.
 type LRC struct {
 	sum uint8
 }
 
-// Reset rest lrc sum
+// Reset rest lrc sum.
 func (sf *LRC) Reset() *LRC {
 	sf.sum = 0
 	return sf
 }
 
-// Push push data in sum
+// Push push data in sum.
 func (sf *LRC) Push(data ...byte) *LRC {
 	for _, b := range data {
 		sf.sum += b
@@ -19,7 +19,7 @@ func (sf *LRC) Push(data ...byte) *LRC {
 	return sf
 }
 
-// Value got lrc value
+// Value got lrc value.
 func (sf *LRC) Value() byte {
 	return uint8(-int8(sf.sum))
 }

@@ -5,10 +5,10 @@ import (
 	"fmt"
 )
 
-// check implements Client interface
+// check implements Client interface.
 var _ Client = (*client)(nil)
 
-// client implements Client interface
+// client implements Client interface.
 type client struct {
 	ClientProvider
 }
@@ -544,7 +544,7 @@ func uint162Bytes(value ...uint16) []byte {
 	return data
 }
 
-// bytes2Uint16 bytes convert to uint16 for register
+// bytes2Uint16 bytes convert to uint16 for register.
 func bytes2Uint16(buf []byte) []uint16 {
 	data := make([]uint16, 0, len(buf)/2)
 	for i := 0; i < len(buf)/2; i++ {
@@ -565,7 +565,7 @@ func pduDataBlockSuffix(suffix []byte, value ...uint16) []byte {
 	return data
 }
 
-// responseError response error
+// responseError response error.
 func responseError(response ProtocolDataUnit) error {
 	mbError := &ExceptionError{}
 	if response.Data != nil && len(response.Data) > 0 {

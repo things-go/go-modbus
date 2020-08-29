@@ -1,6 +1,6 @@
 package modbus
 
-// Client interface
+// Client interface.
 type Client interface {
 	ClientProvider
 	// Bits

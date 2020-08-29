@@ -96,6 +96,7 @@ func (sf *TCPServer) ListenAndServe(addr string) error {
 			}
 			return err
 		}
+		tempDelay = 0
 		sf.wg.Add(1)
 		go func() {
 			sess := &ServerSession{

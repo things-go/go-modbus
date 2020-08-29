@@ -130,7 +130,8 @@ func Test_verify(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := verify(tt.args.reqSlaveID, tt.args.rspSlaveID, tt.args.reqPDU, tt.args.rspPDU); (err != nil) != tt.wantErr {
+			err := verify(tt.args.reqSlaveID, tt.args.rspSlaveID, tt.args.reqPDU, tt.args.rspPDU)
+			if (err != nil) != tt.wantErr {
 				t.Errorf("verify() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

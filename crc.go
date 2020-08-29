@@ -4,13 +4,13 @@ import (
 	"sync"
 )
 
-// Cyclical Redundancy Checking
+// Cyclical Redundancy Checking.
 var (
 	once     sync.Once
 	crtTable []uint16
 )
 
-// CRC16 Calculate Cyclical Redundancy Checking
+// CRC16 Calculate Cyclical Redundancy Checking.
 func CRC16(bs []byte) uint16 {
 	once.Do(initCrcTable)
 
@@ -21,7 +21,7 @@ func CRC16(bs []byte) uint16 {
 	return val
 }
 
-// initCrcTable 初始化表
+// initCrcTable 初始化表.
 func initCrcTable() {
 	crcPoly16 := uint16(0xa001)
 	crtTable = make([]uint16, 256)

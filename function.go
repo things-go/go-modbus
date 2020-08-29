@@ -6,7 +6,7 @@ import (
 	"sync"
 )
 
-// handle pdu data filed limit size
+// handle pdu data filed limit size.
 const (
 	FuncReadMinSize       = 4 // 读操作 最小数据域个数
 	FuncWriteMinSize      = 4 // 写操作 最小数据域个数
@@ -15,8 +15,8 @@ const (
 	FuncMaskWriteMinSize  = 6 // 屏蔽写操作 最小数据域个数
 )
 
-// FunctionHandler 功能码对应的函数回调
-// data 仅pdu数据域 不含功能码, return pdu 数据域,不含功能码
+// FunctionHandler 功能码对应的函数回调.
+// data 仅pdu数据域 不含功能码, return pdu 数据域,不含功能码.
 type FunctionHandler func(reg *NodeRegister, data []byte) ([]byte, error)
 
 type serverCommon struct {
@@ -42,19 +42,19 @@ func newServerCommon() *serverCommon {
 	}
 }
 
-// AddNodes 增加节点
+// AddNodes 增加节点.
 func (sf *serverCommon) AddNodes(nodes ...*NodeRegister) {
 	for _, v := range nodes {
 		sf.node.Store(v.slaveID, v)
 	}
 }
 
-// DeleteNode 删除一个节点
+// DeleteNode 删除一个节点.
 func (sf *serverCommon) DeleteNode(slaveID byte) {
 	sf.node.Delete(slaveID)
 }
 
-// DeleteAllNode 删除所有节点
+// DeleteAllNode 删除所有节点.
 func (sf *serverCommon) DeleteAllNode() {
 	sf.node.Range(func(k, v interface{}) bool {
 		sf.node.Delete(k)
@@ -62,7 +62,7 @@ func (sf *serverCommon) DeleteAllNode() {
 	})
 }
 
-// GetNode 获取一个节点
+// GetNode 获取一个节点.
 func (sf *serverCommon) GetNode(slaveID byte) (*NodeRegister, error) {
 	v, ok := sf.node.Load(slaveID)
 	if !ok {
@@ -71,7 +71,7 @@ func (sf *serverCommon) GetNode(slaveID byte) (*NodeRegister, error) {
 	return v.(*NodeRegister), nil
 }
 
-// GetNodeList 获取节点列表
+// GetNodeList 获取节点列表.
 func (sf *serverCommon) GetNodeList() []*NodeRegister {
 	list := make([]*NodeRegister, 0)
 	sf.node.Range(func(k, v interface{}) bool {
@@ -81,21 +81,21 @@ func (sf *serverCommon) GetNodeList() []*NodeRegister {
 	return list
 }
 
-// Range 扫描节点 same as sync map range
+// Range 扫描节点 same as sync map range.
 func (sf *serverCommon) Range(f func(slaveID byte, node *NodeRegister) bool) {
 	sf.node.Range(func(k, v interface{}) bool {
 		return f(k.(byte), v.(*NodeRegister))
 	})
 }
 
-// RegisterFunctionHandler 注册回调函数
+// RegisterFunctionHandler 注册回调函数.
 func (sf *serverCommon) RegisterFunctionHandler(funcCode uint8, function FunctionHandler) {
 	if function != nil {
 		sf.function[funcCode] = function
 	}
 }
 
-// readBits 读位寄存器
+// readBits 读位寄存器.
 func readBits(reg *NodeRegister, data []byte, isCoil bool) ([]byte, error) {
 	var value []byte
 	var err error
@@ -122,7 +122,7 @@ func readBits(reg *NodeRegister, data []byte, isCoil bool) ([]byte, error) {
 	return append(result, value...), nil
 }
 
-// funcReadDiscreteInputs 读离散量输入,返回仅含PDU数据域
+// funcReadDiscreteInputs 读离散量输入,返回仅含PDU数据域.
 // data:
 //  Starting address      : 2 byte
 //  Quantity              : 2 byte
@@ -133,7 +133,7 @@ func funcReadDiscreteInputs(reg *NodeRegister, data []byte) ([]byte, error) {
 	return readBits(reg, data, false)
 }
 
-// funcReadCoils read multi coils
+// funcReadCoils read multi coils.
 // data:
 //  Starting address      : 2 byte
 //  Quantity              : 2 byte
@@ -144,7 +144,7 @@ func funcReadCoils(reg *NodeRegister, data []byte) ([]byte, error) {
 	return readBits(reg, data, true)
 }
 
-// funcWriteSingleCoil write single coil
+// funcWriteSingleCoil write single coil.
 // data:
 //  Address      		  : 2 byte
 //  Value                 : 2 byte  0xff00 or 0x0000s
@@ -170,7 +170,7 @@ func funcWriteSingleCoil(reg *NodeRegister, data []byte) ([]byte, error) {
 	return data, err
 }
 
-// funcWriteMultiCoils write multi coils
+// funcWriteMultiCoils write multi coils.
 // data:
 //  Starting address      : 2 byte
 //  Quantity              : 2 byte
@@ -195,7 +195,7 @@ func funcWriteMultiCoils(reg *NodeRegister, data []byte) ([]byte, error) {
 	return data[:4], err
 }
 
-// readRegisters read multi registers
+// readRegisters read multi registers.
 func readRegisters(reg *NodeRegister, data []byte, isHolding bool) ([]byte, error) {
 	var err error
 	var value []byte

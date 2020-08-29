@@ -7,7 +7,7 @@ import (
 	"log"
 )
 
-// 内部调试实现
+// 内部调试实现.
 type logger struct {
 	provider LogProvider
 	// has log output enabled,
@@ -16,7 +16,7 @@ type logger struct {
 	has uint32
 }
 
-// newLogger new logger with prefix
+// newLogger new logger with prefix.
 func newLogger(prefix string) logger {
 	return logger{
 		provider: defaultLogger{log.New(os.Stdout, prefix, log.LstdFlags)},
@@ -24,7 +24,7 @@ func newLogger(prefix string) logger {
 	}
 }
 
-// LogMode set enable or disable log output when you has set logger
+// LogMode set enable or disable log output when you has set logger.
 func (sf *logger) LogMode(enable bool) {
 	if enable {
 		atomic.StoreUint32(&sf.has, 1)
@@ -33,7 +33,7 @@ func (sf *logger) LogMode(enable bool) {
 	}
 }
 
-// setLogProvider overwrite log provider
+// setLogProvider overwrite log provider.
 func (sf *logger) setLogProvider(p LogProvider) {
 	if p != nil {
 		sf.provider = p
@@ -54,12 +54,12 @@ func (sf logger) Debug(format string, v ...interface{}) {
 	}
 }
 
-// default log
+// default log.
 type defaultLogger struct {
 	*log.Logger
 }
 
-// check implement LogProvider interface
+// check implement LogProvider interface.
 var _ LogProvider = (*defaultLogger)(nil)
 
 // Error Log ERROR level message.

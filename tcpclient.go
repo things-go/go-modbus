@@ -60,7 +60,7 @@ func NewTCPClientProvider(address string, opts ...ClientProviderOption) *TCPClie
 	return p
 }
 
-// encode modbus application protocol header & pdu to TCP frame,return adu
+// encode modbus application protocol header & pdu to TCP frame,return adu.
 //  ---- MBAP header ----
 //  Transaction identifier: 2 bytes
 //  Protocol identifier: 2 bytes

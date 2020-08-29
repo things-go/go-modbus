@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-// protocol frame: asciiStart + ( slaveID + functionCode + data + lrc ) + CR + LF
+// protocol frame: asciiStart + ( slaveID + functionCode + data + lrc ) + CR + LF.
 const (
 	asciiStart = ":"
 	asciiEnd   = "\r\n"
@@ -19,14 +19,14 @@ type ASCIIClientProvider struct {
 	*pool
 }
 
-// check ASCIIClientProvider implements the interface ClientProvider underlying method
+// check ASCIIClientProvider implements the interface ClientProvider underlying method.
 var _ ClientProvider = (*ASCIIClientProvider)(nil)
 
-// request pool, all ASCII client use this pool
+// request pool, all ASCII client use this pool.
 var asciiPool = newPool(asciiCharacterMaxSize)
 
 // NewASCIIClientProvider allocates and initializes a ASCIIClientProvider.
-// it will use default /dev/ttyS0 19200 8 1 N and timeout 1000
+// it will use default /dev/ttyS0 19200 8 1 N and timeout 1000.
 func NewASCIIClientProvider(opts ...ClientProviderOption) *ASCIIClientProvider {
 	p := &ASCIIClientProvider{
 		logger: newLogger("modbusASCIIMaster => "),
@@ -106,7 +106,7 @@ func decodeASCIIFrame(adu []byte) (uint8, []byte, error) {
 	return buf[0], buf[1 : length-1], nil
 }
 
-// Send request to the remote server,it implements on SendRawFrame
+// Send request to the remote server,it implements on SendRawFrame.
 func (sf *ASCIIClientProvider) Send(slaveID byte, request ProtocolDataUnit) (ProtocolDataUnit, error) {
 	var response ProtocolDataUnit
 
@@ -133,7 +133,7 @@ func (sf *ASCIIClientProvider) Send(slaveID byte, request ProtocolDataUnit) (Pro
 	return response, nil
 }
 
-// SendPdu send pdu request to the remote server
+// SendPdu send pdu request to the remote server.
 func (sf *ASCIIClientProvider) SendPdu(slaveID byte, pduRequest []byte) ([]byte, error) {
 	if len(pduRequest) < pduMinSize || len(pduRequest) > pduMaxSize {
 		return nil, fmt.Errorf("modbus: pdu size '%v' must not be between '%v' and '%v'",
@@ -163,7 +163,7 @@ func (sf *ASCIIClientProvider) SendPdu(slaveID byte, pduRequest []byte) ([]byte,
 	return pdu, nil
 }
 
-// SendRawFrame send Adu frame
+// SendRawFrame send Adu frame.
 func (sf *ASCIIClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []byte, err error) {
 	sf.mu.Lock()
 	defer sf.mu.Unlock()

@@ -72,7 +72,12 @@ func TestNewNodeRegister(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NewNodeRegister(tt.args.slaveID, tt.args.coilsAddrStart, tt.args.coilsQuantity, tt.args.discreteAddrStart, tt.args.discreteQuantity, tt.args.inputAddrStart, tt.args.inputQuantity, tt.args.holdingAddrStart, tt.args.holdingQuantity); !reflect.DeepEqual(got, tt.want) {
+			got := NewNodeRegister(tt.args.slaveID,
+				tt.args.coilsAddrStart, tt.args.coilsQuantity,
+				tt.args.discreteAddrStart, tt.args.discreteQuantity,
+				tt.args.inputAddrStart, tt.args.inputQuantity,
+				tt.args.holdingAddrStart, tt.args.holdingQuantity)
+			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("NewNodeRegister() = %v, want %v", got, tt.want)
 			}
 		})
@@ -552,7 +557,12 @@ func TestNodeRegister_WriteInputsBytes(t *testing.T) {
 		{"超始地址超范围", newNodeReg(), args{address: wordQuantity + 1}, nil, true},
 		{"数量超范围", newNodeReg(), args{quality: wordQuantity + 1}, nil, true},
 		{"可读地址超范围", newNodeReg(), args{address: 1, quality: wordQuantity}, nil, true},
-		{"读2个寄存器", newNodeReg(), args{address: 1, quality: 2, regBuf: []byte{0x11, 0x11, 0x22, 0x22}}, []uint16{0x9012, 0x1111, 0x2222}, false},
+		{
+			"读2个寄存器", newNodeReg(),
+			args{address: 1, quality: 2, regBuf: []byte{0x11, 0x11, 0x22, 0x22}},
+			[]uint16{0x9012, 0x1111, 0x2222},
+			false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -163,7 +163,8 @@ func Test_verifyTCPFrame(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := verifyTCPFrame(tt.args.reqHead, tt.args.rspHead, tt.args.reqPDU, tt.args.rspPDU); (err != nil) != tt.wantErr {
+			err := verifyTCPFrame(tt.args.reqHead, tt.args.rspHead, tt.args.reqPDU, tt.args.rspPDU)
+			if (err != nil) != tt.wantErr {
 				t.Errorf("verifyTCPFrame() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
