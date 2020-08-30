@@ -58,7 +58,7 @@ type Client interface {
 	// register using a combination of an AND mask, an OR mask, and the
 	// register's current contents. The function returns success or failed.
 	MaskWriteRegister(slaveID byte, address, andMask, orMask uint16) error
-	//ReadFIFOQueue reads the contents of a First-In-First-Out (FIFO) queue
+	// ReadFIFOQueue reads the contents of a First-In-First-Out (FIFO) queue
 	// of register in a remote device and returns FIFO value register.
 	ReadFIFOQueue(slaveID byte, address uint16) (results []byte, err error)
 }

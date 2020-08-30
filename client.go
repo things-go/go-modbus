@@ -201,7 +201,6 @@ func (sf *client) ReadInputRegistersBytes(slaveID byte, address, quantity uint16
 	if quantity < ReadRegQuantityMin || quantity > ReadRegQuantityMax {
 		return nil, fmt.Errorf("modbus: quantity '%v' must be between '%v' and '%v'",
 			quantity, ReadRegQuantityMin, ReadRegQuantityMax)
-
 	}
 	response, err := sf.Send(slaveID, ProtocolDataUnit{
 		FuncCode: FuncCodeReadInputRegisters,

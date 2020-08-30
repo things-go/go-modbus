@@ -212,7 +212,6 @@ func TestNodeRegister_WriteCoils(t *testing.T) {
 }
 
 func TestNodeRegister_WriteSingleCoil(t *testing.T) {
-
 	type args struct {
 		address uint16
 		val     bool

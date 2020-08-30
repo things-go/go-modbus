@@ -65,8 +65,9 @@ func (sf *protocolFrame) encodeASCIIFrame(slaveID byte, pdu ProtocolDataUnit) ([
 	frame := sf.adu[: 0 : length*2+3]
 	frame = append(frame, []byte(asciiStart)...) // the beginning colon characters
 	// the real adu
-	frame = append(frame, hexTable[slaveID>>4], hexTable[slaveID&0x0f])           // slave ID
-	frame = append(frame, hexTable[pdu.FuncCode>>4], hexTable[pdu.FuncCode&0x0f]) // pdu funcCode
+	frame = append(frame,
+		hexTable[slaveID>>4], hexTable[slaveID&0x0f], // slave ID
+		hexTable[pdu.FuncCode>>4], hexTable[pdu.FuncCode&0x0f]) // pdu funcCode
 	for _, v := range pdu.Data {
 		frame = append(frame, hexTable[v>>4], hexTable[v&0x0f]) // pdu data
 	}
@@ -189,7 +190,8 @@ func (sf *ASCIIClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []by
 			if err == nil {
 				break
 			}
-			if tryCnt++; tryCnt >= sf.autoReconnect {
+			tryCnt++
+			if tryCnt >= sf.autoReconnect {
 				return
 			}
 		}
@@ -216,5 +218,5 @@ func (sf *ASCIIClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []by
 	}
 	aduResponse = data[:length]
 	sf.Debug("received [% x]", aduResponse)
-	return
+	return aduResponse, nil
 }

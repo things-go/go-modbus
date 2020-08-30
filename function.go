@@ -37,7 +37,6 @@ func newServerCommon() *serverCommon {
 			FuncCodeWriteMultipleRegisters:     funcWriteMultiHoldingRegisters,
 			FuncCodeReadWriteMultipleRegisters: funcReadWriteMultiHoldingRegisters,
 			FuncCodeMaskWriteRegister:          funcMaskWriteRegisters,
-			// funcCodeReadFIFOQueue:
 		},
 	}
 }
@@ -160,7 +159,6 @@ func funcWriteSingleCoil(reg *NodeRegister, data []byte) ([]byte, error) {
 	newValue := binary.BigEndian.Uint16(data[2:])
 	if !(newValue == 0xFF00 || newValue == 0x0000) {
 		return nil, &ExceptionError{ExceptionCodeIllegalDataValue}
-
 	}
 	b := byte(0)
 	if newValue == 0xFF00 {
@@ -281,7 +279,7 @@ func funcWriteMultiHoldingRegisters(reg *NodeRegister, data []byte) ([]byte, err
 	count := binary.BigEndian.Uint16(data[2:])
 	byteCnt := data[4]
 	if count < WriteRegQuantityMin || count > WriteRegQuantityMax ||
-		byteCnt != uint8(count*2) {
+		uint16(byteCnt) != count*2 {
 		return nil, &ExceptionError{ExceptionCodeIllegalDataValue}
 	}
 
@@ -316,7 +314,7 @@ func funcReadWriteMultiHoldingRegisters(reg *NodeRegister, data []byte) ([]byte,
 	writeByteCnt := data[8]
 	if readCount < ReadWriteOnReadRegQuantityMin || readCount > ReadWriteOnReadRegQuantityMax ||
 		WriteCount < ReadWriteOnWriteRegQuantityMin || WriteCount > ReadWriteOnWriteRegQuantityMax ||
-		writeByteCnt != uint8(WriteCount*2) {
+		uint16(writeByteCnt) != WriteCount*2 {
 		return nil, &ExceptionError{ExceptionCodeIllegalDataValue}
 	}
 

@@ -280,12 +280,8 @@ func openConnection(uri *url.URL, tlsc *tls.Config, timeout time.Duration) (net.
 	switch uri.Scheme {
 	case "tcp":
 		return net.DialTimeout("tcp", uri.Host, timeout)
-	case "ssl":
-		fallthrough
-	case "tls":
-		fallthrough
-	case "tcps":
+	case "ssl", "tls", "tcps":
 		return tls.DialWithDialer(&net.Dialer{Timeout: timeout}, "tcp", uri.Host, tlsc)
 	}
-	return nil, errors.New("Unknown protocol")
+	return nil, errors.New("unknown protocol")
 }

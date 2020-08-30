@@ -69,7 +69,8 @@ func NewTCPClientProvider(address string, opts ...ClientProviderOption) *TCPClie
 //  ---- data Unit ----
 //  Function code: 1 byte
 //  Data: n bytes
-func (sf *protocolFrame) encodeTCPFrame(tid uint16, slaveID byte, pdu ProtocolDataUnit) (protocolTCPHeader, []byte, error) {
+func (sf *protocolFrame) encodeTCPFrame(tid uint16, slaveID byte,
+	pdu ProtocolDataUnit) (protocolTCPHeader, []byte, error) {
 	length := tcpHeaderMbapSize + 1 + len(pdu.Data)
 	if length > tcpAduMaxSize {
 		return protocolTCPHeader{}, nil, fmt.Errorf("modbus: length of data '%v' must not be bigger than '%v'",
@@ -79,7 +80,7 @@ func (sf *protocolFrame) encodeTCPFrame(tid uint16, slaveID byte, pdu ProtocolDa
 	head := protocolTCPHeader{
 		tid,
 		tcpProtocolIdentifier,
-		uint16(2 + len(pdu.Data)), // Length = sizeof(SlaveId) + sizeof(FuncCode) + Data
+		uint16(2 + len(pdu.Data)), // sizeof(SlaveId) + sizeof(FuncCode) + Data
 		slaveID,
 	}
 
@@ -242,7 +243,8 @@ func (sf *TCPClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []byte
 			if err == nil {
 				break
 			}
-			if tryCnt++; tryCnt >= sf.autoReconnect {
+			tryCnt++
+			if tryCnt >= sf.autoReconnect {
 				return
 			}
 		}
@@ -276,12 +278,14 @@ func (sf *TCPClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []byte
 				if err == nil {
 					break
 				}
-				if tryCnt++; tryCnt >= sf.autoReconnect {
+				tryCnt++
+				if tryCnt >= sf.autoReconnect {
 					return
 				}
 			}
 		}
-		if tryCnt++; tryCnt >= sf.autoReconnect {
+		tryCnt++
+		if tryCnt >= sf.autoReconnect {
 			err = mErr
 			return
 		}
@@ -295,7 +299,8 @@ func (sf *TCPClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []byte
 		return
 	case length > (tcpAduMaxSize - (tcpHeaderMbapSize - 1)):
 		_ = sf.flush(data[:])
-		err = fmt.Errorf("modbus: length in response header '%v' must not greater than '%v'", length, tcpAduMaxSize-tcpHeaderMbapSize+1)
+		err = fmt.Errorf("modbus: length in response header '%v' must not greater than '%v'",
+			length, tcpAduMaxSize-tcpHeaderMbapSize+1)
 		return
 	}
 
@@ -313,7 +318,7 @@ func (sf *TCPClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []byte
 	}
 	aduResponse = data[:length]
 	sf.Debug("received [% x]", aduResponse)
-	return
+	return aduResponse, nil
 }
 
 // Connect establishes a new connection to the address in Address.

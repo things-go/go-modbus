@@ -65,22 +65,22 @@ func (sf *NodeRegister) SetSlaveID(id byte) *NodeRegister {
 }
 
 // CoilsAddrParam 读coil起始地址与数量
-func (sf *NodeRegister) CoilsAddrParam() (start uint16, quantity uint16) {
+func (sf *NodeRegister) CoilsAddrParam() (start, quantity uint16) {
 	return sf.coilsAddrStart, sf.coilsQuantity
 }
 
 // DiscreteParam  读discrete起始地址与数量
-func (sf *NodeRegister) DiscreteParam() (start uint16, quantity uint16) {
+func (sf *NodeRegister) DiscreteParam() (start, quantity uint16) {
 	return sf.discreteAddrStart, sf.discreteQuantity
 }
 
 // InputAddrParam  读input起始地址与数量
-func (sf *NodeRegister) InputAddrParam() (start uint16, quantity uint16) {
+func (sf *NodeRegister) InputAddrParam() (start, quantity uint16) {
 	return sf.inputAddrStart, uint16(len(sf.input))
 }
 
 // HoldingAddrParam  读holding起始地址与数量
-func (sf *NodeRegister) HoldingAddrParam() (start uint16, quantity uint16) {
+func (sf *NodeRegister) HoldingAddrParam() (start, quantity uint16) {
 	return sf.holdingAddrStart, uint16(len(sf.holding))
 }
 
@@ -89,8 +89,8 @@ func getBits(buf []byte, start, nBits uint16) uint8 {
 	byteOffset := start / 8         // 计算字节偏移量
 	preBits := start - byteOffset*8 // 有多少个位需要设置
 
-	mask := uint16(uint16(1)<<nBits) - 1 // 准备一个掩码来设置新的位
-	word := uint16(buf[byteOffset])      // 复制到临时存储
+	mask := (uint16(1) << nBits) - 1 // 准备一个掩码来设置新的位
+	word := uint16(buf[byteOffset])  // 复制到临时存储
 	if preBits+nBits > 8 {
 		word |= uint16(buf[byteOffset+1]) << 8
 	}
@@ -112,8 +112,8 @@ func setBits(buf []byte, start, nBits uint16, value byte) {
 		word |= uint16(buf[byteOffset+1]) << 8
 	}
 
-	word = uint16((word & (^mask)) | uint16(newValue)) // 要写的位置清零
-	buf[byteOffset] = uint8(word & 0xFF)               // 写回到存储中
+	word = (word & (^mask)) | newValue   // 要写的位置清零
+	buf[byteOffset] = uint8(word & 0xFF) // 写回到存储中
 	if (preBits + nBits) > 8 {
 		buf[byteOffset+1] = uint8(word >> 8)
 	}

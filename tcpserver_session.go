@@ -40,7 +40,7 @@ func (sf *ServerSession) running(ctx context.Context) {
 		default:
 		}
 
-		adu := raw[:]
+		adu := raw
 		for rdCnt, length := 0, tcpHeaderMbapSize; rdCnt < length; {
 			err = sf.conn.SetReadDeadline(time.Now().Add(sf.readTimeout))
 			if err != nil {

@@ -146,7 +146,8 @@ func (sf *RTUClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []byte
 			if err == nil {
 				break
 			}
-			if tryCnt++; tryCnt >= sf.autoReconnect {
+			tryCnt++
+			if tryCnt >= sf.autoReconnect {
 				return
 			}
 		}
@@ -159,8 +160,8 @@ func (sf *RTUClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []byte
 	var n int
 	var n1 int
 	var data [rtuAduMaxSize]byte
-	//We first read the minimum length and then read either the full package
-	//or the error package, depending on the error status (byte 2 of the response)
+	// We first read the minimum length and then read either the full package
+	// or the error package, depending on the error status (byte 2 of the response)
 	n, err = io.ReadAtLeast(sf.port, data[:], rtuAduMinSize)
 	if err != nil {
 		return
@@ -168,8 +169,8 @@ func (sf *RTUClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []byte
 
 	switch {
 	case data[1] == function:
-		//if the function is correct
-		//we read the rest of the bytes
+		// if the function is correct
+		// we read the rest of the bytes
 		if n < bytesToRead {
 			if bytesToRead > rtuAduMinSize && bytesToRead <= rtuAduMaxSize {
 				if bytesToRead > n {
@@ -179,7 +180,7 @@ func (sf *RTUClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []byte
 			}
 		}
 	case data[1] == functionFail:
-		//for error we need to read 5 bytes
+		// for error we need to read 5 bytes
 		if n < rtuExceptionSize {
 			n1, err = io.ReadFull(sf.port, data[n:rtuExceptionSize])
 		}
@@ -192,7 +193,7 @@ func (sf *RTUClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []byte
 	}
 	aduResponse = data[:n]
 	sf.Debug("received [% x]", aduResponse)
-	return
+	return aduResponse, nil
 }
 
 // calculateDelay roughly calculates time needed for the next frame.

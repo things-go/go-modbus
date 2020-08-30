@@ -34,9 +34,9 @@ func initCrcTable() {
 			if ((crc ^ b) & 0x0001) > 0 {
 				crc = (crc >> 1) ^ crcPoly16
 			} else {
-				crc = crc >> 1
+				crc >>= 1
 			}
-			b = b >> 1
+			b >>= 1
 		}
 		crtTable[i] = crc
 	}
