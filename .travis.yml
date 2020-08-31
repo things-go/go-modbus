@@ -10,6 +10,8 @@ go:
   - 1.14.x
   - 1.15.x
 
+go_import_path: github.com/thinkgos/gomodbus
+
 before_install:
   - if [[ "${GO111MODULE}" = "on" ]]; then mkdir "${HOME}/go"; export GOPATH="${HOME}/go";
     export PATH="$GOPATH/bin:$PATH"; fi
