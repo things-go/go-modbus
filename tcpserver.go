@@ -60,6 +60,8 @@ func (sf *TCPServer) Close() error {
 	return nil
 }
 
+const minTempDelay = 5 * time.Millisecond
+
 // ListenAndServe listen and server
 func (sf *TCPServer) ListenAndServe(addr string) error {
 	listen, err := net.Listen("tcp", addr)
@@ -77,17 +79,13 @@ func (sf *TCPServer) ListenAndServe(addr string) error {
 		sf.Close()
 		sf.Debug("server stopped")
 	}()
-	var tempDelay time.Duration // how long to sleep on accept failure
+	var tempDelay = minTempDelay // how long to sleep on accept failure
 
 	for {
 		conn, err := listen.Accept()
 		if err != nil {
 			if ne, ok := err.(net.Error); ok && ne.Temporary() {
-				if tempDelay == 0 {
-					tempDelay = 5 * time.Millisecond
-				} else {
-					tempDelay *= 2
-				}
+				tempDelay <<= 1
 				if max := 1 * time.Second; tempDelay > max {
 					tempDelay = max
 				}
@@ -96,7 +94,7 @@ func (sf *TCPServer) ListenAndServe(addr string) error {
 			}
 			return err
 		}
-		tempDelay = 0
+		tempDelay = minTempDelay
 		sf.wg.Add(1)
 		go func() {
 			sess := &ServerSession{
