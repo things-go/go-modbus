@@ -13,6 +13,7 @@ go:
 before_install:
   - if [[ "${GO111MODULE}" = "on" ]]; then mkdir "${HOME}/go"; export GOPATH="${HOME}/go";
     export PATH="$GOPATH/bin:$PATH"; fi
+  - travis encrypt SOMEVAR="${REVIEWDOG_GITHUB_API_TOKEN}" --add
   - mkdir -p ~/bin/ && export PATH="~/bin/:$PATH"
 
 install:
