@@ -21,9 +21,9 @@ type serialPort struct {
 	serial.Config
 	mu   sync.Mutex
 	port io.ReadWriteCloser
-	// if > 0, when disconnect,it will try to reconnect the remote
-	// but if we active close self,it will not to reconncet
 	// if == 0 auto reconnect not active
+	// if > 0, when disconnect,it will try to reconnect the remote
+	// but if we active close self,it will not to reconnect
 	autoReconnect byte
 }
 
