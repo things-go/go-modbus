@@ -25,7 +25,8 @@ jobs:
 
     - name: Go test
       run: |
-        if [[ ${{matrix.os}} == "windows-latest" ]]; then
+        if [[ ${{matrix.os}} == "windows-latest" ]]
+        then
           go test -v -coverprofile=coverage.txt -covermode=atomic ./...
         else
           go test -v -benchmem -test.bench=".*" -coverprofile=coverage.txt -covermode=atomic ./...
