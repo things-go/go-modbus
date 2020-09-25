@@ -24,7 +24,7 @@ jobs:
         go get -v -t -d ./...
 
     - name: Go test osx linux
-      if: matrix.os == 'ubuntu-latest' || ${{matrix.os}} == 'macos-latest'
+      if: matrix.os == 'ubuntu-latest' || matrix.os == 'macos-latest'
       run: |
         go test -v -benchmem -test.bench=".*" -coverprofile=coverage.txt -covermode=atomic ./...
 
