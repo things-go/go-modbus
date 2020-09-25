@@ -24,11 +24,11 @@ jobs:
         go get -v -t -d ./...
 
     - name: Go test osx linux
-      if: ${{matrix.os}} == 'ubuntu-latest' || ${{matrix.os}} == 'macos-latest'
+      if: matrix.os == 'ubuntu-latest' || ${{matrix.os}} == 'macos-latest'
       run: |
         go test -v -benchmem -test.bench=".*" -coverprofile=coverage.txt -covermode=atomic ./...
 
     - name: Go test windows
-      if: ${{matrix.os}} == 'windows-latest'
+      if: matrix.os == 'windows-latest'
       run: |
         go test -v -coverprofile=coverage.txt -covermode=atomic ./...
