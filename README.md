@@ -138,3 +138,15 @@ Bit access:
 
 - [Modbus Specifications and Implementation Guides](http://www.modbus.org/specs.php)
 - [goburrow](https://github.com/goburrow/modbus)
+
+## Donation
+
+if package help you a lot,you can support us by:
+
+**Alipay**
+
+![alipay](https://github.com/thinkgos/thinkgos/blob/master/asserts/alipay.jpg)
+
+**WeChat Pay**
+
+![wxpay](https://github.com/thinkgos/thinkgos/blob/master/asserts/wxpay.jpg)
