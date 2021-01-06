@@ -57,7 +57,7 @@ func decodeRTUFrame(adu []byte) (uint8, []byte, error) {
 		return 0, nil, fmt.Errorf("modbus: response length '%v' does not meet minimum '%v'", len(adu), rtuAduMinSize)
 	}
 	// Calculate checksum
-	crc, expect := CRC16(adu[0:len(adu)-2]), binary.LittleEndian.Uint16(adu[len(adu)-2:])
+	crc, expect := CRC16(adu[:len(adu)-2]), binary.LittleEndian.Uint16(adu[len(adu)-2:])
 	if crc != expect {
 		return 0, nil, fmt.Errorf("modbus: response crc '%x' does not match expected '%x'", expect, crc)
 	}
@@ -152,8 +152,8 @@ func (sf *RTUClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []byte
 			}
 		}
 	}
-	function := aduRequest[1]
-	functionFail := aduRequest[1] & 0x80
+
+	function, functionFail := aduRequest[1], aduRequest[1]|0x80
 	bytesToRead := calculateResponseLength(aduRequest)
 	time.Sleep(sf.calculateDelay(len(aduRequest) + bytesToRead))
 
