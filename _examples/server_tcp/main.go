@@ -1,11 +1,7 @@
 package main
 
 import (
-	"net/http"
-
 	modbus "github.com/thinkgos/gomodbus/v2"
-
-	_ "net/http/pprof"
 )
 
 func main() {
@@ -24,13 +20,6 @@ func main() {
 			3,
 			0, 10, 0, 10,
 			0, 10, 0, 10))
-
-	go func() {
-		err := http.ListenAndServe(":6060", nil)
-		if err != nil {
-			panic(err)
-		}
-	}()
 
 	err := srv.ListenAndServe(":502")
 	if err != nil {

@@ -61,75 +61,124 @@ Bit access:
 
 ---
 
-```go
-	p := modbus.NewTCPClientProvider("192.168.199.188:502",
-		modbus.WithEnableLogger())
-	client := modbus.NewClient(p)
-	err := client.Connect()
-	if err != nil {
-		fmt.Println("connect failed, ", err)
-		return
-	}
 
-	defer client.Close()
-    fmt.Println("starting")
-	for {
-		results, err := client.ReadCoils(1, 0, 10)
-		if err != nil {
-			fmt.Println(err.Error())
-		} else {
-			fmt.Printf("ReadCoils % x", results)
-		}
-		time.Sleep(time.Second * 5)
-	}
-```
+modbus RTU/ASCII client see [example](_examples/client_rtu_ascii)
 
+[embedmd]:# (_examples/client_rtu_ascii/main.go go)
 ```go
-    // modbus RTU/ASCII Client
+package main
+
+import (
+	"fmt"
+	"time"
+
+	"github.com/goburrow/serial"
+	modbus "github.com/thinkgos/gomodbus/v2"
+)
+
+func main() {
 	p := modbus.NewRTUClientProvider(modbus.WithEnableLogger(),
 		modbus.WithSerialConfig(serial.Config{
-			Address:  "COM5",
+			Address:  "/dev/ttyUSB0",
 			BaudRate: 115200,
 			DataBits: 8,
 			StopBits: 1,
 			Parity:   "N",
 			Timeout:  modbus.SerialDefaultTimeout,
 		}))
+
 	client := modbus.NewClient(p)
 	err := client.Connect()
 	if err != nil {
 		fmt.Println("connect failed, ", err)
 		return
 	}
-
 	defer client.Close()
-    fmt.Println("starting")
+
+	fmt.Println("starting")
 	for {
-		results, err := client.ReadCoils(1, 0, 10)
+		_, err := client.ReadCoils(3, 0, 10)
 		if err != nil {
 			fmt.Println(err.Error())
-		} else {
-			fmt.Printf("ReadDiscreteInputs %#v\r\n", results)
 		}
-		time.Sleep(time.Second * 5)
+
+		//	fmt.Printf("ReadDiscreteInputs %#v\r\n", results)
+
+		time.Sleep(time.Second * 2)
 	}
+}
 ```
 
-```go
-    // modbus TCP Server
-	srv := modbus.NewTCPServer(":502")
-	srv.Logger = log.New(os.Stdout, "modbus", log.Ltime)
-	srv.LogMode(true)
 
-	srv.AddNode(modbus.NewNodeRegister(
-		1,
-		0, 10, 0, 10, 
-		0, 10, 0, 10,
-	))
+modbus TCP client see [example](_examples/client_tcp)
+
+[embedmd]:# (_examples/client_tcp/main.go go)
+```go
+package main
+
+import (
+	"fmt"
+	"time"
+
+	modbus "github.com/thinkgos/gomodbus/v2"
+)
+
+func main() {
+	p := modbus.NewTCPClientProvider("192.168.199.188:502", modbus.WithEnableLogger())
+	client := modbus.NewClient(p)
+	err := client.Connect()
+	if err != nil {
+		fmt.Println("connect failed, ", err)
+		return
+	}
+	defer client.Close()
+
+	fmt.Println("starting")
+	for {
+		_, err := client.ReadCoils(1, 0, 10)
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+
+		//	fmt.Printf("ReadDiscreteInputs %#v\r\n", results)
+
+		time.Sleep(time.Second * 2)
+	}
+}
+```
+
+modbus TCP server see [example](_examples/server_tcp)
+
+[embedmd]:# (_examples/server_tcp/main.go go)
+```go
+package main
+
+import (
+	modbus "github.com/thinkgos/gomodbus/v2"
+)
+
+func main() {
+	srv := modbus.NewTCPServer()
+	srv.LogMode(true)
+	srv.AddNodes(
+		modbus.NewNodeRegister(
+			1,
+			0, 10, 0, 10,
+			0, 10, 0, 10),
+		modbus.NewNodeRegister(
+			2,
+			0, 10, 0, 10,
+			0, 10, 0, 10),
+		modbus.NewNodeRegister(
+			3,
+			0, 10, 0, 10,
+			0, 10, 0, 10))
+
 	err := srv.ListenAndServe(":502")
 	if err != nil {
 		panic(err)
 	}
+}
 ```
 
 ### References
