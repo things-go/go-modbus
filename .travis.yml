@@ -6,8 +6,8 @@ os:
   - linux
 
 go:
-  - 1.14.x
   - 1.15.x
+  - 1.16.x
 
 go_import_path: github.com/thinkgos/gomodbus
 
