@@ -188,7 +188,12 @@ func main() {
 - [Modbus Specifications and Implementation Guides](http://www.modbus.org/specs.php)
 - [goburrow](https://github.com/goburrow/modbus)
 
-## Donation
+### JetBrains OS licenses
+gomodbus had been being developed with GoLand under the free JetBrains Open Source license(s) granted by JetBrains s.r.o., hence I would like to express my thanks here.
+
+<a href="https://www.jetbrains.com/?from=thinkgos/gomodbus" target="_blank"><img src="https://github.com/thinkgos/thinkgos/blob/master/asserts/jetbrains-variant-4.svg" width="200" align="middle"/></a>
+
+### Donation
 
 if package help you a lot,you can support us by:
 

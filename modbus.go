@@ -221,7 +221,7 @@ type ClientProvider interface {
 	setLogProvider(p LogProvider)
 	// setSerialConfig set serial config
 	setSerialConfig(config serial.Config)
-	// setTCPTimeout set tcp connect & read timeouot
+	// setTCPTimeout set tcp connect & read timeout
 	setTCPTimeout(t time.Duration)
 }
 
