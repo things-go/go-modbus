@@ -4,7 +4,7 @@ modbus write in pure go, support rtu,ascii,tcp master library,also support tcp s
 
 [![GoDoc](https://godoc.org/github.com/thinkgos/gomodbus?status.svg)](https://godoc.org/github.com/thinkgos/gomodbus)
 [![Go.Dev reference](https://img.shields.io/badge/go.dev-reference-blue?logo=go&logoColor=white)](https://pkg.go.dev/github.com/thinkgos/gomodbus/v2?tab=doc)
-[![Build Status](https://www.travis-ci.org/thinkgos/gomodbus.svg?branch=master)](https://www.travis-ci.org/thinkgos/gomodbus)
+[![Build Status](https://www.travis-ci.com/thinkgos/gomodbus.svg?branch=master)](https://www.travis-ci.com/thinkgos/gomodbus)
 [![codecov](https://codecov.io/gh/thinkgos/gomodbus/branch/master/graph/badge.svg)](https://codecov.io/gh/thinkgos/gomodbus)
 ![Action Status](https://github.com/thinkgos/gomodbus/workflows/Go/badge.svg)
 [![Go Report Card](https://goreportcard.com/badge/github.com/thinkgos/gomodbus)](https://goreportcard.com/report/github.com/thinkgos/gomodbus)

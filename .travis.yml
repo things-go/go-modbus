@@ -9,8 +9,6 @@ go:
   - 1.15.x
   - 1.16.x
 
-go_import_path: github.com/thinkgos/gomodbus
-
 before_install:
   - if [[ "${GO111MODULE}" = "on" ]]; then mkdir "${HOME}/go"; export GOPATH="${HOME}/go";
     export PATH="$GOPATH/bin:$PATH"; fi
@@ -18,7 +16,7 @@ before_install:
 
 install:
   - go get -u golang.org/x/lint/golint
-  - curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.30.0
+  - curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin
   - curl -sfL https://raw.githubusercontent.com/reviewdog/reviewdog/master/install.sh | sh -s -- -b $(go env GOPATH)/bin
 
 script:
@@ -42,4 +40,3 @@ after_success:
 env:
   global:
     - GO111MODULE=on
-    - secure: FcMQnHE9AoeoqkGPljL3mgRgKyp2Nb0LH1rv0FG+4Wd/kuUnjQhaKEb6SdVKvoDpYsc34qFbL4nLnSUm/AZ8Iwd38CmrplyKB2b6kfbjVpl+LKbZ1CWQvyogyARY16DossgaT3c1HgtkMMl1JTQlRlv1QcdT1eWtE8D4lKG5tlIVPiX8PAtX0kOTPE3AkTv15Cw/h7dHCsnmRaL/4SD/vp2AslhprQZ7a+eE8LSBy1u4T86dAgAhfsO5aQCU5Qfa5FoIfK2SmaHWJ1cownSJ4+FJNZOqYsDUO0s1P6Tuie6ROckHHNqyIK2HXO/83AdpY2Jx3uWr5qH31TBA38SNoDFMRlF4m3VpVTPiqImAf0Nq0L3YzrCNHqXWvi65t9QmSZ8KAZ9EdeCKg2tOhgQiS2DQM6RAqhziecvPuGhHO44Xb124nBOw5I48AViJK7CONyzldrojlXIwoa5eRkv917OPE43HZhhdaIes0oNnCaSU1WCgZ9Zwr/76afFgz/XKXZPeiOV7CBBWbPXWB43JEYSftkfLl0mY6fAhgZO9zNO7dOo+BpZAprWgkqIA0WujW6gv3lIl8azgCNpD2yez95oURfPpAvNgEP8dAalh0zXSYvnLkP+WEg3iElOUOkMCj2VdyKgownxxlhT+DytxePzPyNuBGUfCURaG9x3LPhQ=
