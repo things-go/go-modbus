@@ -1,5 +1,5 @@
-module github.com/thinkgos/gomodbus/v2
+module github.com/things-go/go-modbus
 
-go 1.14
+go 1.15
 
 require github.com/goburrow/serial v0.1.0
