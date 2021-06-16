@@ -104,9 +104,7 @@ func Test_client_ReadDiscreteInputs(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			this := &client{
-				ClientProvider: tt.provide,
-			}
+			this := NewClient(tt.provide)
 			got, err := this.ReadDiscreteInputs(tt.args.slaveID, tt.args.address, tt.args.quantity)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("client.ReadDiscreteInputs() error = %v, wantErr %v", err, tt.wantErr)
@@ -148,9 +146,7 @@ func Test_client_WriteSingleCoil(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			this := &client{
-				ClientProvider: tt.provide,
-			}
+			this := NewClient(tt.provide)
 			if err := this.WriteSingleCoil(tt.args.slaveID, tt.args.address, tt.args.isOn); (err != nil) != tt.wantErr {
 				t.Errorf("client.WriteSingleCoil() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -220,9 +216,7 @@ func Test_client_WriteMultipleCoils(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			this := &client{
-				ClientProvider: tt.provide,
-			}
+			this := NewClient(tt.provide)
 			if err := this.WriteMultipleCoils(tt.args.slaveID, tt.args.address, tt.args.quantity, tt.args.value); (err != nil) != tt.wantErr {
 				t.Errorf("client.WriteMultipleCoils() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -258,9 +252,7 @@ func Test_client_ReadHoldingRegistersBytes(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			this := &client{
-				ClientProvider: tt.provide,
-			}
+			this := NewClient(tt.provide)
 			got, err := this.ReadHoldingRegistersBytes(tt.args.slaveID, tt.args.address, tt.args.quantity)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("client.ReadHoldingRegistersBytes() error = %v, wantErr %v", err, tt.wantErr)
@@ -301,9 +293,7 @@ func Test_client_ReadHoldingRegisters(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			this := &client{
-				ClientProvider: tt.provide,
-			}
+			this := NewClient(tt.provide)
 			got, err := this.ReadHoldingRegisters(tt.args.slaveID, tt.args.address, tt.args.quantity)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("client.ReadHoldingRegisters() error = %v, wantErr %v", err, tt.wantErr)
@@ -344,9 +334,7 @@ func Test_client_ReadInputRegistersBytes(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			this := &client{
-				ClientProvider: tt.provide,
-			}
+			this := NewClient(tt.provide)
 			got, err := this.ReadInputRegistersBytes(tt.args.slaveID, tt.args.address, tt.args.quantity)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("client.ReadInputRegistersBytes() error = %v, wantErr %v", err, tt.wantErr)
@@ -387,9 +375,7 @@ func Test_client_ReadInputRegisters(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			this := &client{
-				ClientProvider: tt.provide,
-			}
+			this := NewClient(tt.provide)
 			got, err := this.ReadInputRegisters(tt.args.slaveID, tt.args.address, tt.args.quantity)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("client.ReadInputRegisters() error = %v, wantErr %v", err, tt.wantErr)
@@ -431,9 +417,7 @@ func Test_client_WriteSingleRegister(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			this := &client{
-				ClientProvider: tt.provide,
-			}
+			this := NewClient(tt.provide)
 			if err := this.WriteSingleRegister(tt.args.slaveID, tt.args.address, tt.args.value); (err != nil) != tt.wantErr {
 				t.Errorf("client.WriteSingleRegister() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -506,9 +490,7 @@ func Test_client_WriteMultipleRegistersBytes(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			this := &client{
-				ClientProvider: tt.provide,
-			}
+			this := NewClient(tt.provide)
 			if err := this.WriteMultipleRegistersBytes(tt.args.slaveID, tt.args.address, tt.args.quantity, tt.args.value); (err != nil) != tt.wantErr {
 				t.Errorf("client.WriteMultipleRegisters() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -538,9 +520,7 @@ func Test_client_WriteMultipleRegisters(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			sf := &client{
-				ClientProvider: tt.provide,
-			}
+			sf := NewClient(tt.provide)
 			if err := sf.WriteMultipleRegisters(tt.args.slaveID, tt.args.address, tt.args.quantity, tt.args.value); (err != nil) != tt.wantErr {
 				t.Errorf("WriteMultipleRegisters() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -578,9 +558,7 @@ func Test_client_MaskWriteRegister(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			this := &client{
-				ClientProvider: tt.provide,
-			}
+			this := NewClient(tt.provide)
 			if err := this.MaskWriteRegister(tt.args.slaveID, tt.args.address, tt.args.andMask, tt.args.orMask); (err != nil) != tt.wantErr {
 				t.Errorf("client.MaskWriteRegister() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -656,9 +634,7 @@ func Test_client_ReadWriteMultipleRegistersBytes(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			this := &client{
-				ClientProvider: tt.provide,
-			}
+			this := NewClient(tt.provide)
 			got, err := this.ReadWriteMultipleRegistersBytes(tt.args.slaveID, tt.args.readAddress, tt.args.readQuantity, tt.args.writeAddress, tt.args.writeQuantity, tt.args.value)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("client.ReadWriteMultipleRegistersBytes() error = %v, wantErr %v", err, tt.wantErr)
@@ -738,9 +714,7 @@ func Test_client_ReadWriteMultipleRegisters(t *testing.T) {
 		}}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			this := &client{
-				ClientProvider: tt.provide,
-			}
+			this := NewClient(tt.provide)
 			got, err := this.ReadWriteMultipleRegisters(tt.args.slaveID, tt.args.readAddress, tt.args.readQuantity, tt.args.writeAddress, tt.args.writeQuantity, tt.args.value)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("client.ReadWriteMultipleRegisters() error = %v, wantErr %v", err, tt.wantErr)
@@ -780,9 +754,7 @@ func Test_client_ReadFIFOQueue(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			this := &client{
-				ClientProvider: tt.provide,
-			}
+			this := NewClient(tt.provide)
 			got, err := this.ReadFIFOQueue(tt.args.slaveID, tt.args.address)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("client.ReadFIFOQueue() error = %v, wantErr %v", err, tt.wantErr)

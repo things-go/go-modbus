@@ -59,13 +59,8 @@ import (
 const (
 	AddressBroadCast = 0
 	AddressMin       = 1
-	addressMax       = 247
+	AddressMax       = 247
 )
-
-// AddressMax proto address max limit
-// you can change with SetSpecialAddressMax,
-// when your device have address upon addressMax
-var AddressMax byte = addressMax
 
 const (
 	pduMinSize = 1   // funcCode(1)
@@ -225,9 +220,4 @@ type ClientProvider interface {
 type LogProvider interface {
 	Error(format string, v ...interface{})
 	Debug(format string, v ...interface{})
-}
-
-// SetSpecialAddressMax set special slaveID limit
-func SetSpecialAddressMax(slaveID byte) {
-	AddressMax = slaveID
 }

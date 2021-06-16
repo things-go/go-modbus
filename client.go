@@ -8,14 +8,36 @@ import (
 // check implements Client interface.
 var _ Client = (*client)(nil)
 
+type Option func(c *client)
+
+func WithAddressMin(v byte) Option {
+	return func(c *client) {
+		c.addressMin = v
+	}
+}
+func WithAddressMax(v byte) Option {
+	return func(c *client) {
+		c.addressMax = v
+	}
+}
+
 // client implements Client interface.
 type client struct {
 	ClientProvider
+	addressMin byte
+	addressMax byte
 }
 
 // NewClient creates a new modbus client with given backend handler.
-func NewClient(p ClientProvider) Client {
-	return &client{p}
+// default proto address limit is 1~247 AddressMax
+// you can change with custom option.
+// // when your device have address upon addressMax
+func NewClient(p ClientProvider, opts ...Option) Client {
+	c := &client{p, AddressMin, AddressMax}
+	for _, opt := range opts {
+		opt(c)
+	}
+	return c
 }
 
 // Request:
@@ -29,9 +51,9 @@ func NewClient(p ClientProvider) Client {
 //  Coil status           : N* bytes (=N or N+1)
 //  return coils status
 func (sf *client) ReadCoils(slaveID byte, address, quantity uint16) ([]byte, error) {
-	if slaveID < AddressMin || slaveID > AddressMax {
+	if slaveID < sf.addressMin || slaveID > sf.addressMax {
 		return nil, fmt.Errorf("modbus: slaveID '%v' must be between '%v' and '%v'",
-			slaveID, AddressMin, AddressMax)
+			slaveID, sf.addressMin, sf.addressMax)
 	}
 	if quantity < ReadBitsQuantityMin || quantity > ReadBitsQuantityMax {
 		return nil, fmt.Errorf("modbus: quantity '%v' must be between '%v' and '%v'",
@@ -67,9 +89,9 @@ func (sf *client) ReadCoils(slaveID byte, address, quantity uint16) ([]byte, err
 //  Input status          : N* bytes (=N or N+1)
 //  return result data
 func (sf *client) ReadDiscreteInputs(slaveID byte, address, quantity uint16) ([]byte, error) {
-	if slaveID < AddressMin || slaveID > AddressMax {
+	if slaveID < sf.addressMin || slaveID > sf.addressMax {
 		return nil, fmt.Errorf("modbus: slaveID '%v' must be between '%v' and '%v'",
-			slaveID, AddressMin, AddressMax)
+			slaveID, sf.addressMin, sf.addressMax)
 	}
 	if quantity < ReadBitsQuantityMin || quantity > ReadBitsQuantityMax {
 		return nil, fmt.Errorf("modbus: quantity '%v' must be between '%v' and '%v'",
@@ -103,9 +125,9 @@ func (sf *client) ReadDiscreteInputs(slaveID byte, address, quantity uint16) ([]
 //  Output address        : 2 bytes
 //  Output value          : 2 bytes
 func (sf *client) WriteSingleCoil(slaveID byte, address uint16, isOn bool) error {
-	if slaveID > AddressMax {
+	if slaveID > sf.addressMax {
 		return fmt.Errorf("modbus: slaveID '%v' must be between '%v' and '%v'",
-			slaveID, AddressBroadCast, AddressMax)
+			slaveID, AddressBroadCast, sf.addressMax)
 	}
 	var value uint16
 	if isOn { // The requested ON/OFF state can only be 0xFF00 and 0x0000
@@ -147,9 +169,9 @@ func (sf *client) WriteSingleCoil(slaveID byte, address uint16, isOn bool) error
 //  Starting address      : 2 bytes
 //  Quantity of outputs   : 2 bytes
 func (sf *client) WriteMultipleCoils(slaveID byte, address, quantity uint16, value []byte) error {
-	if slaveID > AddressMax {
+	if slaveID > sf.addressMax {
 		return fmt.Errorf("modbus: slaveID '%v' must be between '%v' and '%v'",
-			slaveID, AddressBroadCast, AddressMax)
+			slaveID, AddressBroadCast, sf.addressMax)
 	}
 	if quantity < WriteBitsQuantityMin || quantity > WriteBitsQuantityMax {
 		return fmt.Errorf("modbus: quantity '%v' must be between '%v' and '%v'",
@@ -194,9 +216,9 @@ func (sf *client) WriteMultipleCoils(slaveID byte, address, quantity uint16, val
 //  Byte count            : 1 byte
 //  Input registers       : Nx2 bytes
 func (sf *client) ReadInputRegistersBytes(slaveID byte, address, quantity uint16) ([]byte, error) {
-	if slaveID < AddressMin || slaveID > AddressMax {
+	if slaveID < sf.addressMin || slaveID > sf.addressMax {
 		return nil, fmt.Errorf("modbus: slaveID '%v' must be between '%v' and '%v'",
-			slaveID, AddressMin, AddressMax)
+			slaveID, sf.addressMin, sf.addressMax)
 	}
 	if quantity < ReadRegQuantityMin || quantity > ReadRegQuantityMax {
 		return nil, fmt.Errorf("modbus: quantity '%v' must be between '%v' and '%v'",
@@ -248,9 +270,9 @@ func (sf *client) ReadInputRegisters(slaveID byte, address, quantity uint16) ([]
 //  Byte count            : 1 byte
 //  Register value        : Nx2 bytes
 func (sf *client) ReadHoldingRegistersBytes(slaveID byte, address, quantity uint16) ([]byte, error) {
-	if slaveID < AddressMin || slaveID > AddressMax {
+	if slaveID < sf.addressMin || slaveID > sf.addressMax {
 		return nil, fmt.Errorf("modbus: slaveID '%v' must be between '%v' and '%v'",
-			slaveID, AddressMin, AddressMax)
+			slaveID, sf.addressMin, sf.addressMax)
 	}
 	if quantity < ReadRegQuantityMin || quantity > ReadRegQuantityMax {
 		return nil, fmt.Errorf("modbus: quantity '%v' must be between '%v' and '%v'",
@@ -301,9 +323,9 @@ func (sf *client) ReadHoldingRegisters(slaveID byte, address, quantity uint16) (
 //  Register address      : 2 bytes
 //  Register value        : 2 bytes
 func (sf *client) WriteSingleRegister(slaveID byte, address, value uint16) error {
-	if slaveID > AddressMax {
+	if slaveID > sf.addressMax {
 		return fmt.Errorf("modbus: slaveID '%v' must be between '%v' and '%v'",
-			slaveID, AddressBroadCast, AddressMax)
+			slaveID, AddressBroadCast, sf.addressMax)
 	}
 	response, err := sf.Send(slaveID, ProtocolDataUnit{
 		FuncCode: FuncCodeWriteSingleRegister,
@@ -339,9 +361,9 @@ func (sf *client) WriteSingleRegister(slaveID byte, address, value uint16) error
 //  Starting address      : 2 bytes
 //  Quantity of registers : 2 bytes
 func (sf *client) WriteMultipleRegistersBytes(slaveID byte, address, quantity uint16, value []byte) error {
-	if slaveID > AddressMax {
+	if slaveID > sf.addressMax {
 		return fmt.Errorf("modbus: slaveID '%v' must be between '%v' and '%v'",
-			slaveID, AddressBroadCast, AddressMax)
+			slaveID, AddressBroadCast, sf.addressMax)
 	}
 	if quantity < WriteRegQuantityMin || quantity > WriteRegQuantityMax {
 		return fmt.Errorf("modbus: quantity '%v' must be between '%v' and '%v'",
@@ -401,9 +423,9 @@ func (sf *client) WriteMultipleRegisters(slaveID byte, address, quantity uint16,
 //  AND-mask              : 2 bytes
 //  OR-mask               : 2 bytes
 func (sf *client) MaskWriteRegister(slaveID byte, address, andMask, orMask uint16) error {
-	if slaveID > AddressMax {
+	if slaveID > sf.addressMax {
 		return fmt.Errorf("modbus: slaveID '%v' must be between '%v' and '%v'",
-			slaveID, AddressBroadCast, AddressMax)
+			slaveID, AddressBroadCast, sf.addressMax)
 	}
 	response, err := sf.Send(slaveID, ProtocolDataUnit{
 		FuncCode: FuncCodeMaskWriteRegister,
@@ -445,9 +467,9 @@ func (sf *client) MaskWriteRegister(slaveID byte, address, andMask, orMask uint1
 //  Read registers value  : Nx2 bytes
 func (sf *client) ReadWriteMultipleRegistersBytes(slaveID byte, readAddress, readQuantity,
 	writeAddress, writeQuantity uint16, value []byte) ([]byte, error) {
-	if slaveID < AddressMin || slaveID > AddressMax {
+	if slaveID < sf.addressMin || slaveID > sf.addressMax {
 		return nil, fmt.Errorf("modbus: slaveID '%v' must be between '%v' and '%v'",
-			slaveID, AddressMin, AddressMax)
+			slaveID, sf.addressMin, sf.addressMax)
 	}
 	if readQuantity < ReadWriteOnReadRegQuantityMin || readQuantity > ReadWriteOnReadRegQuantityMax {
 		return nil, fmt.Errorf("modbus: quantity to read '%v' must be between '%v' and '%v'",
@@ -510,9 +532,9 @@ func (sf *client) ReadWriteMultipleRegisters(slaveID byte, readAddress, readQuan
 //  FIFO count            : 2 bytes (<=31)
 //  FIFO value register   : Nx2 bytes
 func (sf *client) ReadFIFOQueue(slaveID byte, address uint16) ([]byte, error) {
-	if slaveID < AddressMin || slaveID > AddressMax {
+	if slaveID < sf.addressMin || slaveID > sf.addressMax {
 		return nil, fmt.Errorf("modbus: slaveID '%v' must be between '%v' and '%v'",
-			slaveID, AddressMin, AddressMax)
+			slaveID, sf.addressMin, sf.addressMax)
 	}
 	response, err := sf.Send(slaveID, ProtocolDataUnit{
 		FuncCode: FuncCodeReadFIFOQueue,
