@@ -73,16 +73,16 @@ func TestTCPClientProvider_decodeTCPFrame(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gothead, gotpdu, err := decodeTCPFrame(tt.args.adu)
+			gotHead, gotPdu, err := decodeTCPFrame(tt.args.adu)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("TCPClientProvider.decode() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(gothead, tt.head) {
-				t.Errorf("TCPClientProvider.decode() gothead = %v, want %v", gothead, tt.head)
+			if !reflect.DeepEqual(gotHead, tt.head) {
+				t.Errorf("TCPClientProvider.decode() gotHead = %v, want %v", gotHead, tt.head)
 			}
-			if !reflect.DeepEqual(gotpdu, tt.pdu) {
-				t.Errorf("TCPClientProvider.decode() gotpdu = %v, want %v", gotpdu, tt.pdu)
+			if !reflect.DeepEqual(gotPdu, tt.pdu) {
+				t.Errorf("TCPClientProvider.decode() gotPdu = %v, want %v", gotPdu, tt.pdu)
 			}
 		})
 	}

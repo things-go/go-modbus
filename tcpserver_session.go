@@ -25,10 +25,10 @@ func (sf *ServerSession) running(ctx context.Context) {
 	var err error
 	var bytesRead int
 
-	sf.Debug("client(%v) -> server(%v) connected", sf.conn.RemoteAddr(), sf.conn.LocalAddr())
+	sf.Debugf("client(%v) -> server(%v) connected", sf.conn.RemoteAddr(), sf.conn.LocalAddr())
 	defer func() {
 		sf.conn.Close()
-		sf.Debug("client(%v) -> server(%v) disconnected,cause by %v", sf.conn.RemoteAddr(), sf.conn.LocalAddr(), err)
+		sf.Debugf("client(%v) -> server(%v) disconnected,cause by %v", sf.conn.RemoteAddr(), sf.conn.LocalAddr(), err)
 	}()
 
 	raw := make([]byte, tcpAduMaxSize)
@@ -85,11 +85,11 @@ func (sf *ServerSession) running(ctx context.Context) {
 func (sf *ServerSession) frameHandler(requestAdu []byte) error {
 	defer func() {
 		if err := recover(); err != nil {
-			sf.Error("painc happen,%v", err)
+			sf.Errorf("painc happen,%v", err)
 		}
 	}()
 
-	sf.Debug("RX Raw[% x]", requestAdu)
+	sf.Debugf("RX Raw[% x]", requestAdu)
 	// got head from request adu
 	tcpHeader := protocolTCPHeader{
 		binary.BigEndian.Uint16(requestAdu[0:]),
@@ -124,7 +124,7 @@ func (sf *ServerSession) frameHandler(requestAdu []byte) error {
 	responseAdu = append(responseAdu, funcCode)
 	responseAdu = append(responseAdu, rspPduData...)
 
-	sf.Debug("TX Raw[% x]", responseAdu)
+	sf.Debugf("TX Raw[% x]", responseAdu)
 	// write response
 	return func(b []byte) error {
 		for wrCnt := 0; len(b) > wrCnt; {

@@ -1,10 +1,9 @@
 package modbus
 
 import (
+	"log"
 	"os"
 	"sync/atomic"
-
-	"log"
 )
 
 // 内部调试实现.
@@ -41,16 +40,16 @@ func (sf *logger) setLogProvider(p LogProvider) {
 }
 
 // Error Log ERROR level message.
-func (sf logger) Error(format string, v ...interface{}) {
+func (sf logger) Errorf(format string, v ...interface{}) {
 	if atomic.LoadUint32(&sf.has) == 1 {
-		sf.provider.Error(format, v...)
+		sf.provider.Errorf(format, v...)
 	}
 }
 
 // Debug Log DEBUG level message.
-func (sf logger) Debug(format string, v ...interface{}) {
+func (sf logger) Debugf(format string, v ...interface{}) {
 	if atomic.LoadUint32(&sf.has) == 1 {
-		sf.provider.Debug(format, v...)
+		sf.provider.Debugf(format, v...)
 	}
 }
 
@@ -63,11 +62,11 @@ type defaultLogger struct {
 var _ LogProvider = (*defaultLogger)(nil)
 
 // Error Log ERROR level message.
-func (sf defaultLogger) Error(format string, v ...interface{}) {
+func (sf defaultLogger) Errorf(format string, v ...interface{}) {
 	sf.Printf("[E]: "+format, v...)
 }
 
 // Debug Log DEBUG level message.
-func (sf defaultLogger) Debug(format string, v ...interface{}) {
+func (sf defaultLogger) Debugf(format string, v ...interface{}) {
 	sf.Printf("[D]: "+format, v...)
 }

@@ -8,10 +8,8 @@ import (
 	"github.com/goburrow/serial"
 )
 
-const (
-	// SerialDefaultTimeout Serial Default timeout
-	SerialDefaultTimeout = 1 * time.Second
-)
+// SerialDefaultTimeout Serial Default timeout
+const SerialDefaultTimeout = 1 * time.Second
 
 // serialPort has configuration and I/O controller.
 type serialPort struct {

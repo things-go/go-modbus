@@ -74,10 +74,10 @@ func (sf *TCPServer) ListenAndServe(addr string) error {
 	sf.cancel = cancel
 	sf.mu.Unlock()
 
-	sf.Debug("server started,and listen address: %s", addr)
+	sf.Debugf("server started,and listen address: %s", addr)
 	defer func() {
 		sf.Close()
-		sf.Debug("server stopped")
+		sf.Debugf("server stopped")
 	}()
 	var tempDelay = minTempDelay // how long to sleep on accept failure
 

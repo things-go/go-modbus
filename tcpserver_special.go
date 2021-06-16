@@ -183,9 +183,9 @@ func (sf *TCPServerSpecial) run() {
 	sf.rwMux.Unlock()
 	defer func() {
 		sf.setConnectStatus(initial)
-		sf.Debug("tcp server special stop!")
+		sf.Debugf("tcp server special stop!")
 	}()
-	sf.Debug("tcp server special start!")
+	sf.Debugf("tcp server special start!")
 
 	for {
 		select {
@@ -194,17 +194,17 @@ func (sf *TCPServerSpecial) run() {
 		default:
 		}
 
-		sf.Debug("connecting server %+v", sf.server)
+		sf.Debugf("connecting server %+v", sf.server)
 		conn, err := openConnection(sf.server, sf.TLSConfig, sf.connectTimeout)
 		if err != nil {
-			sf.Error("connect failed, %v", err)
+			sf.Errorf("connect failed, %v", err)
 			if !sf.autoReconnect {
 				return
 			}
 			time.Sleep(sf.reconnectInterval)
 			continue
 		}
-		sf.Debug("connect success")
+		sf.Debugf("connect success")
 		sf.conn = conn
 		if err := sf.onConnect(sf); err != nil {
 			time.Sleep(sf.reconnectInterval)

@@ -129,7 +129,7 @@ func (sf *RTUClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []byte
 	}
 
 	// Send the request
-	sf.Debug("sending [% x]", aduRequest)
+	sf.Debugf("sending [% x]", aduRequest)
 	_, err = sf.port.Write(aduRequest)
 	if err != nil {
 		sf.close()
@@ -175,7 +175,7 @@ func (sf *RTUClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []byte
 		return
 	}
 	aduResponse = data[:n]
-	sf.Debug("received [% x]", aduResponse)
+	sf.Debugf("received [% x]", aduResponse)
 	return aduResponse, nil
 }
 

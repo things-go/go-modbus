@@ -218,6 +218,6 @@ type ClientProvider interface {
 
 // LogProvider RFC5424 log message levels only Debug and Error
 type LogProvider interface {
-	Error(format string, v ...interface{})
-	Debug(format string, v ...interface{})
+	Errorf(format string, v ...interface{})
+	Debugf(format string, v ...interface{})
 }

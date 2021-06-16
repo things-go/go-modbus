@@ -172,7 +172,7 @@ func (sf *ASCIIClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []by
 		return nil, err
 	}
 	// Send the request
-	sf.Debug("sending [% x]", aduRequest)
+	sf.Debugf("sending [% x]", aduRequest)
 
 	_, err = sf.port.Write(aduRequest)
 	if err == nil {
@@ -200,6 +200,6 @@ func (sf *ASCIIClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []by
 		}
 	}
 	aduResponse = data[:length]
-	sf.Debug("received [% x]", aduResponse)
+	sf.Debugf("received [% x]", aduResponse)
 	return aduResponse, nil
 }

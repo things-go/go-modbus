@@ -213,7 +213,7 @@ func (sf *TCPClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []byte
 		return
 	}
 	// Send data
-	sf.Debug("sending [% x]", aduRequest)
+	sf.Debugf("sending [% x]", aduRequest)
 	// Set write and read timeout
 	var timeout time.Time
 
@@ -276,7 +276,7 @@ func (sf *TCPClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []byte
 		return
 	}
 	aduResponse = data[:length]
-	sf.Debug("received [% x]", aduResponse)
+	sf.Debugf("received [% x]", aduResponse)
 	return aduResponse, nil
 }
 
