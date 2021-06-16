@@ -37,25 +37,22 @@ func (sf *serialPort) Connect() (err error) {
 
 // Caller must hold the mutex before calling this method.
 func (sf *serialPort) connect() error {
-	port, err := serial.Open(&sf.Config)
-	if err != nil {
-		return err
+	if sf.port == nil {
+		port, err := serial.Open(&sf.Config)
+		if err != nil {
+			return err
+		}
+		sf.port = port
 	}
-	sf.port = port
 	return nil
 }
 
 // IsConnected returns a bool signifying whether the client is connected or not.
 func (sf *serialPort) IsConnected() (b bool) {
 	sf.mu.Lock()
-	b = sf.isConnected()
+	b = sf.port != nil
 	sf.mu.Unlock()
 	return b
-}
-
-// Caller must hold the mutex before calling this method.
-func (sf *serialPort) isConnected() bool {
-	return sf.port != nil
 }
 
 // SetAutoReconnect set auto reconnect count
@@ -77,13 +74,18 @@ func (sf *serialPort) setSerialConfig(config serial.Config) {
 
 func (sf *serialPort) setTCPTimeout(time.Duration) {}
 
-// Close close current connection.
-func (sf *serialPort) Close() (err error) {
-	sf.mu.Lock()
+func (sf *serialPort) close() (err error) {
 	if sf.port != nil {
 		err = sf.port.Close()
 		sf.port = nil
 	}
+	return err
+}
+
+// Close close current connection.
+func (sf *serialPort) Close() (err error) {
+	sf.mu.Lock()
+	err = sf.close()
 	sf.mu.Unlock()
 	return
 }

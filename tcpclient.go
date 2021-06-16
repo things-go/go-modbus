@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"strings"
 	"sync"
@@ -214,8 +215,8 @@ func (sf *TCPClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []byte
 	sf.mu.Lock()
 	defer sf.mu.Unlock()
 
-	if !sf.isConnected() {
-		return nil, ErrClosedConnection
+	if err = sf.connect(); err != nil {
+		return
 	}
 	// Send data
 	sf.Debug("sending [% x]", aduRequest)
@@ -237,7 +238,8 @@ func (sf *TCPClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []byte
 		if sf.autoReconnect == 0 {
 			return
 		}
-
+		log.Println("---------> 22222")
+		sf.close()
 		for {
 			err = sf.connect()
 			if err == nil {
@@ -269,10 +271,12 @@ func (sf *TCPClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []byte
 			return
 		}
 		mErr = err
-		if e, ok := err.(net.Error); ok && !e.Temporary() ||
-			err != io.EOF && err != io.ErrClosedPipe ||
+		if e, ok := err.(net.Error); (ok && !e.Temporary() && !e.Timeout()) ||
+			(err != io.EOF && err == io.ErrClosedPipe) ||
 			strings.Contains(err.Error(), "use of closed network connection") ||
-			cnt == 0 && err == io.EOF {
+			(cnt == 0 && err == io.EOF) {
+			log.Println("---------> 111", err.Error())
+			sf.close()
 			for {
 				err = sf.connect()
 				if err == nil {
@@ -283,7 +287,10 @@ func (sf *TCPClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []byte
 					return
 				}
 			}
+		} else {
+			return
 		}
+
 		tryCnt++
 		if tryCnt >= sf.autoReconnect {
 			err = mErr
@@ -332,12 +339,14 @@ func (sf *TCPClientProvider) Connect() error {
 
 // Caller must hold the mutex before calling this method.
 func (sf *TCPClientProvider) connect() error {
-	dialer := &net.Dialer{Timeout: sf.timeout}
-	conn, err := dialer.Dial("tcp", sf.address)
-	if err != nil {
-		return err
+	if sf.conn == nil {
+		dialer := &net.Dialer{Timeout: sf.timeout}
+		conn, err := dialer.Dial("tcp", sf.address)
+		if err != nil {
+			return err
+		}
+		sf.conn = conn
 	}
-	sf.conn = conn
 	return nil
 }
 
@@ -345,7 +354,7 @@ func (sf *TCPClientProvider) connect() error {
 // the client is connected or not.
 func (sf *TCPClientProvider) IsConnected() bool {
 	sf.mu.Lock()
-	b := sf.isConnected()
+	b := sf.conn != nil
 	sf.mu.Unlock()
 	return b
 }
@@ -365,13 +374,19 @@ func (sf *TCPClientProvider) SetAutoReconnect(cnt byte) {
 	sf.mu.Unlock()
 }
 
-// Close closes current connection.
-func (sf *TCPClientProvider) Close() (err error) {
-	sf.mu.Lock()
+// Caller must hold the mutex before calling this method.
+func (sf *TCPClientProvider) close() (err error) {
 	if sf.conn != nil {
 		err = sf.conn.Close()
 		sf.conn = nil
 	}
+	return
+}
+
+// Close closes current connection.
+func (sf *TCPClientProvider) Close() (err error) {
+	sf.mu.Lock()
+	err = sf.close()
 	sf.mu.Unlock()
 	return
 }

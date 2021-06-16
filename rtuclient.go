@@ -125,11 +125,6 @@ func (sf *RTUClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []byte
 	sf.mu.Lock()
 	defer sf.mu.Unlock()
 
-	// check  port is connected
-	if !sf.isConnected() {
-		return nil, ErrClosedConnection
-	}
-
 	// Send the request
 	sf.Debug("sending [% x]", aduRequest)
 	var tryCnt byte
@@ -141,6 +136,7 @@ func (sf *RTUClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []byte
 		if sf.autoReconnect == 0 {
 			return
 		}
+		sf.close()
 		for {
 			err = sf.connect()
 			if err == nil {
