@@ -11,8 +11,6 @@ import (
 const (
 	// SerialDefaultTimeout Serial Default timeout
 	SerialDefaultTimeout = 1 * time.Second
-	// SerialDefaultAutoReconnect Serial Default auto reconnect count, zero means not active.
-	SerialDefaultAutoReconnect = 0
 )
 
 // serialPort has configuration and I/O controller.
@@ -21,10 +19,6 @@ type serialPort struct {
 	serial.Config
 	mu   sync.Mutex
 	port io.ReadWriteCloser
-	// if == 0 auto reconnect not active
-	// if > 0, when disconnect,it will try to reconnect the remote
-	// but if we active close self,it will not to reconnect
-	autoReconnect byte
 }
 
 // Connect try to connect the remote server
@@ -53,18 +47,6 @@ func (sf *serialPort) IsConnected() (b bool) {
 	b = sf.port != nil
 	sf.mu.Unlock()
 	return b
-}
-
-// SetAutoReconnect set auto reconnect count
-// if cnt == 0, disable auto reconnect
-// if cnt > 0 ,enable auto reconnect,but max 6
-func (sf *serialPort) SetAutoReconnect(cnt byte) {
-	sf.mu.Lock()
-	sf.autoReconnect = cnt
-	if sf.autoReconnect > 6 {
-		sf.autoReconnect = 6
-	}
-	sf.mu.Unlock()
 }
 
 // setSerialConfig set serial config

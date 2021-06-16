@@ -31,7 +31,6 @@ func NewRTUClientProvider(opts ...ClientProviderOption) *RTUClientProvider {
 		logger: newLogger("modbusRTUMaster => "),
 		pool:   rtuPool,
 	}
-	p.autoReconnect = SerialDefaultAutoReconnect
 	for _, opt := range opts {
 		opt(p)
 	}
@@ -125,28 +124,16 @@ func (sf *RTUClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []byte
 	sf.mu.Lock()
 	defer sf.mu.Unlock()
 
+	if err = sf.connect(); err != nil {
+		return
+	}
+
 	// Send the request
 	sf.Debug("sending [% x]", aduRequest)
-	var tryCnt byte
-	for {
-		_, err = sf.port.Write(aduRequest)
-		if err == nil { // success
-			break
-		}
-		if sf.autoReconnect == 0 {
-			return
-		}
+	_, err = sf.port.Write(aduRequest)
+	if err != nil {
 		sf.close()
-		for {
-			err = sf.connect()
-			if err == nil {
-				break
-			}
-			tryCnt++
-			if tryCnt >= sf.autoReconnect {
-				return
-			}
-		}
+		return
 	}
 
 	function, functionFail := aduRequest[1], aduRequest[1]|0x80

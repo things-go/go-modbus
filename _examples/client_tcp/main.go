@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	p := modbus.NewTCPClientProvider("192.168.199.188:502", modbus.WithEnableLogger())
+	p := modbus.NewTCPClientProvider("localhost:502", modbus.WithEnableLogger())
 	client := modbus.NewClient(p)
 	err := client.Connect()
 	if err != nil {

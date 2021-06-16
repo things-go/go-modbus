@@ -201,10 +201,6 @@ type ClientProvider interface {
 	// IsConnected returns a bool signifying whether
 	// the client is connected or not.
 	IsConnected() bool
-	// SetAutoReconnect set auto reconnect count
-	// if cnt == 0, disable auto reconnect
-	// if cnt > 0 ,enable auto reconnect,but max 6
-	SetAutoReconnect(cnt byte)
 	// LogMode set enable or diable log output when you has set logger
 	LogMode(enable bool)
 	// Close disconnect the remote server

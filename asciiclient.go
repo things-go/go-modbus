@@ -32,7 +32,6 @@ func NewASCIIClientProvider(opts ...ClientProviderOption) *ASCIIClientProvider {
 		logger: newLogger("modbusASCIIMaster => "),
 		pool:   asciiPool,
 	}
-	p.autoReconnect = SerialDefaultAutoReconnect
 	for _, opt := range opts {
 		opt(p)
 	}
@@ -174,26 +173,11 @@ func (sf *ASCIIClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []by
 	}
 	// Send the request
 	sf.Debug("sending [% x]", aduRequest)
-	var tryCnt byte
-	for {
-		_, err = sf.port.Write(aduRequest)
-		if err == nil { // success
-			break
-		}
-		if sf.autoReconnect == 0 {
-			return
-		}
+
+	_, err = sf.port.Write(aduRequest)
+	if err == nil {
 		sf.close()
-		for {
-			err = sf.connect()
-			if err == nil {
-				break
-			}
-			tryCnt++
-			if tryCnt >= sf.autoReconnect {
-				return
-			}
-		}
+		return
 	}
 
 	// Get the response

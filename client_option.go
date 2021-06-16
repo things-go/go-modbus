@@ -23,15 +23,6 @@ func WithEnableLogger() ClientProviderOption {
 	}
 }
 
-// WithAutoReconnect set auto reconnect count.
-// if cnt == 0, disable auto reconnect
-// if cnt > 0 ,enable auto reconnect,but max 6.
-func WithAutoReconnect(cnt byte) ClientProviderOption {
-	return func(p ClientProvider) {
-		p.SetAutoReconnect(cnt)
-	}
-}
-
 // WithSerialConfig set serial config, only valid on serial.
 func WithSerialConfig(config serial.Config) ClientProviderOption {
 	return func(p ClientProvider) {

@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	"log"
 	"net"
 	"strings"
 	"sync"
@@ -30,10 +29,6 @@ type TCPClientProvider struct {
 	conn net.Conn
 	// Connect & Read timeout
 	timeout time.Duration
-	// if > 0, when disconnect,it will try to reconnect the remote
-	// but if we active close self,it will not to reconnect
-	// if == 0 auto reconnect not active
-	autoReconnect byte
 	// For synchronization between messages of server & client
 	transactionID uint32
 	// request
@@ -49,11 +44,10 @@ var tcpPool = newPool(tcpAduMaxSize)
 // NewTCPClientProvider allocates a new TCPClientProvider.
 func NewTCPClientProvider(address string, opts ...ClientProviderOption) *TCPClientProvider {
 	p := &TCPClientProvider{
-		address:       address,
-		timeout:       TCPDefaultTimeout,
-		autoReconnect: TCPDefaultAutoReconnect,
-		pool:          tcpPool,
-		logger:        newLogger("modbusTCPMaster =>"),
+		address: address,
+		timeout: TCPDefaultTimeout,
+		pool:    tcpPool,
+		logger:  newLogger("modbusTCPMaster =>"),
 	}
 	for _, opt := range opts {
 		opt(p)
@@ -222,81 +216,39 @@ func (sf *TCPClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []byte
 	sf.Debug("sending [% x]", aduRequest)
 	// Set write and read timeout
 	var timeout time.Time
-	var tryCnt byte
-	for {
-		if sf.timeout > 0 {
-			timeout = time.Now().Add(sf.timeout)
-		}
-		if err = sf.conn.SetDeadline(timeout); err != nil {
-			return nil, err
-		}
 
-		if _, err = sf.conn.Write(aduRequest); err == nil { // success
-			break
-		}
+	if sf.timeout > 0 {
+		timeout = time.Now().Add(sf.timeout)
+	}
+	if err = sf.conn.SetDeadline(timeout); err != nil {
+		return nil, err
+	}
 
-		if sf.autoReconnect == 0 {
-			return
-		}
-		log.Println("---------> 22222")
-		sf.close()
-		for {
-			err = sf.connect()
-			if err == nil {
-				break
-			}
-			tryCnt++
-			if tryCnt >= sf.autoReconnect {
-				return
-			}
-		}
+	if _, err = sf.conn.Write(aduRequest); err != nil {
+		return
 	}
 
 	// Read header first
 	var data [tcpAduMaxSize]byte
 	var cnt int
-	var mErr error
-	for {
-		if sf.timeout > 0 {
-			timeout = time.Now().Add(sf.timeout)
-		}
-		if err = sf.conn.SetDeadline(timeout); err != nil {
-			return nil, err
-		}
 
-		if cnt, err = io.ReadFull(sf.conn, data[:tcpHeaderMbapSize]); err == nil {
-			break
-		}
-		if sf.autoReconnect == 0 {
-			return
-		}
-		mErr = err
+	if sf.timeout > 0 {
+		timeout = time.Now().Add(sf.timeout)
+	}
+	if err = sf.conn.SetDeadline(timeout); err != nil {
+		return nil, err
+	}
+
+	if cnt, err = io.ReadFull(sf.conn, data[:tcpHeaderMbapSize]); err != nil {
 		if e, ok := err.(net.Error); (ok && !e.Temporary() && !e.Timeout()) ||
 			(err != io.EOF && err == io.ErrClosedPipe) ||
 			strings.Contains(err.Error(), "use of closed network connection") ||
 			(cnt == 0 && err == io.EOF) {
-			log.Println("---------> 111", err.Error())
 			sf.close()
-			for {
-				err = sf.connect()
-				if err == nil {
-					break
-				}
-				tryCnt++
-				if tryCnt >= sf.autoReconnect {
-					return
-				}
-			}
-		} else {
-			return
 		}
-
-		tryCnt++
-		if tryCnt >= sf.autoReconnect {
-			err = mErr
-			return
-		}
+		return
 	}
+
 	// Read length, ignore transaction & protocol id (4 bytes)
 	length := int(binary.BigEndian.Uint16(data[4:]))
 	switch {
@@ -357,21 +309,6 @@ func (sf *TCPClientProvider) IsConnected() bool {
 	b := sf.conn != nil
 	sf.mu.Unlock()
 	return b
-}
-
-// Caller must hold the mutex before calling this method.
-func (sf *TCPClientProvider) isConnected() bool {
-	return sf.conn != nil
-}
-
-// SetAutoReconnect set auto reconnect  retry count
-func (sf *TCPClientProvider) SetAutoReconnect(cnt byte) {
-	sf.mu.Lock()
-	sf.autoReconnect = cnt
-	if sf.autoReconnect > 6 {
-		sf.autoReconnect = 6
-	}
-	sf.mu.Unlock()
 }
 
 // Caller must hold the mutex before calling this method.
