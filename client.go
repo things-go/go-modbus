@@ -8,13 +8,17 @@ import (
 // check implements Client interface.
 var _ Client = (*client)(nil)
 
+// Option custom option
 type Option func(c *client)
 
+// WithAddressMin set custom address max value, default AddressMin
 func WithAddressMin(v byte) Option {
 	return func(c *client) {
 		c.addressMin = v
 	}
 }
+
+// WithAddressMax set custom address max value, default AddressMax
 func WithAddressMax(v byte) Option {
 	return func(c *client) {
 		c.addressMax = v
