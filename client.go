@@ -382,10 +382,14 @@ func (sf *client) WriteMultipleRegistersBytes(slaveID byte, address, quantity ui
 		return fmt.Errorf("modbus: value length '%v' does not twice as quantity '%v'", len(value), quantity)
 	}
 
-	response, err := sf.Send(slaveID, ProtocolDataUnit{
+	pdu := ProtocolDataUnit{
 		FuncCode: FuncCodeWriteMultipleRegisters,
 		Data:     pduDataBlockSuffix(value, address, quantity),
-	})
+	}
+	if 0 == slaveID {
+		return sf.SendBroadcast(pdu)
+	}
+	response, err := sf.Send(slaveID, pdu)
 
 	switch {
 	case err != nil:
