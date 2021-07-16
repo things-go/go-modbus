@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	BaudRate = 9600
+	BaudRate = 9600 // modbusInterFrameDelay needs that
 )
 
 const (
