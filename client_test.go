@@ -48,17 +48,17 @@ func Test_client_ReadCoils(t *testing.T) {
 		want    []byte
 		wantErr bool
 	}{
-		{"slaveid不在范围1-247", &provider{},
+		{"slaveid Out of range 不在范围1-247", &provider{},
 			args{slaveID: 248}, nil, true},
-		{"Quantity不在范围1-2000", &provider{},
+		{"Quantity Out of range 不在范围1-2000", &provider{},
 			args{slaveID: 1, quantity: 20001}, nil, true},
-		{"返回error", &provider{err: errors.New("error")},
+		{"return 返回 error", &provider{err: errors.New("error")},
 			args{slaveID: 1, quantity: 10}, nil, true},
-		{"返回数据长度不符", &provider{data: []byte{0x02, 0x00, 0x00, 0x00}},
+		{"Return data length does not match 返回数据长度不符", &provider{data: []byte{0x02, 0x00, 0x00, 0x00}},
 			args{slaveID: 1, quantity: 10}, nil, true},
-		{"返回字节与请求数量不符", &provider{data: []byte{0x01, 0x00}},
+		{"The returned bytes do not match the requested number 返回字节与请求数量不符", &provider{data: []byte{0x01, 0x00}},
 			args{slaveID: 1, quantity: 10}, nil, true},
-		{"正确", &provider{data: []byte{0x02, 0x12, 0x34}},
+		{"correct 正确", &provider{data: []byte{0x02, 0x12, 0x34}},
 			args{slaveID: 1, quantity: 10}, []byte{0x12, 0x34}, false},
 	}
 	for _, tt := range tests {
@@ -89,17 +89,17 @@ func Test_client_ReadDiscreteInputs(t *testing.T) {
 		want    []byte
 		wantErr bool
 	}{
-		{"slaveid不在范围1-247", &provider{},
+		{"slaveid Out of range 不在范围1-247", &provider{},
 			args{slaveID: 248}, nil, true},
-		{"Quantity不在范围1-2000", &provider{},
+		{"Quantity Out of range 不在范围1-2000", &provider{},
 			args{slaveID: 1, quantity: 20001}, nil, true},
-		{"返回error", &provider{err: errors.New("error")},
+		{"return 返回 error", &provider{err: errors.New("error")},
 			args{slaveID: 1, quantity: 10}, nil, true},
-		{"返回数据长度不符", &provider{data: []byte{0x01, 0x00, 0x00}},
+		{"Return data length does not match 返回数据长度不符", &provider{data: []byte{0x01, 0x00, 0x00}},
 			args{slaveID: 1, quantity: 10}, nil, true},
-		{"返回字节与请求数量不符", &provider{data: []byte{0x01, 0x00}},
+		{"The returned bytes do not match the requested number 返回字节与请求数量不符", &provider{data: []byte{0x01, 0x00}},
 			args{slaveID: 1, quantity: 10}, nil, true},
-		{"正确", &provider{data: []byte{0x02, 0x12, 0x34}},
+		{"correct 正确", &provider{data: []byte{0x02, 0x12, 0x34}},
 			args{slaveID: 1, quantity: 10}, []byte{0x12, 0x34}, false},
 	}
 	for _, tt := range tests {

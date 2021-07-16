@@ -1,5 +1,6 @@
 package modbus
 
+// This document provides the low-level encapsulation of the register, and it is thread-safe, and the rich api meets the basic needs
 // 本文件提供了寄存器的底层封装,并且是线程安全的,丰富的api满足基本需求
 
 import (
