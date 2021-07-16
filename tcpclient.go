@@ -349,3 +349,7 @@ func (sf *TCPClientProvider) flush(b []byte) (err error) {
 	}
 	return
 }
+
+func (sf *TCPClientProvider) SendBroadcast(request ProtocolDataUnit) error {
+	return nil
+}

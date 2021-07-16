@@ -7,6 +7,10 @@ import (
 	"time"
 )
 
+var (
+	BaudRate = 9600
+)
+
 const (
 	rtuExceptionSize = 5
 )
@@ -64,6 +68,17 @@ func decodeRTUFrame(adu []byte) (uint8, []byte, error) {
 	return adu[0], adu[1 : len(adu)-2], nil
 }
 
+func (sf *RTUClientProvider) SendBroadcast(request ProtocolDataUnit) error {
+	frame := sf.pool.get()
+	defer sf.pool.put(frame)
+
+	aduRequest, err := frame.encodeRTUFrame(0, request)
+	if err != nil {
+		return err
+	}
+	return sf.SendRawFrameBroadcast(aduRequest)
+}
+
 // Send request to the remote server, it implements on SendRawFrame
 func (sf *RTUClientProvider) Send(slaveID byte, request ProtocolDataUnit) (ProtocolDataUnit, error) {
 	var response ProtocolDataUnit
@@ -117,6 +132,25 @@ func (sf *RTUClientProvider) SendPdu(slaveID byte, pduRequest []byte) ([]byte, e
 	}
 	//  PDU pass slaveID & crc
 	return pdu, nil
+}
+
+// SendRawFrameBroadcast send Adu frame
+func (sf *RTUClientProvider) SendRawFrameBroadcast(aduRequest []byte) (err error) {
+	sf.mu.Lock()
+	defer sf.mu.Unlock()
+
+	if err = sf.connect(); err != nil {
+		return
+	}
+
+	// Send the request
+	sf.Debugf("sending [% x]", aduRequest)
+	_, err = sf.port.Write(aduRequest)
+	if err != nil {
+		sf.close()
+	}
+	time.Sleep(modbusInterFrameDelay())
+	return
 }
 
 // SendRawFrame send Adu frame
@@ -238,4 +272,13 @@ func verify(reqSlaveID, rspSlaveID uint8, reqPDU, rspPDU ProtocolDataUnit) error
 		return fmt.Errorf("modbus: response data is empty")
 	}
 	return nil
+}
+
+// https://stackoverflow.com/questions/20740012/calculating-modbus-rtu-3-5-character-time
+func modbusInterFrameDelay() time.Duration {
+	var us = 1 * time.Microsecond
+	if BaudRate > 19200 {
+		return 1750 * us
+	}
+	return 35000000 * us / time.Duration(BaudRate)
 }

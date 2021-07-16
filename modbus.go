@@ -207,6 +207,9 @@ type ClientProvider interface {
 	// SendRawFrame send raw frame to the remote server
 	SendRawFrame(aduRequest []byte) (aduResponse []byte, err error)
 
+	// SendBroadcast sends request to the remote server(s).
+	SendBroadcast(request ProtocolDataUnit) error
+
 	// private interface
 	// setLogProvider set logger provider
 	setLogProvider(p LogProvider)
