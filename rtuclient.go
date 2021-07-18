@@ -149,7 +149,7 @@ func (sf *RTUClientProvider) SendRawFrameBroadcast(aduRequest []byte) (err error
 	if err != nil {
 		sf.close()
 	}
-	time.Sleep(modbusInterFrameDelay())
+	time.Sleep(4 * modbusInterFrameDelay()) // double the time, because for some reason the real distance is smaller than modbusInterFrameDelay()
 	return
 }
 
@@ -280,5 +280,5 @@ func modbusInterFrameDelay() time.Duration {
 	if BaudRate > 19200 {
 		return 1750 * us
 	}
-	return 35000000 * us / time.Duration(BaudRate)
+	return 38500000 * us / time.Duration(BaudRate)
 }
