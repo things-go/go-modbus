@@ -7,10 +7,6 @@ import (
 	"time"
 )
 
-var (
-	BaudRate = 9600 // modbusInterFrameDelay needs that
-)
-
 const (
 	rtuExceptionSize = 5
 )
@@ -149,7 +145,11 @@ func (sf *RTUClientProvider) SendRawFrameBroadcast(aduRequest []byte) (err error
 	if err != nil {
 		sf.close()
 	}
-	time.Sleep(4 * modbusInterFrameDelay()) // double the time, because for some reason the real distance is smaller than modbusInterFrameDelay()
+	// Because broadcasts do not send an answer, this delay prevents a too early next command.
+	// In Windows the serial buffer could send its data more quickly, so this delay must
+	// be significantly more than an inter frame delay to avoid violation of modbus timing rules.
+	// see also // https://stackoverflow.com/questions/20740012/calculating-modbus-rtu-3-5-character-time
+	time.Sleep(20 * time.Millisecond)
 	return
 }
 
@@ -272,13 +272,4 @@ func verify(reqSlaveID, rspSlaveID uint8, reqPDU, rspPDU ProtocolDataUnit) error
 		return fmt.Errorf("modbus: response data is empty")
 	}
 	return nil
-}
-
-// https://stackoverflow.com/questions/20740012/calculating-modbus-rtu-3-5-character-time
-func modbusInterFrameDelay() time.Duration {
-	var us = 1 * time.Microsecond
-	if BaudRate > 19200 {
-		return 1750 * us
-	}
-	return 38500000 * us / time.Duration(BaudRate)
 }
