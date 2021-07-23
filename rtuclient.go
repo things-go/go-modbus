@@ -149,7 +149,13 @@ func (sf *RTUClientProvider) SendRawFrameBroadcast(aduRequest []byte) (err error
 	// In Windows the serial buffer could send its data more quickly, so this delay must
 	// be significantly more than an inter frame delay to avoid violation of modbus timing rules.
 	// see also // https://stackoverflow.com/questions/20740012/calculating-modbus-rtu-3-5-character-time
-	time.Sleep(20 * time.Millisecond)
+
+	// worst case: 11 bit @1200 baud plus interframe delay
+	// 1 byte ^= 916 us -> 1ms
+	// plus 4 ms
+	// better to use sf.serial.Config.BaudRate
+	ms := 4 + len(aduRequest)
+	time.Sleep(time.Duration(ms) * time.Millisecond)
 	return
 }
 
