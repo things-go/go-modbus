@@ -15,7 +15,7 @@ import (
 
 const (
 	// TCPDefaultTimeout TCP Default timeout
-	TCPDefaultTimeout = 1 * time.Second
+	TCPDefaultTimeout = 3 * time.Second
 	// TCPDefaultAutoReconnect TCP Default auto reconnect count
 	TCPDefaultAutoReconnect = 1
 )
@@ -244,9 +244,8 @@ func (sf *TCPClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []byte
 			(err != io.EOF && err == io.ErrClosedPipe) ||
 			strings.Contains(err.Error(), "use of closed network connection") ||
 			(cnt == 0 && err == io.EOF) {
-
+			sf.close()
 		}
-		sf.close()
 		return
 	}
 
@@ -274,7 +273,6 @@ func (sf *TCPClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []byte
 	// Skip unit id
 	length += tcpHeaderMbapSize - 1
 	if _, err = io.ReadFull(sf.conn, data[tcpHeaderMbapSize:length]); err != nil {
-		sf.close()
 		return
 	}
 	aduResponse = data[:length]
