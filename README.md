@@ -32,7 +32,7 @@ Use go get.
     go get github.com/things-go/go-modbus
 ```
 
-Then import the modbus package into your own code.
+Then import the package into your own code.
 ```bash
     import modbus "github.com/things-go/go-modbus"
 ```
@@ -59,7 +59,6 @@ Bit access:
 ### Example
 
 ---
-
 
 modbus RTU/ASCII client see [example](_examples/client_rtu_ascii)
 
