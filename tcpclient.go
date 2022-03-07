@@ -330,7 +330,7 @@ func (sf *TCPClientProvider) Close() (err error) {
 
 func (sf *TCPClientProvider) setSerialConfig(serial.Config) {}
 
-func (sf *TCPClientProvider) setTCPTimeout(t time.Duration) {
+func (sf *TCPClientProvider) SetTCPTimeout(t time.Duration) {
 	sf.timeout = t
 }
 
