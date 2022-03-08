@@ -41,7 +41,7 @@ Then import the package into your own code.
 
 ---
 
-Bit access:
+bit access:
 *   Read Discrete Inputs
 *   Read Coils
 *   Write Single Coil
@@ -188,7 +188,7 @@ func main() {
 - [goburrow](https://github.com/goburrow/modbus)
 
 ### JetBrains OS licenses
-gomodbus had been being developed with GoLand under the free JetBrains Open Source license(s) granted by JetBrains s.r.o., hence I would like to express my thanks here.
+go-modbus had been being developed with GoLand under the free JetBrains Open Source license(s) granted by JetBrains s.r.o., hence I would like to express my thanks here.
 
 <a href="https://www.jetbrains.com/?from=things-go/go-modbus" target="_blank"><img src="https://github.com/thinkgos/thinkgos/blob/master/asserts/jetbrains-variant-4.svg" width="200" align="middle"/></a>
 
