@@ -11,7 +11,7 @@ func (sf *LRC) Reset() *LRC {
 	return sf
 }
 
-// Push push data in sum.
+// Push data in sum.
 func (sf *LRC) Push(data ...byte) *LRC {
 	for _, b := range data {
 		sf.sum += b
