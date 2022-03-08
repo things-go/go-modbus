@@ -331,10 +331,14 @@ func (sf *client) WriteSingleRegister(slaveID byte, address, value uint16) error
 		return fmt.Errorf("modbus: slaveID '%v' must be between '%v' and '%v'",
 			slaveID, AddressBroadCast, sf.addressMax)
 	}
-	response, err := sf.Send(slaveID, ProtocolDataUnit{
+	pdu := ProtocolDataUnit{
 		FuncCode: FuncCodeWriteSingleRegister,
 		Data:     uint162Bytes(address, value),
-	})
+	}
+	if 0 == slaveID {
+		return sf.SendBroadcast(pdu)
+	}
+	response, err := sf.Send(slaveID, pdu)
 
 	switch {
 	case err != nil:
@@ -378,10 +382,14 @@ func (sf *client) WriteMultipleRegistersBytes(slaveID byte, address, quantity ui
 		return fmt.Errorf("modbus: value length '%v' does not twice as quantity '%v'", len(value), quantity)
 	}
 
-	response, err := sf.Send(slaveID, ProtocolDataUnit{
+	pdu := ProtocolDataUnit{
 		FuncCode: FuncCodeWriteMultipleRegisters,
 		Data:     pduDataBlockSuffix(value, address, quantity),
-	})
+	}
+	if 0 == slaveID {
+		return sf.SendBroadcast(pdu)
+	}
+	response, err := sf.Send(slaveID, pdu)
 
 	switch {
 	case err != nil:

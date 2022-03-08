@@ -64,6 +64,17 @@ func decodeRTUFrame(adu []byte) (uint8, []byte, error) {
 	return adu[0], adu[1 : len(adu)-2], nil
 }
 
+func (sf *RTUClientProvider) SendBroadcast(request ProtocolDataUnit) error {
+	frame := sf.pool.get()
+	defer sf.pool.put(frame)
+
+	aduRequest, err := frame.encodeRTUFrame(0, request)
+	if err != nil {
+		return err
+	}
+	return sf.SendRawFrameBroadcast(aduRequest)
+}
+
 // Send request to the remote server, it implements on SendRawFrame
 func (sf *RTUClientProvider) Send(slaveID byte, request ProtocolDataUnit) (ProtocolDataUnit, error) {
 	var response ProtocolDataUnit
@@ -117,6 +128,35 @@ func (sf *RTUClientProvider) SendPdu(slaveID byte, pduRequest []byte) ([]byte, e
 	}
 	//  PDU pass slaveID & crc
 	return pdu, nil
+}
+
+// SendRawFrameBroadcast send Adu frame
+func (sf *RTUClientProvider) SendRawFrameBroadcast(aduRequest []byte) (err error) {
+	sf.mu.Lock()
+	defer sf.mu.Unlock()
+
+	if err = sf.connect(); err != nil {
+		return
+	}
+
+	// Send the request
+	sf.Debugf("sending [% x]", aduRequest)
+	_, err = sf.port.Write(aduRequest)
+	if err != nil {
+		sf.close()
+	}
+	// Because broadcasts do not send an answer, this delay prevents a too early next command.
+	// In Windows the serial buffer could send its data more quickly, so this delay must
+	// be significantly more than an inter frame delay to avoid violation of modbus timing rules.
+	// see also // https://stackoverflow.com/questions/20740012/calculating-modbus-rtu-3-5-character-time
+
+	// worst case: 11 bit @1200 baud plus interframe delay
+	// 1 byte ^= 916 us -> 1ms
+	// plus 4 ms
+	// better to use sf.serial.Config.BaudRate
+	ms := 4 + len(aduRequest)
+	time.Sleep(time.Duration(ms) * time.Millisecond)
+	return
 }
 
 // SendRawFrame send Adu frame

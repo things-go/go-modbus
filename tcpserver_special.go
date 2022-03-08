@@ -37,19 +37,19 @@ type OnKeepAliveHandler func(c *TCPServerSpecial)
 // TCPServerSpecial modbus tcp server special
 type TCPServerSpecial struct {
 	ServerSession
-	server    *url.URL // 连接的服务器端
+	server    *url.URL // Server side of the connection 连接的服务器端
 	TLSConfig *tls.Config
 	rwMux     sync.RWMutex
-	status    uint32 // 状态
+	status    uint32 // status 状态
 
-	autoReconnect     bool                    // 是否启动重连
-	enableKeepAlive   bool                    // 是否使能心跳包
-	connectTimeout    time.Duration           // 连接超时时间
-	reconnectInterval time.Duration           // 重连间隔时间
-	keepAliveInterval time.Duration           // 心跳包间隔
-	onConnect         OnConnectHandler        // 连接回调
-	onConnectionLost  OnConnectionLostHandler // 失连回调
-	onKeepAlive       OnKeepAliveHandler      // 保活函数
+	autoReconnect     bool                    // Whether to start reconnection 是否启动重连
+	enableKeepAlive   bool                    // Whether to enable the heartbeat packet	是否使能心跳包
+	connectTimeout    time.Duration           // Connection timeout 连接超时时间
+	reconnectInterval time.Duration           // Reconnection interval 重连间隔时间
+	keepAliveInterval time.Duration           // Heartbeat interval 心跳包间隔
+	onConnect         OnConnectHandler        // Connection callback 连接回调
+	onConnectionLost  OnConnectionLostHandler // Lost connection callback 失连回调
+	onKeepAlive       OnKeepAliveHandler      // Keep-alive function 保活函数
 	cancel            context.CancelFunc      // cancel
 }
 
@@ -170,7 +170,7 @@ func (sf *TCPServerSpecial) Start() error {
 	return nil
 }
 
-// 增加间隔
+// Increase interval 增加间隔
 func (sf *TCPServerSpecial) run() {
 	var ctx context.Context
 
@@ -237,6 +237,7 @@ func (sf *TCPServerSpecial) run() {
 		case <-ctx.Done():
 			return
 		default:
+			// Random retry of 500ms-1s to avoid many invalid connections caused by fast retry
 			// 随机500ms-1s的重试，避免快速重试造成服务器许多无效连接
 			time.Sleep(time.Millisecond * time.Duration(500+rand.Intn(500)))
 		}

@@ -203,3 +203,7 @@ func (sf *ASCIIClientProvider) SendRawFrame(aduRequest []byte) (aduResponse []by
 	sf.Debugf("received [% x]", aduResponse)
 	return aduResponse, nil
 }
+
+func (sf *ASCIIClientProvider) SendBroadcast(request ProtocolDataUnit) error {
+	return nil
+}
