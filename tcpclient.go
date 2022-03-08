@@ -15,7 +15,7 @@ import (
 
 const (
 	// TCPDefaultTimeout TCP Default timeout
-	TCPDefaultTimeout = 1 * time.Second
+	TCPDefaultTimeout = 3 * time.Second
 	// TCPDefaultAutoReconnect TCP Default auto reconnect count
 	TCPDefaultAutoReconnect = 1
 )
