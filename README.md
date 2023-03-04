@@ -1,5 +1,6 @@
 # go modbus
-
+## NOTE: Archived, not maintain.
+## NOTE: 已归档, 不再维护, 放弃License. 有需要的可以自由分发
 modbus write in pure go, support rtu,ascii,tcp master library,also support tcp slave.
 
 [![GoDoc](https://godoc.org/github.com/things-go/go-modbus?status.svg)](https://godoc.org/github.com/things-go/go-modbus)
